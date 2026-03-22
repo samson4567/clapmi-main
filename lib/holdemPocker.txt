@@ -1,0 +1,10 @@
+firebase login:add clapmi44@gmail.com
+
+# after prompting
+flutter pub add firebase_core
+
+# Install the CLI if not already done so
+dart pub global activate flutterfire_cli
+
+# Run the `configure` command, select a Firebase project and platforms
+flutterfire configure --account a@gmail.com

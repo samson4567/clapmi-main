@@ -1,0 +1,725 @@
+import 'dart:async';
+import 'dart:convert';
+//import 'dart:io';
+import 'package:clapmi/core/api/clapmi_network_client.dart';
+import 'package:clapmi/core/app_variables.dart';
+import 'package:clapmi/core/constants/endpoint_constant.dart';
+import 'package:clapmi/core/db/app_preference_service.dart';
+import 'package:clapmi/core/security/secure_key.dart';
+import 'package:clapmi/core/services/enum/connection_state.dart';
+import 'package:clapmi/core/services/enum/subscription_state.dart';
+import 'package:clapmi/features/authentication/data/models/token_model.dart';
+import 'package:clapmi/features/chats_and_socials/data/models/chat_user_model.dart';
+import 'package:clapmi/features/chats_and_socials/data/models/clap_request_model.dart';
+import 'package:clapmi/features/chats_and_socials/data/models/live_reactions_model.dart';
+import 'package:clapmi/features/chats_and_socials/data/models/message_model.dart';
+import 'package:clapmi/features/chats_and_socials/data/models/user_model.dart';
+import 'package:clapmi/features/chats_and_socials/domain/entities/clap_request_entity.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+
+typedef EventCallback = void Function(Map<String, dynamic> data);
+
+abstract class ChatsAndSocialsRemoteDatasource {
+  Future<List<ClapRequestEntity>> getClapRequests();
+  Future<String> sendClapRequestToUsers({required String userPids});
+  Future<String> acceptClapRequests({required String requestID});
+  Future<String> rejectClapRequests({required String requestID});
+  Future<List<UserNearLocationEntity>> getUsersNearLocation();
+  Future<void> connectToSocket();
+  Stream<dynamic> listeningToSocket();
+  Future<void> sendOrReplyMessage({
+    required String message,
+    String? senderId,
+    String? conversationId,
+    String? parentMessageId,
+  });
+  Future<void> disconnect();
+  Future<List<MessageEntityModel>> fetchChatMessages(
+      {required String conversationId});
+
+  Future<List<ChatUserDataModel>> getPeopleChattedWith();
+  Future<void> authorizeAndSubScribetoChat(
+      {required String conversationId, required bool isLiveComboSubscription});
+  Future<void> postInteractions();
+  Future<void> readMessage(
+      {required String conversationId, required String messageId});
+  Future<List<ChatUserModel>> getClappers();
+  Future<String> initiateConversation({required String userPid});
+
+  Future<void> commentComboGround(
+      {required String comment,
+      required String userPid,
+      required String username,
+      required String comboId,
+      String? avatar});
+
+  Future<void> giftInComboGround(
+      {required String userPid,
+      required String username,
+      required String comboId,
+      required int amount,
+      required String target,
+      required String receiverId,
+      String? avatar});
+
+  Future<void> clapInComboGround(
+      {required String userPid,
+      required String username,
+      required String comboId,
+      String? avatar});
+}
+
+class ChatsAndSocialsRemoteDatasourceImpl
+    implements ChatsAndSocialsRemoteDatasource {
+  ChatsAndSocialsRemoteDatasourceImpl({
+    required this.networkClient,
+    required this.appPreferenceService,
+    required this.dio,
+  })  : _stateController = StreamController<SubscriptionState>.broadcast(),
+        _connectionStateController =
+            StreamController<WebSocketConnectionState>.broadcast(),
+        state = SubscriptionState.unsubscribed,
+        socketStream = StreamController<dynamic>.broadcast(),
+        _errorController = StreamController.broadcast(),
+        _heartbeatInterval = Duration(seconds: 30),
+        _connectionTimeout = Duration(seconds: 10);
+  final AppPreferenceService appPreferenceService;
+  final StreamController<SubscriptionState> _stateController;
+  final StreamController<WebSocketConnectionState> _connectionStateController;
+  final StreamController<String> _errorController;
+  final ClapMiNetworkClient networkClient;
+  final Map<String, dynamic> _subscriptions = {};
+  final Map<String, Completer<bool>> _pendingSubscriptions = {};
+  final Map<String, Completer<bool>> _pendingUnsubscriptions = {};
+  final Dio dio;
+  final StreamController socketStream;
+  WebSocket? _socket;
+  String? accessTokenSaved;
+  String? receiverIdSaved;
+  SubscriptionState state;
+  Timer? _heartbeatTimer;
+  String? _currentChannelId;
+  Timer? _reconnectTimer;
+  Timer? _connectionTimeoutTimer;
+  Duration _heartbeatInterval;
+  Duration? _reconnectTimerInterval;
+  Duration _connectionTimeout;
+  int _currentReconnectAttempts = 0;
+
+  WebSocketConnectionState _connectionState =
+      WebSocketConnectionState.disconnected;
+  Stream<WebSocketConnectionState> get connectionStateStream =>
+      _connectionStateController.stream;
+
+  WebSocketConnectionState get connectionState => _connectionState;
+
+  //TODO: Send event should be harmonized
+
+  //**THIS IS TO UPDATE THE CONNECTION STATES */
+  void updateState(SubscriptionState newState) {
+    state = newState;
+    _stateController.add(newState);
+  }
+
+//**HANDLE CONNECTION STATES OF THE WEBSOCKET */
+  void _updateConnectionState(WebSocketConnectionState state) {
+    _connectionState = state;
+    _connectionStateController.add(state);
+  }
+
+  //**Function to send Event to the websocket */
+  void _sendEvent(Map<String, dynamic> message) {
+    if (_connectionState == WebSocketConnectionState.connected &&
+        _socket?.readyState == WebSocket.open) {
+      try {
+        _socket?.add(jsonEncode(message));
+      } catch (e) {
+        _errorController.add('Failed to send message: $e');
+      }
+    } else {
+      _errorController.add('Cannot send message: not connected');
+    }
+  }
+
+  void _startHeartBeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = Timer.periodic(_heartbeatInterval, (timer) {
+      if (_connectionState == WebSocketConnectionState.connected) {
+        _sendEvent({'type': 'ping'});
+      }
+    });
+  }
+
+  void resetHeartbeat() {
+    _startHeartBeat();
+  }
+
+  void _scheduleReconnect() {
+    if (_connectionState == WebSocketConnectionState.reconnecting) return;
+  }
+
+//**ESTABLISH CONNECTION */
+  Future<void> _establishConnection() async {
+    try {
+      _connectionTimeoutTimer = Timer(_connectionTimeout, () {
+        _handleConnectionTimeout();
+      });
+      final loginToken =
+          appPreferenceService.getValue<String>(SecureKey.loginAuthTokenKey);
+      final authToken = TokenModel.deserialize(loginToken ?? '');
+      globalAccessToken = authToken.accessToken;
+      _socket = await WebSocket.connect(
+          'wss://bvcf589ijbnmk87.clapmi.com/ws/app/bhui87tygji987tyg',
+          // 'wss://ws.clapmi.com/ws/app/bhui87tygji987tyg',
+          headers: {
+            'Authorization': authToken.accessToken,
+          });
+      _connectionTimeoutTimer?.cancel();
+      _updateConnectionState(WebSocketConnectionState.connected);
+      _currentReconnectAttempts = 0;
+      //Setting up listener from the bloc side.
+      _startHeartBeat();
+      _resubscribeToChannels();
+    } catch (e) {
+      _connectionTimeoutTimer?.cancel();
+      _handleConnectionError('Connection failed: $e');
+      _scheduleReconnect();
+    }
+  }
+
+  @override
+  Future<void> connectToSocket() async {
+    //**IF THE CONNECTION STATE IS CONNECTING OR CONNECTED THEN THERE IS NO NEED TO CONNECT AGAIN */
+    if (_connectionState == WebSocketConnectionState.connecting ||
+        _connectionState == WebSocketConnectionState.connected) {
+      return;
+    }
+    _updateConnectionState(WebSocketConnectionState.connecting);
+    _currentReconnectAttempts = 0;
+    await _establishConnection();
+  }
+
+  //**subscribe to channel */
+  Future<bool> subscribeToChannelId(String channelId) async {
+    if (_connectionState != WebSocketConnectionState.connected) {
+      throw Exception('Not Connected to Websocket');
+    }
+    //Check if already subscribed or subscribing
+    final existingSubscription = _subscriptions[channelId];
+    if (existingSubscription != null) {
+      _currentChannelId = channelId;
+      return true;
+    } else if (state == SubscriptionState.subscribing) {
+      final completer = _pendingSubscriptions[channelId];
+      if (completer != null) {
+        final result = await completer.future;
+        if (result) _currentChannelId = channelId;
+        return result;
+      }
+    }
+
+    //Create new subscription
+    _subscriptions[channelId] = channelId;
+    updateState(SubscriptionState.subscribing);
+    final completer = Completer<bool>();
+    _pendingSubscriptions[channelId] = completer;
+
+    //Sending subscription message to the websocket.
+    //**example for subscribing to private chats */
+    _sendEvent({
+      'event': 'pusher:subscribe',
+      'data': {
+        'channel': 'private-chat.$channelId',
+        'auth': authToken,
+      },
+    });
+
+    //Set timeout for subscription
+    Timer(Duration(seconds: 10), () {
+      if (!completer.isCompleted) {
+        completer.complete(false);
+        updateState(SubscriptionState.unsubscribed);
+        _errorController.add('Subscription timeout for channel: $channelId');
+      }
+    });
+
+    final result = await completer.future;
+    if (result) {
+      _currentChannelId = channelId;
+    }
+    return result;
+  }
+
+  //**reSubscribe to channels */
+  Future<void> _resubscribeToChannels() async {}
+
+  //So I need to get the conversation_id from the screen...
+  //That is the chatPage
+  @override
+  Future<void> authorizeAndSubScribetoChat({
+    required String conversationId,
+    required bool isLiveComboSubscription,
+  }) async {
+    try {
+      final response = await dio.post('https://ws.clapmi.com/broadcasting/auth',
+          options: Options(
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': globalAccessToken,
+            },
+          ),
+          data: {
+            'socket_id': socketId,
+            'channel_name': isLiveComboSubscription
+                ? 'private-combo-ground.$conversationId'
+                : 'private-chat.$conversationId',
+          });
+
+      if (response.statusCode == 200) {
+        final result = response.data['auth'];
+
+        if (isLiveComboSubscription) {
+          print('LIVECOMBO SUBSCRIPTION HERE OOOOOOOOOOOOOOO------');
+          subscribeToLiveCombo(authToken: result, uuid: conversationId);
+        } else {
+          subscribeToChannel(authToken: result, conversationId: conversationId);
+        }
+      }
+    } catch (e) {
+      print(
+          'Printing error of the subscription $e -----------------!!!!!!!!!!!!!!');
+    }
+  }
+
+  void subscribeToPostClappChannel() {
+    if (socket == null) return;
+    final subscribeMessage = {
+      'event': 'pusher:subscribe',
+      'data': {
+        'channel': 'post-clapped-reaction',
+      },
+    };
+    socket?.add(jsonEncode(subscribeMessage));
+    print('Subscribed to post reaction channel');
+  }
+
+  void subscribeToCommentChannel() {
+    if (socket == null) return;
+    final subscribeMessage = {
+      'event': 'pusher:subscribe',
+      'data': {'channel': 'post-commented'}
+    };
+    socket?.add(jsonEncode(subscribeMessage));
+  }
+
+  void subscribeToPostShared() {
+    if (socket == null) return;
+    final subscribeMesage = {
+      'event': 'pusher:subscribe',
+      'data': {'channel': 'post-shared'}
+    };
+    socket?.add(jsonEncode(subscribeMesage));
+  }
+
+  void subscribeToLiveCombo({required String authToken, required String uuid}) {
+    print('THESE ARE THE DAYS OF SUBSCRIBED THERE ----------');
+    if (socket == null) return;
+    final subscribeMessage = {
+      'event': 'pusher:subscribe',
+      'data': {
+        'channel': 'private-combo-ground.$uuid',
+        'auth': authToken,
+      },
+    };
+    socket?.add(jsonEncode(subscribeMessage));
+  }
+
+  void subscribeToChannel(
+      {required String? authToken, required String conversationId}) {
+    if (socket == null) return;
+    print('$authToken');
+    final subscribeMessage = {
+      'event': 'pusher:subscribe',
+      'data': {
+        'channel': 'private-chat.$conversationId',
+        'auth': authToken,
+      },
+    };
+    socket?.add(jsonEncode(subscribeMessage));
+    print('📨 Subscribed to channel:');
+  }
+
+  @override
+  Future<void> postInteractions() async {
+    try {
+      subscribeToPostClappChannel();
+      subscribeToCommentChannel();
+      subscribeToPostShared();
+    } catch (e) {
+      print('Failed to subscribe to all of them .....');
+    }
+  }
+
+//When the stuff is connected, I think I need to return the socket_Id
+//Or save the socket_Id as a global variable and then access it from that point.
+  @override
+  Stream<dynamic> listeningToSocket()
+  //=>  socket!.asBroadcastStream();
+  {
+    socket?.listen(
+        (data) {
+          print(
+              '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ${data}');
+          Map<String, dynamic> dataDecoded =
+              jsonDecode(data) as Map<String, dynamic>;
+          if (dataDecoded['event'] == 'pusher:connection_established') {
+            final connectionData =
+                jsonDecode(dataDecoded['data']) as Map<String, dynamic>;
+            socketId = connectionData['socket_id'];
+            socketStream.add({"data": 'connected'});
+            return;
+          }
+          //Event to listen to when Message is sent
+          if (dataDecoded['event'] == 'MessageStatus') {
+            final connectionData =
+                jsonDecode(dataDecoded['data']) as Map<String, dynamic>;
+            print('This is the connectionData $connectionData');
+            final String message = connectionData['data'];
+            //['message'];
+            //ADD THIS MESSAGE TO THE STREAMCONTROLLER WHICH IS GOING TO THE SCREEN.
+            socketStream.add({
+              "data": message,
+            });
+            return;
+          }
+          //Event to listen to when message is sent by the User and echo it back.
+          if (dataDecoded['event'] == 'message.saved') {
+            final connectionData =
+                jsonDecode(dataDecoded['data']) as Map<String, dynamic>;
+            final message = connectionData['data'];
+            socketStream.add({"data": message});
+            return;
+          }
+
+          if (dataDecoded['event'] ==
+              '"pusher_internal:subscription_succeeded') {
+            socketStream.add({"data": 'subscribed'});
+          }
+          // if(dataDecoded['event'] == 'MessageRead') {
+          //   final connectionData = jsonDecode(dataDecoded['data']) as Map<String, dynamic>;
+          //   final message = connectionData['data'];
+
+          //   return;
+
+          // }
+
+          //**WHEN EVENT IS POSTCLAPPREACTION */
+          if (dataDecoded['event'] == 'PostClappedReaction') {
+            final connectionData =
+                PostClappReactionModel.fromJson(dataDecoded['data']);
+            socketStream
+                .add({"event": dataDecoded['event'], "data": connectionData});
+          }
+
+          //**WHEN THE EVENT IS POST SHARED */
+          if (dataDecoded['event'] == 'PostShared') {
+            final connectionData =
+                PostSharedReactionModel.fromJson(dataDecoded['data']);
+            socketStream
+                .add({'event': dataDecoded['event'], "data": connectionData});
+          }
+
+          //**WHEN THE EVENT IS POST COMMENTED */
+          if (dataDecoded['event'] == 'PostCommented') {
+            final connectionData =
+                PostCommentLiveReactionModel.fromJson(dataDecoded['data']);
+            socketStream
+                .add({"event": dataDecoded['event'], "data": connectionData});
+          }
+
+          //**WHEN THE LIVE INTERACTION IS COMMENTEDINCOMBOGROUND */
+          if (dataDecoded['event'] == 'CommentedInComboGround') {
+            final connectionData =
+                LiveGroundCommentModel.fromJson(dataDecoded['data']);
+            socketStream
+                .add({"event": dataDecoded['event'], 'data': connectionData});
+          }
+          if (dataDecoded['event'] == 'ClappedInComboGround') {
+            final connectionData =
+                LiveGroundCommentModel.fromJson(dataDecoded['data']);
+            socketStream
+                .add({'event': dataDecoded['event'], 'data': connectionData});
+          }
+          if (dataDecoded['event'] == 'ComboGroundJoined') {
+            final connectionData =
+                LiveGroundCommentModel.fromJson(dataDecoded['data']);
+            socketStream
+                .add({'event': dataDecoded['event'], 'data': connectionData});
+          }
+        },
+        onError: (error) {},
+        onDone: () async {
+          socket?.close();
+          socketStream.add({"data": 'Reconnecting...'});
+          // socket?.add(jsonEncode({'type': 'ping'}));
+          // await connectToSocket();
+          print("The connection is closed");
+        });
+    return socketStream.stream;
+  }
+
+  @override
+  Future<void> sendOrReplyMessage({
+    required String message,
+    String? senderId,
+    String? conversationId,
+    String? parentMessageId,
+  }) async {
+    if (socket == null) {
+      print('❌ Not connected to WebSocket server');
+      return;
+    }
+    final messageData = {
+      'event': 'MessageSent',
+      'channel': 'private-chat.$conversationId',
+      'data': {
+        'conversation_id': conversationId,
+        'sender': senderId,
+        'message': message,
+        'reply_to': parentMessageId == null ? parentMessageId : '',
+      },
+    };
+    socket?.add(jsonEncode(messageData));
+    print('📤 Sent message: $messageData');
+  }
+
+  @override
+  Future<void> commentComboGround(
+      {required String comment,
+      required String userPid,
+      required String username,
+      required String comboId,
+      String? avatar}) async {
+    if (socket == null) {
+      print('❌ Not connected to WebSocket server');
+      return;
+    }
+    final commentPayload = {
+      'event': 'CommentInComboGround',
+      'channel': 'private-combo-ground.$comboId',
+      'data': {
+        'message': comment,
+        'user': userPid,
+        'username': username,
+        'avatar': avatar,
+      }
+    };
+    socket?.add(jsonEncode(commentPayload));
+    print('📤 Sent Live Comment: $commentPayload');
+  }
+
+  @override
+  Future<void> clapInComboGround(
+      {required String userPid,
+      required String username,
+      required String comboId,
+      String? avatar}) async {
+    if (socket == null) {
+      print('❌ Not connected to WebSocket server');
+      return;
+    }
+    final clapPayload = {
+      'event': 'ClapInComboGround',
+      'channel': 'private-combo-ground.$comboId',
+      'data': {
+        'user': userPid,
+        'username': username,
+        'avatar': avatar,
+      }
+    };
+    socket?.add(jsonEncode(clapPayload));
+    print('📤 clap Live: $clapPayload');
+  }
+
+  @override
+  Future<void> giftInComboGround(
+      {required String userPid,
+      required String username,
+      required String comboId,
+      required int amount,
+      required String target,
+      required String receiverId,
+      String? avatar}) async {
+    if (socket == null) {
+      print('❌ Not connected to WebSocket server');
+      return;
+    }
+    final giftPayload = {
+      'event': 'GiftingInComboGround',
+      'channel': 'private-combo-ground.$comboId',
+      'data': {
+        'sender': {
+          'user': userPid,
+          'username': username,
+          'avatar': avatar,
+        },
+        'receiver': receiverId,
+        'amount': amount,
+        'target': target
+      }
+    };
+    socket?.add(jsonEncode(giftPayload));
+    print('📤 giftCombo: $giftPayload');
+  }
+
+  @override
+  Future<void> disconnect() async {
+    //  socket?.close();
+    socketStream.close();
+    print('🔌 Disconnected from WebSocket server');
+  }
+
+  @override
+  Future<List<MessageEntityModel>> fetchChatMessages(
+      {required String conversationId}) async {
+    // print(
+    //     '--------------------------------------------------------------------This is the conversation ID Being sent $conversationId');
+    final response = await networkClient.get(
+        endpoint: EndpointConstant.fetchChatMessages,
+        isAuthHeaderRequired: true,
+        params: {
+          "conversation": conversationId,
+        });
+    final result = (response.data['messages'] as List)
+        .map((e) => MessageEntityModel.fromMap(e))
+        .toList();
+    // print('----------tHIS IS THE MESSAGE RESULT $result');
+    return result;
+  }
+
+  @override
+  Future<List<ChatUserDataModel>> getPeopleChattedWith() async {
+    final response = await networkClient.get(
+        endpoint: EndpointConstant.chatFriends, isAuthHeaderRequired: true);
+
+    final result = (response.data as List)
+        .map((e) => ChatUserDataModel.fromMap(e))
+        .toList();
+    return result;
+  }
+
+  @override
+  Future<void> readMessage(
+      {required String conversationId, required String messageId}) async {
+    if (socket == null) {
+      print('❌ Not connected to WebSocket server');
+      return;
+    }
+    final messageReadPayload = {
+      'event': 'MessageRead',
+      'channel': 'private-chat.$conversationId',
+      'data': {
+        'conversation_id': conversationId,
+        "uuid": messageId,
+      },
+    };
+    socket?.add(jsonEncode(messageReadPayload));
+    print('📤 Message Read: $conversationId');
+  }
+
+  @override
+  Future<List<ChatUserModel>> getClappers() async {
+    final response = await networkClient.get(
+        endpoint: EndpointConstant.clappers, isAuthHeaderRequired: true);
+    final result = (response.data['clappers'] as List)
+        .map((e) => ChatUserModel.fromMap(e))
+        .toList();
+    return result;
+  }
+
+  @override
+  Future<String> initiateConversation({required String userPid}) async {
+    final response = await networkClient.post(
+        endpoint: EndpointConstant.createConversation,
+        isAuthHeaderRequired: true,
+        params: {
+          'partner': userPid,
+        });
+    final result = response.data['conversation_id'] as String;
+    return result;
+  }
+
+  @override
+  Future<String> sendClapRequestToUsers({required String userPids}) async {
+    final response = await networkClient.post(
+      endpoint: EndpointConstant.sendClapRequests,
+      isAuthHeaderRequired: true,
+      data: {
+        "users": [userPids]
+      },
+      options: Options(),
+    );
+    return response.message;
+  }
+
+  @override
+  Future<List<ClapRequestEntity>> getClapRequests() async {
+    final response = await networkClient.get(
+        endpoint: EndpointConstant.clapRequest, isAuthHeaderRequired: true);
+
+    print(response.data);
+
+    final result = (response.data['clap_requests'] as List)
+        .map(
+          (e) => ClapRequestModel.fromJson(e),
+        )
+        .toList();
+    print(
+        'This is the response from ............................................................. ${result.first.senderName}');
+    return result;
+  }
+
+  @override
+  Future<String> acceptClapRequests({required String requestID}) async {
+    print("This is the accept clap request in $requestID");
+    final response = await networkClient.post(
+      endpoint: EndpointConstant.acceptClapRequest,
+      isAuthHeaderRequired: true,
+      data: {
+        "request": requestID,
+      },
+    );
+    // print("This is the response coming from accept clap request");
+    return response.message;
+  }
+
+  @override
+  Future<String> rejectClapRequests({required String requestID}) async {
+    final response = await networkClient.post(
+      endpoint: EndpointConstant.rejectClapRequest,
+      isAuthHeaderRequired: true,
+      data: {
+        "request": requestID,
+      },
+    );
+    return response.message;
+  }
+
+  @override
+  Future<List<UserNearLocationEntity>> getUsersNearLocation() async {
+    try {
+      final response = await networkClient.get(
+        endpoint: EndpointConstant.getPeopleNearMe,
+        isAuthHeaderRequired: true,
+      );
+      List resultList = response.data['users'];
+      List<UserNearLocationEntity> result = resultList
+          .map((user) => UserNearLocationEntity.fromMap(user))
+          .toList();
+      return result;
+    } catch (e) {
+      throw Exception('An error occured ${e.toString()}');
+    }
+  }
+}

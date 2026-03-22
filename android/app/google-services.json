@@ -1,0 +1,90 @@
+{
+  "project_info": {
+    "project_number": "945192510236",
+    "project_id": "clapmi-b6206",
+    "storage_bucket": "clapmi-b6206.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:945192510236:android:134637387c1cca546d50d9",
+        "android_client_info": {
+          "package_name": "com.clapmi.mvp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "945192510236-4v4tc3r260cfajtp31bu5m3clgcti2sd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUpGQX_z8j9KJCs_A-CCbpSQSeRAYD5sY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "945192510236-4v4tc3r260cfajtp31bu5m3clgcti2sd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "945192510236-j448cf7nlaq53uer98u4r4s5tr42das4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.clapmi123.com"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:945192510236:android:ecb2074343ddd58f6d50d9",
+        "android_client_info": {
+          "package_name": "com.maxcotech.clapmi"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "945192510236-4admqbl5lgh4ub0hcegbrhf5g8e6mqmm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.maxcotech.clapmi",
+            "certificate_hash": "27eaf40871ed22a2a58103ac3e82c498fc2a213d"
+          }
+        },
+        {
+          "client_id": "945192510236-4v4tc3r260cfajtp31bu5m3clgcti2sd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUpGQX_z8j9KJCs_A-CCbpSQSeRAYD5sY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "945192510236-4v4tc3r260cfajtp31bu5m3clgcti2sd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "945192510236-j448cf7nlaq53uer98u4r4s5tr42das4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.clapmi123.com"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

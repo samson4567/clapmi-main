@@ -1,0 +1,200 @@
+import UIKit
+import Flutter
+import flutter_local_notifications
+import ReplayKit
+import FirebaseCore
+import FirebaseMessaging
+import AVFoundation
+import OSLog
+
+let appDelegateLogger = OSLog(subsystem: "com.clapmi123.app", category: "AppDelegate")
+
+@main
+@objc class AppDelegate: FlutterAppDelegate {
+
+    private var screenCaptureChannel: FlutterMethodChannel?
+
+    override func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
+        // This is required to make any communication available in the action isolate.
+        FlutterLocalNotificationsPlugin.setPluginRegistrantCallback { (registry) in
+            GeneratedPluginRegistrant.register(with: registry)
+        }
+
+        if #available(iOS 10.0, *) {
+            UNUserNotificationCenter.current().delegate = self as UNUserNotificationCenterDelegate
+        }
+
+        // Setup Firebase Messaging for iOS
+        FirebaseApp.configure()
+        Messaging.messaging().delegate = self
+        
+        // Register for remote notifications
+        application.registerForRemoteNotifications()
+
+        // Setup screen capture MethodChannel
+        setupScreenCaptureChannel()
+
+        GeneratedPluginRegistrant.register(with: self)
+        return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    }
+
+    // Handle device token for Firebase Cloud Messaging
+    override func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
+        let token = tokenParts.joined()
+        print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.didRegisterForRemoteNotificationsWithDeviceToken() - Device Token: \(token)")
+        
+        // Pass token to Firebase Messaging
+        Messaging.messaging().apnsToken = deviceToken
+    }
+
+    override func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.didFailToRegisterForRemoteNotificationsWithError() - Failed: \(error.localizedDescription)")
+    }
+
+    private func setupScreenCaptureChannel() {
+        os_log(.debug, log: appDelegateLogger, "dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - Setting up screen capture channel")
+        print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - Setting up screen capture channel")
+        
+        // Debug: Check if Info.plist has the RTCScreenSharingExtension key
+        if let extBundleID = Bundle.main.object(forInfoDictionaryKey: "RTCScreenSharingExtension") as? String {
+            os_log(.debug, log: appDelegateLogger, "dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - RTCScreenSharingExtension from Info.plist: %{public}@", extBundleID)
+            print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - RTCScreenSharingExtension from Info.plist: \(extBundleID)")
+        } else {
+            os_log(.debug, log: appDelegateLogger, "dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - WARNING: RTCScreenSharingExtension NOT found in Info.plist")
+            print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - WARNING: RTCScreenSharingExtension NOT found in Info.plist")
+        }
+        
+        if let appGroupID = Bundle.main.object(forInfoDictionaryKey: "RTCAppGroupIdentifier") as? String {
+            os_log(.debug, log: appDelegateLogger, "dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - RTCAppGroupIdentifier from Info.plist: %{public}@", appGroupID)
+            print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - RTCAppGroupIdentifier from Info.plist: \(appGroupID)")
+        } else {
+            os_log(.debug, log: appDelegateLogger, "dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - WARNING: RTCAppGroupIdentifier NOT found in Info.plist")
+            print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - WARNING: RTCAppGroupIdentifier NOT found in Info.plist")
+        }
+        
+        guard let controller = window?.rootViewController as? FlutterViewController else {
+            print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - FAILED: controller is nil")
+            return
+        }
+        print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - controller found")
+
+        screenCaptureChannel = FlutterMethodChannel(
+            name: "com.clapmi.mvp/screen_capture",
+            binaryMessenger: controller.binaryMessenger
+        )
+        print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - channel created: com.clapmi.mvp/screen_capture")
+
+        screenCaptureChannel?.setMethodCallHandler { [weak self] (call, result) in
+            print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - Method call received: \(call.method)")
+            switch call.method {
+            case "startScreenCapture":
+                print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - startScreenCapture called")
+                // For iOS, the actual screen capture is handled by the stream_video_screen_sharing plugin
+                // via getDisplayMedia. The extension is configured in Info.plist with RPUIApplicationRequiredMode
+                // to allow full screen capture.
+                self?.handleStartScreenCapture(result: result)
+
+            case "stopScreenCapture":
+                print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - stopScreenCapture called")
+                self?.handleStopScreenCapture(result: result)
+
+            case "showBroadcastPicker":
+                print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - showBroadcastPicker called")
+                self?.handleShowBroadcastPicker(result: result)
+
+            case "isServiceRunning":
+                print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - isServiceRunning called")
+                self?.handleIsServiceRunning(result: result)
+
+            default:
+                print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - Unknown method: \(call.method)")
+                result(FlutterMethodNotImplemented)
+            }
+        }
+        print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.setupScreenCaptureChannel() - Method handler set")
+    }
+
+    private func handleStartScreenCapture(result: @escaping FlutterResult) {
+        print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.handleStartScreenCapture() - Checking broadcast extension availability")
+        // Check if broadcast extension is available
+        if #available(iOS 15.0, *) {
+            let isAvailable = true
+            print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.handleStartScreenCapture() - iOS 15+, isAvailable: \(isAvailable)")
+            result(isAvailable)
+        } else {
+            print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.handleStartScreenCapture() - iOS version < 15, returning error")
+            result(FlutterError(
+                code: "UNSUPPORTED_IOS_VERSION",
+                message: "Screen sharing requires iOS 15.0 or later",
+                details: nil
+            ))
+        }
+    }
+
+    private func handleStopScreenCapture(result: @escaping FlutterResult) {
+        print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.handleStopScreenCapture() - Stopping screen capture")
+        result(true)
+    }
+
+    private func handleIsServiceRunning(result: @escaping FlutterResult) {
+        print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.handleIsServiceRunning() - Checking if service is running")
+        result(false)
+    }
+    
+    private func handleShowBroadcastPicker(result: @escaping FlutterResult) {
+        print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.handleShowBroadcastPicker() - Showing broadcast picker")
+        
+        if #available(iOS 12.0, *) {
+            // Use RPSystemBroadcastPickerView to show the broadcast picker
+            guard let window = self.window else {
+                print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.handleShowBroadcastPicker() - Window is nil")
+                result(false)
+                return
+            }
+            
+            let picker = RPSystemBroadcastPickerView(frame: CGRect(x: 0, y: 0, width: 44, height: 44))
+            picker.preferredExtension = "com.clapmi123.app.ClapmiIosScreenshare"
+            picker.showsMicrophoneButton = false
+            picker.isHidden = true // Hide it, we just want to trigger it
+            
+            // Add to window temporarily
+            window.addSubview(picker)
+            
+            // Programmatically trigger the picker
+            DispatchQueue.main.async {
+                for subview in picker.subviews {
+                    if let button = subview as? UIButton {
+                        button.sendActions(for: .touchUpInside)
+                        print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.handleShowBroadcastPicker() - Picker triggered")
+                    }
+                }
+                // Remove after triggering
+                picker.removeFromSuperview()
+            }
+            
+            result(true)
+        } else {
+            print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.handleShowBroadcastPicker() - iOS < 12 not supported")
+            result(FlutterError(
+                code: "UNSUPPORTED_IOS_VERSION",
+                message: "Broadcast picker requires iOS 12.0 or later",
+                details: nil
+            ))
+        }
+    }
+}
+
+func registerPlugins(registry: FlutterPluginRegistry) {
+    GeneratedPluginRegistrant.register(with: registry)
+}
+
+// Firebase Messaging Delegate
+extension AppDelegate: MessagingDelegate {
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        print("dbjfkdbfskdfbkdbfkjbdsfkj AppDelegate.messaging() - Firebase registration token: \(fcmToken ?? "nil")")
+    }
+}

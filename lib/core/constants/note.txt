@@ -1,0 +1,582 @@
+flutter:
+flutter: ╔╣ Request ║ POST
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combos/create
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Headers
+flutter: ╟ Content-Type: application/json; charset=UTF-8
+flutter: ╟ contentType: application/json; charset=UTF-8
+flutter: ╟ responseType: ResponseType.json
+flutter: ╟ followRedirects: true
+flutter: ╟ connectTimeout: 0:02:00.000000
+flutter: ╟ receiveTimeout: 0:02:00.000000
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Extras
+flutter: ╟ isAuthHeaderRequired: true
+flutter: ╟ isLoginEndpoint: false
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Body
+flutter: ╟ title: Sam
+flutter: ╟ stake: null
+flutter: ╟ start-time: null
+flutter: ╟ duration: 60 minutes
+flutter: ╟ challenge: null
+flutter: ╟ password: null
+flutter: ╟ type: single
+flutter: ╟ context_type: standard
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ║ {title: Sam, stake: null, start-time: null, duration: 60 minutes, challenge: null, passwor
+flutter: ║ d: null, type: single, context_type: standard}
+flutter:
+flutter: ╔╣ Response ║ POST ║ Status: 200 OK  ║ Time: 0 ms
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combos/create
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Body
+flutter: ║
+flutter: ║    {
+flutter: ║         "message": "Combo created successfully",
+flutter: ║         "success": true,
+flutter: ║         "data": {combo: a2191ce4-0919-4483-a38f-781443b92d78}
+flutter: ║    }
+flutter: ║
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: debug_print_createPost-result_fetched[{combo: a2191ce4-0919-4483-a38f-781443b92d78}, Combo created successfully]
+flutter: This is createComboState for single Livestreaming--------- a2191ce4-0919-4483-a38f-781443b92d78
+flutter: This is starting a combo something anyways a2191ce4-0919-4483-a38f-781443b92d78
+flutter:
+flutter: ╔╣ Request ║ POST
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combos/a2191ce4-0919-4483-a38f-781443b92d78/start
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Headers
+flutter: ╟ Content-Type: application/json; charset=UTF-8
+flutter: ╟ contentType: application/json; charset=UTF-8
+flutter: ╟ responseType: ResponseType.json
+flutter: ╟ followRedirects: true
+flutter: ╟ connectTimeout: 0:02:00.000000
+flutter: ╟ receiveTimeout: 0:02:00.000000
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Extras
+flutter: ╟ isAuthHeaderRequired: true
+flutter: ╟ isLoginEndpoint: false
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Body
+flutter: ╟ start: a2191ce4-0919-4483-a38f-781443b92d78
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ║ {start: a2191ce4-0919-4483-a38f-781443b92d78}
+flutter:
+flutter: ╔╣ Response ║ POST ║ Status: 200 OK  ║ Time: 0 ms
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combos/a2191ce4-0919-4483-a38f-781443b92d78/start
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Body
+flutter: ║
+flutter: ║    {
+flutter: ║         "message": "Single Livestream started successfully",
+flutter: ║         "success": true,
+flutter: ║         "data": []
+flutter: ║    }
+flutter: ║
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: This is the response......................... Single Livestream started successfully
+flutter: []
+flutter: THIS IS TO GET THE COMBO DETAILS
+flutter: THIS IS TO GET THE COMBO DETAILS
+flutter: sdjbdkjsbdjsbdjsd>>[100, 50]
+flutter: dbsfksdfkdbsf-get-build>>false
+flutter:
+flutter: ╔╣ Request ║ GET
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combos/0036b177-68fd-4d40-8a84-009a8b5dcaae
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Headers
+flutter: ╟ Content-Type: application/json; charset=UTF-8
+flutter: ╟ contentType: application/json; charset=UTF-8
+flutter: ╟ responseType: ResponseType.json
+flutter: ╟ followRedirects: true
+flutter: ╟ connectTimeout: 0:02:00.000000
+flutter: ╟ receiveTimeout: 0:02:00.000000
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Extras
+flutter: ╟ isAuthHeaderRequired: true
+flutter: ╟ isLoginEndpoint: false
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter:
+flutter: ╔╣ Request ║ GET
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combos/a2191ce4-0919-4483-a38f-781443b92d78
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Headers
+flutter: ╟ Content-Type: application/json; charset=UTF-8
+flutter: ╟ contentType: application/json; charset=UTF-8
+flutter: ╟ responseType: ResponseType.json
+flutter: ╟ followRedirects: true
+flutter: ╟ connectTimeout: 0:02:00.000000
+flutter: ╟ receiveTimeout: 0:02:00.000000
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Extras
+flutter: ╟ isAuthHeaderRequired: true
+flutter: ╟ isLoginEndpoint: false
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ {"event":"pusher:connection_established","data":"{\"socket_id\":\"337688936.27594562\",\"activity_timeout\":30}"}
+flutter: Subscribed to post reaction channel
+flutter: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ {"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"post-clapped-reaction"}
+flutter: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ {"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"post-commented"}
+flutter: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ {"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"post-shared"}
+flutter:
+flutter: ╔╣ Response ║ GET ║ Status: 200 OK  ║ Time: 0 ms
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combos/a2191ce4-0919-4483-a38f-781443b92d78
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Body
+flutter: ║
+flutter: ║    {
+flutter: ║         "message": "Combo fetched successfully",
+flutter: ║         "success": true,
+flutter: ║         "data": {
+flutter: ║             "combo": "a2191ce4-0919-4483-a38f-781443b92d78",
+flutter: ║             "about": "Sam",
+flutter: ║             "start": "2026-02-25 17:48:27",
+flutter: ║             "end": "2026-02-25 18:48:27",
+flutter: ║             "presence": 0,
+flutter: ║             "duration": "60 minutes",
+flutter: ║             "type": "single",
+flutter: ║             "context-type": "standard",
+flutter: ║             "host": {
+flutter: ║                 "profile": "wXEa0vcM7VwjPrg9",
+flutter: ║                 "avatar": "https://objectstore.nyc1.civo.com/clapmi.staging/avatars/6822ea5f20e5f.sv
+flutter: ║                  g"
+flutter: ║                 "username": "samlucy1112"
+flutter: ║            }
+flutter: ║             "status": "LIVE",
+flutter: ║             "brag": "4397af82-bf8a-4ae3-9919-1d88c129bebe"
+flutter: ║        }
+flutter: ║    }
+flutter: ║
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: This is getting combo details Instance of 'ComboModel'
+flutter:
+flutter: ╔╣ Response ║ GET ║ Status: 200 OK  ║ Time: 0 ms
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combos/0036b177-68fd-4d40-8a84-009a8b5dcaae
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Body
+flutter: ║
+flutter: ║    {
+flutter: ║         "message": "Combo fetched successfully",
+flutter: ║         "success": true,
+flutter: ║         "data": {
+flutter: ║             "combo": "0036b177-68fd-4d40-8a84-009a8b5dcaae",
+flutter: ║             "about": "kkk",
+flutter: ║             "start": "2026-02-25 17:37:11",
+flutter: ║             "end": "2026-02-25 18:37:11",
+flutter: ║             "presence": 0,
+flutter: ║             "duration": "60 minutes",
+flutter: ║             "type": "single",
+flutter: ║             "context-type": "standard",
+flutter: ║             "host": {
+flutter: ║                 "profile": "wXEa0vcM7VwjPrg9",
+flutter: ║                 "avatar": "https://objectstore.nyc1.civo.com/clapmi.staging/avatars/6822ea5f20e5f.sv
+flutter: ║                  g"
+flutter: ║                 "username": "samlucy1112"
+flutter: ║            }
+flutter: ║             "status": "UPCOMING",
+flutter: ║             "brag": "afa0a046-63fd-42cd-842b-ac6b4c796cf0"
+flutter: ║        }
+flutter: ║    }
+flutter: ║
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: This is getting combo details Instance of 'ComboModel'
+flutter: ------This is combo details succesful state-------Instance of 'ComboModel'
+flutter: Time to get the single combo of a2191ce4-0919-4483-a38f-781443b92d78
+flutter: Time to get the single combo of a2191ce4-0919-4483-a38f-781443b92d78
+flutter: Time to get the single combo of a2191ce4-0919-4483-a38f-781443b92d78
+flutter:
+flutter: ╔╣ Request ║ GET
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combo-grounds/a2191ce4-0919-4483-a38f-781443b92d78
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Headers
+flutter: ╟ Content-Type: application/json; charset=UTF-8
+flutter: ╟ contentType: application/json; charset=UTF-8
+flutter: ╟ responseType: ResponseType.json
+flutter: ╟ followRedirects: true
+flutter: ╟ connectTimeout: 0:02:00.000000
+flutter: ╟ receiveTimeout: 0:02:00.000000
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Extras
+flutter: ╟ isAuthHeaderRequired: true
+flutter: ╟ isLoginEndpoint: false
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter:
+flutter: ╔╣ Request ║ GET
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combo-grounds/a2191ce4-0919-4483-a38f-781443b92d78
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Headers
+flutter: ╟ Content-Type: application/json; charset=UTF-8
+flutter: ╟ contentType: application/json; charset=UTF-8
+flutter: ╟ responseType: ResponseType.json
+flutter: ╟ followRedirects: true
+flutter: ╟ connectTimeout: 0:02:00.000000
+flutter: ╟ receiveTimeout: 0:02:00.000000
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Extras
+flutter: ╟ isAuthHeaderRequired: true
+flutter: ╟ isLoginEndpoint: false
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter:
+flutter: ╔╣ Request ║ GET
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combo-grounds/a2191ce4-0919-4483-a38f-781443b92d78
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Headers
+flutter: ╟ Content-Type: application/json; charset=UTF-8
+flutter: ╟ contentType: application/json; charset=UTF-8
+flutter: ╟ responseType: ResponseType.json
+flutter: ╟ followRedirects: true
+flutter: ╟ connectTimeout: 0:02:00.000000
+flutter: ╟ receiveTimeout: 0:02:00.000000
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Extras
+flutter: ╟ isAuthHeaderRequired: true
+flutter: ╟ isLoginEndpoint: false
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ------This is combo details succesful state-------Instance of 'ComboModel'
+flutter: Time to get the single combo of 0036b177-68fd-4d40-8a84-009a8b5dcaae
+flutter: Time to get the single combo of 0036b177-68fd-4d40-8a84-009a8b5dcaae
+flutter: Time to get the single combo of 0036b177-68fd-4d40-8a84-009a8b5dcaae
+flutter:
+flutter: ╔╣ Request ║ GET
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combo-grounds/0036b177-68fd-4d40-8a84-009a8b5dcaae
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Headers
+flutter: ╟ Content-Type: application/json; charset=UTF-8
+flutter: ╟ contentType: application/json; charset=UTF-8
+flutter: ╟ responseType: ResponseType.json
+flutter: ╟ followRedirects: true
+flutter: ╟ connectTimeout: 0:02:00.000000
+flutter: ╟ receiveTimeout: 0:02:00.000000
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Extras
+flutter: ╟ isAuthHeaderRequired: true
+flutter: ╟ isLoginEndpoint: false
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter:
+flutter: ╔╣ Request ║ GET
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combo-grounds/0036b177-68fd-4d40-8a84-009a8b5dcaae
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Headers
+flutter: ╟ Content-Type: application/json; charset=UTF-8
+flutter: ╟ contentType: application/json; charset=UTF-8
+flutter: ╟ responseType: ResponseType.json
+flutter: ╟ followRedirects: true
+flutter: ╟ connectTimeout: 0:02:00.000000
+flutter: ╟ receiveTimeout: 0:02:00.000000
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Extras
+flutter: ╟ isAuthHeaderRequired: true
+flutter: ╟ isLoginEndpoint: false
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter:
+flutter: ╔╣ Request ║ GET
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combo-grounds/0036b177-68fd-4d40-8a84-009a8b5dcaae
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Headers
+flutter: ╟ Content-Type: application/json; charset=UTF-8
+flutter: ╟ contentType: application/json; charset=UTF-8
+flutter: ╟ responseType: ResponseType.json
+flutter: ╟ followRedirects: true
+flutter: ╟ connectTimeout: 0:02:00.000000
+flutter: ╟ receiveTimeout: 0:02:00.000000
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Extras
+flutter: ╟ isAuthHeaderRequired: true
+flutter: ╟ isLoginEndpoint: false
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter:
+flutter: ╔╣ Response ║ GET ║ Status: 200 OK  ║ Time: 0 ms
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combo-grounds/a2191ce4-0919-4483-a38f-781443b92d78
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Body
+flutter: ║
+flutter: ║    {
+flutter: ║         "message": "Live combo ground fetched successfully",
+flutter: ║         "success": true,
+flutter: ║         "data": {
+flutter: ║             "combo": "a2191ce4-0919-4483-a38f-781443b92d78",
+flutter: ║             "about": "Sam",
+flutter: ║             "start": null,
+flutter: ║             "end": null,
+flutter: ║             "presence": 0,
+flutter: ║             "duration": "60 minutes",
+flutter: ║             "type": "single",
+flutter: ║             "context-type": "standard",
+flutter: ║             "host": {
+flutter: ║                 "profile": "wXEa0vcM7VwjPrg9",
+flutter: ║                 "avatar": "https://objectstore.nyc1.civo.com/clapmi.staging/avatars/6822ea5f20e5f.sv
+flutter: ║                  g"
+flutter: ║                 "username": "samlucy1112"
+flutter: ║            }
+flutter: ║             "status": "LIVE",
+flutter: ║             "brag": "4397af82-bf8a-4ae3-9919-1d88c129bebe",
+flutter: ║             "metadata": {start-time: 2026-02-25 17:48:45, host-joined: false, started-by: system},
+flutter: ║             "gifts": 0,
+flutter: ║             "has-ongoing-combos": false
+flutter: ║        }
+flutter: ║    }
+flutter: ║
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: This is the response data here ------ {combo: a2191ce4-0919-4483-a38f-781443b92d78, about: Sam, start: null, end: null, presence: 0, duration: 60 minutes, type: single, context-type: standard, host: {profile: wXEa0vcM7VwjPrg9, avatar: https://objectstore.nyc1.civo.com/clapmi.staging/avatars/6822ea5f20e5f.svg, username: samlucy1112}, status: LIVE, brag: 4397af82-bf8a-4ae3-9919-1d88c129bebe, metadata: {start-time: 2026-02-25 17:48:45, host-joined: false, started-by: system}, gifts: 0, has-ongoing-combos: false}
+flutter: *****The converted result of Live is 0
+flutter:
+flutter: ╔╣ Response ║ GET ║ Status: 200 OK  ║ Time: 0 ms
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combo-grounds/a2191ce4-0919-4483-a38f-781443b92d78
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Body
+flutter: ║
+flutter: ║    {
+flutter: ║         "message": "Live combo ground fetched successfully",
+flutter: ║         "success": true,
+flutter: ║         "data": {
+flutter: ║             "combo": "a2191ce4-0919-4483-a38f-781443b92d78",
+flutter: ║             "about": "Sam",
+flutter: ║             "start": null,
+flutter: ║             "end": null,
+flutter: ║             "presence": 0,
+flutter: ║             "duration": "60 minutes",
+flutter: ║             "type": "single",
+flutter: ║             "context-type": "standard",
+flutter: ║             "host": {
+flutter: ║                 "profile": "wXEa0vcM7VwjPrg9",
+flutter: ║                 "avatar": "https://objectstore.nyc1.civo.com/clapmi.staging/avatars/6822ea5f20e5f.sv
+flutter: ║                  g"
+flutter: ║                 "username": "samlucy1112"
+flutter: ║            }
+flutter: ║             "status": "LIVE",
+flutter: ║             "brag": "4397af82-bf8a-4ae3-9919-1d88c129bebe",
+flutter: ║             "metadata": {start-time: 2026-02-25 17:48:45, host-joined: false, started-by: system},
+flutter: ║             "gifts": 0,
+flutter: ║             "has-ongoing-combos": false
+flutter: ║        }
+flutter: ║    }
+flutter: ║
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: This is the response data here ------ {combo: a2191ce4-0919-4483-a38f-781443b92d78, about: Sam, start: null, end: null, presence: 0, duration: 60 minutes, type: single, context-type: standard, host: {profile: wXEa0vcM7VwjPrg9, avatar: https://objectstore.nyc1.civo.com/clapmi.staging/avatars/6822ea5f20e5f.svg, username: samlucy1112}, status: LIVE, brag: 4397af82-bf8a-4ae3-9919-1d88c129bebe, metadata: {start-time: 2026-02-25 17:48:45, host-joined: false, started-by: system}, gifts: 0, has-ongoing-combos: false}
+flutter: *****The converted result of Live is 0
+flutter:
+flutter: ╔╣ Response ║ GET ║ Status: 200 OK  ║ Time: 0 ms
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combo-grounds/a2191ce4-0919-4483-a38f-781443b92d78
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Body
+flutter: ║
+flutter: ║    {
+flutter: ║         "message": "Live combo ground fetched successfully",
+flutter: ║         "success": true,
+flutter: ║         "data": {
+flutter: ║             "combo": "a2191ce4-0919-4483-a38f-781443b92d78",
+flutter: ║             "about": "Sam",
+flutter: ║             "start": null,
+flutter: ║             "end": null,
+flutter: ║             "presence": 0,
+flutter: ║             "duration": "60 minutes",
+flutter: ║             "type": "single",
+flutter: ║             "context-type": "standard",
+flutter: ║             "host": {
+flutter: ║                 "profile": "wXEa0vcM7VwjPrg9",
+flutter: ║                 "avatar": "https://objectstore.nyc1.civo.com/clapmi.staging/avatars/6822ea5f20e5f.sv
+flutter: ║                  g"
+flutter: ║                 "username": "samlucy1112"
+flutter: ║            }
+flutter: ║             "status": "LIVE",
+flutter: ║             "brag": "4397af82-bf8a-4ae3-9919-1d88c129bebe",
+flutter: ║             "metadata": {start-time: 2026-02-25 17:48:45, host-joined: false, started-by: system},
+flutter: ║             "gifts": 0,
+flutter: ║             "has-ongoing-combos": false
+flutter: ║        }
+flutter: ║    }
+flutter: ║
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: This is the response data here ------ {combo: a2191ce4-0919-4483-a38f-781443b92d78, about: Sam, start: null, end: null, presence: 0, duration: 60 minutes, type: single, context-type: standard, host: {profile: wXEa0vcM7VwjPrg9, avatar: https://objectstore.nyc1.civo.com/clapmi.staging/avatars/6822ea5f20e5f.svg, username: samlucy1112}, status: LIVE, brag: 4397af82-bf8a-4ae3-9919-1d88c129bebe, metadata: {start-time: 2026-02-25 17:48:45, host-joined: false, started-by: system}, gifts: 0, has-ongoing-combos: false}
+flutter: *****The converted result of Live is 0
+flutter:
+flutter: ╔╣ DioError ║ Status: 422 Unprocessable Content ║ Time: 0 ms
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combo-grounds/0036b177-68fd-4d40-8a84-009a8b5dcaae
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ DioExceptionType.badResponse
+flutter: ║    {
+flutter: ║         "success": false,
+flutter: ║         "message": "Validation failed",
+flutter: ║         "errors": {
+flutter: ║             "combo": [Invalid Request: Single Livestream is not live]
+flutter: ║        }
+flutter: ║    }
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter:
+flutter:
+flutter: ╔╣ DioError ║ Status: 422 Unprocessable Content ║ Time: 0 ms
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combo-grounds/0036b177-68fd-4d40-8a84-009a8b5dcaae
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ DioExceptionType.badResponse
+flutter: ║    {
+flutter: ║         "success": false,
+flutter: ║         "message": "Validation failed",
+flutter: ║         "errors": {
+flutter: ║             "combo": [Invalid Request: Single Livestream is not live]
+flutter: ║        }
+flutter: ║    }
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter:
+flutter:
+flutter: ╔╣ DioError ║ Status: 422 Unprocessable Content ║ Time: 0 ms
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combo-grounds/0036b177-68fd-4d40-8a84-009a8b5dcaae
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ DioExceptionType.badResponse
+flutter: ║    {
+flutter: ║         "success": false,
+flutter: ║         "message": "Validation failed",
+flutter: ║         "errors": {
+flutter: ║             "combo": [Invalid Request: Single Livestream is not live]
+flutter: ║        }
+flutter: ║    }
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter:
+flutter: This is the response data format {success: false, message: Validation failed, errors: {combo: [Invalid Request: Single Livestream is not live]}}
+flutter: This is the error form sent to the frontend ----[Invalid Request: Single Livestream is not live]
+flutter: This is the error message Instance of 'ClientException'
+flutter: This is the response data format {success: false, message: Validation failed, errors: {combo: [Invalid Request: Single Livestream is not live]}}
+flutter: This is the error form sent to the frontend ----[Invalid Request: Single Livestream is not live]
+flutter: This is the error message Instance of 'ClientException'
+flutter: This is the response data format {success: false, message: Validation failed, errors: {combo: [Invalid Request: Single Livestream is not live]}}
+flutter: This is the error form sent to the frontend ----[Invalid Request: Single Livestream is not live]
+flutter: This is the error message Instance of 'ClientException'
+flutter: This is the liveComboEvent 0
+flutter: Mem from bloc class00000000 0
+flutter: ------This is the Live Loaded state of the application
+[ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: GoError: There is nothing to pop
+#0      GoRouterDelegate.pop (package:go_router/src/delegate.dart:101:7)
+#1      GoRouter.pop (package:go_router/src/router.dart:504:20)
+#2      GoRouterHelper.pop (package:go_router/src/misc/extensions.dart:74:65)
+#3      _ChallengeListScreenState.build.<anonymous closure> (package:clapmi/screens/challenge/challenge_list.dart:120:21)
+#4      _BlocConsumerState.build.<anonymous closure> (package:flutter_bloc/src/bloc_consumer.dart:160:26)
+#5      _BlocListenerBaseState._subscribe.<anonymous closure> (package:flutter_bloc/src/bloc_listener.dart:214:30)
+#6      _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+#7      _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+#8      _DelayedData.perform (dart:async/stream_impl.dart:573:14)
+#9      _PendingEvents.handleNext (dart:async/stream_impl.dart:678:11)
+#10     _PendingEvents.schedule.<anonymous closure> (dart:async/st<…>
+[ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: GoError: There is nothing to pop
+#0      GoRouterDelegate.pop (package:go_router/src/delegate.dart:101:7)
+#1      GoRouter.pop (package:go_router/src/router.dart:504:20)
+#2      GoRouterHelper.pop (package:go_router/src/misc/extensions.dart:74:65)
+#3      _ChallengeListScreenState.build.<anonymous closure> (package:clapmi/screens/challenge/challenge_list.dart:120:21)
+#4      _BlocConsumerState.build.<anonymous closure> (package:flutter_bloc/src/bloc_consumer.dart:160:26)
+#5      _BlocListenerBaseState._subscribe.<anonymous closure> (package:flutter_bloc/src/bloc_listener.dart:214:30)
+#6      _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+#7      _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+#8      _DelayedData.perform (dart:async/stream_impl.dart:573:14)
+#9      _PendingEvents.handleNext (dart:async/stream_impl.dart:678:11)
+#10     _PendingEvents.schedule.<anonymous closure> (dart:async/st<…>
+flutter: sdjbdkjsbdjsbdjsd>>[100, 50]
+flutter: CALLING LIVE SUBSCRIPTION AT THE BLOC LEVEL----------
+flutter:
+flutter: ╔╣ Request ║ GET
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combo-grounds/0036b177-68fd-4d40-8a84-009a8b5dcaae/top-gifters
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Headers
+flutter: ╟ Content-Type: application/json; charset=UTF-8
+flutter: ╟ contentType: application/json; charset=UTF-8
+flutter: ╟ responseType: ResponseType.json
+flutter: ╟ followRedirects: true
+flutter: ╟ connectTimeout: 0:02:00.000000
+flutter: ╟ receiveTimeout: 0:02:00.000000
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Extras
+flutter: ╟ isAuthHeaderRequired: true
+flutter: ╟ isLoginEndpoint: false
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: 🔌 CONNECTING TO SERVER...
+flutter: This is the liveComboEvent 0
+flutter: Mem from bloc class00000000 0
+flutter: This is the liveComboEvent 0
+flutter: Mem from bloc class00000000 0
+flutter: dbsfksdfkdbsf-get-build>>false
+flutter:
+flutter: ╔╣ Request ║ POST
+flutter: ║  https://bvcf589ijbnmk87.clapmi.com/broadcasting/auth
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Headers
+flutter: ╟ Content-Type: application/json
+flutter: ╟ Authorization:
+flutter: ║ eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vdXNlcnMubG9jYWw6ODAwNCIsImF1ZCI6I
+flutter: ║ mh0dHA6Ly91c2Vycy5sb2NhbDo4MDA0IiwianRpIjoiNjk5ZjMwZmQ1NmZlNyIsImlhdCI6MTc3MjA0MDQ0NS4zNTY
+flutter: ║ wOTIsIm5iZiI6MTc3MjA0MDQ0NS4zNTYwOTIsImV4cCI6MTc3MjA0MjI0NS4zNTYwOTIsInN1YiI6InNhbWFkZXllb
+flutter: ║ WkxODg4QGdtYWlsLmNvbSIsImVtYWlsIjoic2FtYWRleWVtaTE4ODhAZ21haWwuY29tIiwidHlwZSI6ImFjY2VzcyI
+flutter: ║ sInB3ZF9jaGFuZ2VkX2F0IjoxNzcxOTA2MjgzfQ.cCE_dd9DyaBI0ZWW17nndCYu8e5PSpBhDYZIuvKtYBo
+flutter: ╟ contentType: application/json
+flutter: ╟ responseType: ResponseType.json
+flutter: ╟ followRedirects: true
+flutter: ╟ connectTimeout: 0:02:00.000000
+flutter: ╟ receiveTimeout: 0:02:00.000000
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Body
+flutter: ╟ socket_id: 337688936.27594562
+flutter: ╟ channel_name: private-combo-ground.0036b177-68fd-4d40-8a84-009a8b5dcaae
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ║ {socket_id: 337688936.27594562, channel_name: private-combo-ground.0036b177-68fd-4d40-8a84
+flutter: ║ -009a8b5dcaae}
+flutter: ✅ Connected to SFU Server
+flutter: DATA DO NOT EXIST THEN JOIN ROOM a2191ce4-0919-4483-a38f-781443b92d78
+flutter: TESTING THE WAIT FOR WORKINGE HERE.... joined-room
+flutter: before finish for returning...
+flutter: Does this room exist? : {exists: false}
+flutter: TESTING THE WAIT FOR WORKINGE HERE.... room-created
+flutter: before finish for returning...
+flutter: This is the trannsport care {roomId: a2191ce4-0919-4483-a38f-781443b92d78, producers: [], routerRtpCapabilities: {codecs: [{kind: audio, mimeType: audio/opus, clockRate: 48000, channels: 2, rtcpFeedback: [{type: nack, parameter: }, {type: transport-cc, parameter: }], parameters: {}, preferredPayloadType: 100}, {kind: video, mimeType: video/VP8, clockRate: 90000, rtcpFeedback: [{type: nack, parameter: }, {type: nack, parameter: pli}, {type: ccm, parameter: fir}, {type: goog-remb, parameter: }, {type: transport-cc, parameter: }], parameters: {}, preferredPayloadType: 101}, {kind: video, mimeType: video/rtx, preferredPayloadType: 102, clockRate: 90000, parameters: {apt: 101}, rtcpFeedback: []}, {kind: video, mimeType: video/H264, clockRate: 90000, parameters: {level-asymmetry-allowed: 1, packetization-mode: 1, profile-level-id: 42e01f}, rtcpFeedback: [{type: nack, parameter: }, {type: nack, parameter: pli}, {type: ccm, parameter: fir}, {type: goog-remb, parameter: }, {type: transport-cc, parame<…>
+flutter: 📱 Loading device with RTP capabilities...
+flutter: generateProfileLevelIdForAnswer() | result: [profile:1, level:51
+flutter: ✅ Device loaded successfully
+flutter: creating send transport------------- host
+flutter: Start creating transport and see what happend
+flutter: TESTING THE WAIT FOR WORKINGE HERE.... transport-created
+flutter: before finish for returning...
+flutter:
+flutter: ╔╣ Response ║ GET ║ Status: 200 OK  ║ Time: 0 ms
+flutter: ║  https://76fg765rfghjkiuyg.clapmi.com/combo-grounds/0036b177-68fd-4d40-8a84-009a8b5dcaae/top-gifters
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Body
+flutter: ║
+flutter: ║    {
+flutter: ║         "message": "No gifters found",
+flutter: ║         "success": true,
+flutter: ║         "data": []
+flutter: ║    }
+flutter: ║
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: Start creating receiving transport and see what will happen
+flutter: TESTING THE WAIT FOR WORKINGE HERE.... transport-created
+flutter: before finish for returning...
+flutter:
+flutter: ╔╣ DioError ║ Status: 422 Unprocessable Content ║ Time: 0 ms
+flutter: ║  https://bvcf589ijbnmk87.clapmi.com/broadcasting/auth
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ DioExceptionType.badResponse
+flutter: ║    {
+flutter: ║         "success": false,
+flutter: ║         "message": "Validation failed",
+flutter: ║         "errors": {
+flutter: ║             "combo": [Invalid Request: Single Livestream is not live]
+flutter: ║        }
+flutter: ║    }
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter:
+flutter: Printing error of the subscription DioException [bad response]: This exception was thrown because the response has a status code of 422 and RequestOptions.validateStatus was configured to throw for this status code.
+The status code of 422 has the following meaning: "Client error - the request contains bad syntax or cannot be fulfilled"
+Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+ -----------------!!!!!!!!!!!!!!
+flutter: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ {"event":"pusher:connection_established","data":"{\"socket_id\":\"185489645.180448593\",\"activity_timeout\":30}"}
+flutter: Subscribed to post reaction channel
+flutter: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ {"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"post-clapped-reaction"}
+flutter: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ {"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"post-commented"}
+flutter: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ {"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"post-shared"}
+flutter: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ {"event":"pusher:connection_established","data":"{\"socket_id\":\"875716935.728569834\",\"activity_timeout\":30}"}
+flutter: Subscribed to post reaction channel
+flutter: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ {"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"post-clapped-reaction"}
+flutter: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ {"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"post-commented"}
+flutter: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ {"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"post-shared"}
+flutter: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ {"event":"pusher:connection_established","data":"{\"socket_id\":\"14150445.614799186\",\"activity_timeout\":30}"}
+flutter: Subscribed to post reaction channel
+flutter: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ {"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"post-clapped-reaction"}
+flutter: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ {"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"post-commented"}
+flutter: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ {"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"post-shared"}

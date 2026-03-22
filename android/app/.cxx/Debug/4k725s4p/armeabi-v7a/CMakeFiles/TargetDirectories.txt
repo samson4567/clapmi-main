@@ -1,0 +1,2 @@
+C:/VOLTISLAB/clapmi/android/app/.cxx/Debug/4k725s4p/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/VOLTISLAB/clapmi/android/app/.cxx/Debug/4k725s4p/armeabi-v7a/CMakeFiles/rebuild_cache.dir
