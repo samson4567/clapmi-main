@@ -247,6 +247,25 @@ class DrawerList extends StatelessWidget {
           ),
           ListTile(
             leading: Image.asset(
+              "assets/icons/marketeq_reward.png",
+              width: 30,
+              height: 30,
+              color: Colors.white.withValues(alpha: 3.0),
+            ),
+            title: const Text(
+              'Leaderboard',
+              style: TextStyle(
+                  color: Color(0XFFFFFFFF),
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20),
+            ),
+            onTap: () {
+              context.pushNamed(MyAppRouteConstant.leaderboard);
+            },
+          ),
+          ListTile(
+            leading: Image.asset(
               "assets/icons/solar_settings-outline.png",
               width: 30,
               height: 30,

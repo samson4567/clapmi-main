@@ -46,6 +46,8 @@ import 'package:clapmi/screens/feed/feed_extraction_files/feed.dart';
 import 'package:clapmi/screens/feed/feed_extraction_files/how_clapmi_work.dart';
 import 'package:clapmi/screens/feed/feed_extraction_files/post_new.dart';
 import 'package:clapmi/screens/generalSearchPage/general_search_page.dart';
+import 'package:clapmi/screens/leaderboard/leader_dashbord.dart';
+import 'package:clapmi/screens/leaderboard/payment_leader.dart';
 import 'package:clapmi/screens/posts/post.dart';
 import 'package:clapmi/screens/posts/post_%20report.dart';
 import 'package:clapmi/screens/posts/your_report.dart';
@@ -838,6 +840,19 @@ final GoRouter router = GoRouter(
                   return WithdrawalOrderSummary(
                       amount: params['amount'], orderInfo: params['orderInfo']);
                 }),
+            GoRoute(
+                name: MyAppRouteConstant.leaderboard,
+                path: MyAppRouteConstant.leaderboard,
+                builder: (context, state) {
+                  return const LeaderboardScreen();
+                }),
+            GoRoute(
+                name: MyAppRouteConstant.subscriptionScreen,
+                path: MyAppRouteConstant.subscriptionScreen,
+                builder: (context, state) {
+                  return const SubscriptionScreen();
+                }),
+            //subscriptionScreen
             GoRoute(
                 name: MyAppRouteConstant.clapReward,
                 path: MyAppRouteConstant.clapReward,

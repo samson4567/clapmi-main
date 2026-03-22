@@ -101,11 +101,13 @@ class MyAppRouteConstant {
   static const String withdrawalSuccessful = '/withdrawalSuccessful';
   static const String walletEmailVerification = '/walletEmailVerification';
   static const String clapReward = '/clapReward';
+  static const String leaderboard = '/leaderboard';
   static const String startOrjoin = '/startOrJoin';
   static const String googleWebview = '/googleWebview';
   static const String hwclapmiworks = '/howToClapmiScreen';
   static const String verifyForgotPin = '/verifyForgotPin';
   static const String createNewPinForgetPin = '/createNewPinForgetPin';
+  static const String subscriptionScreen = '/SubscriptionScreen';
 
   //PAYMENT AND WALLER ROUTES
   static const String fiatWithdrawal = '/fiatWithdrawal';
