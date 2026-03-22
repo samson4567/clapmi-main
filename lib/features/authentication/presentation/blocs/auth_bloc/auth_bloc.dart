@@ -1,4 +1,5 @@
 import 'package:clapmi/core/app_variables.dart';
+import 'package:clapmi/global_object_folder_jacket/global_variables/global_variables.dart';
 import 'package:clapmi/features/app/presentation/blocs/app/app_bloc.dart';
 import 'package:clapmi/features/app/presentation/blocs/app/app_event.dart';
 import 'package:clapmi/features/authentication/data/models/new_user_request_model.dart';
@@ -92,6 +93,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           data["user"],
         );
         await authenticationRepository.setInitialLoginStatus(false);
+        isLoggedIn = true;
         emit(UserLoginSuccessState(loginData: TokenModel.fromJson({...data})));
       },
     );
@@ -200,6 +202,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
     }, (message) async {
       await authenticationRepository.setInitialLoginStatus(true);
+      isLoggedIn = false;
       emit(
         LogOutStateSuccessState(
           message: 'Logout successfully ',
@@ -220,10 +223,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         RegisterFCMtokenErrorState(errorMessage: failure.message),
       );
     }, (message) async {
-      await authenticationRepository.setInitialLoginStatus(true);
+      // Do NOT set login status here - this is just registering FCM token
       emit(
         RegisterFCMtokenSuccessState(
-          message: 'Logout successfully ',
+          message: 'FCM token registered successfully',
         ),
       );
     });
@@ -242,10 +245,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         UnregisterFCMtokenErrorState(errorMessage: failure.message),
       );
     }, (message) async {
-      await authenticationRepository.setInitialLoginStatus(true);
+      // Do NOT set login status here - this is just unregistering FCM token
       emit(
         UnregisterFCMtokenSuccessState(
-          message: 'Logout successfully ',
+          message: 'FCM token unregistered successfully',
         ),
       );
     });
@@ -263,10 +266,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ToogleNotificationStateErrorState(errorMessage: failure.message),
       );
     }, (message) async {
-      await authenticationRepository.setInitialLoginStatus(true);
+      // Do NOT set login status here - this is just toggling notification state
       emit(
         ToogleNotificationStateSuccessState(
-          message: 'Logout successfully ',
+          message: 'Notification state updated successfully',
         ),
       );
     });
@@ -283,6 +286,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (error) =>
           emit(UserLoginErrorState(errorMessage: error.moreInformation ?? {})),
       (data) async {
+        isLoggedIn = true;
         appBloc.add(
           UserUpdateEvent(
             updatedUserModel: UserModel.createFromLogin(

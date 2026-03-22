@@ -80,6 +80,10 @@ class _BragScreenTuTuState extends State<BragScreenTuTu> {
           loadingMore = false;
         }
         if (state is GetAllVideoPostsSuccessState) {
+          // FIX: Clear list on first load (pageNumber == 1) to prevent blank feed
+          if (provider.pageNumber == 1) {
+            provider.theListOfBragModel.clear();
+          }
           provider.theListOfBragModel.addAll(state.posts
               .map(
                 (e) => BragModel.fromPostModel(e),

@@ -20,6 +20,9 @@ class SampleHandler: RPBroadcastSampleHandler {
     private var uploader: SampleUploader?
 
     private var frameCount: Int = 0
+    // Frame skipping for performance optimization
+    private var lastFrameTime: CFTimeInterval = 0
+    private let minFrameInterval: CFTimeInterval = 1.0 / 15.0 // Max 15 fps
 
     var socketFilePath: String {
       let sharedContainer = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: Constants.appGroupIdentifier)
@@ -126,6 +129,14 @@ class SampleHandler: RPBroadcastSampleHandler {
         os_log(.debug, log: broadcastLogger, "dbjfkdbfskdfbkdbfkjbdsfkj SampleHandler.processSampleBuffer() - type: %d", sampleBufferType.rawValue)
         switch sampleBufferType {
         case RPSampleBufferType.video:
+            // Frame skipping for performance optimization
+            let currentTime = CACurrentMediaTime()
+            if currentTime - lastFrameTime < minFrameInterval {
+                // Skip this frame - too soon
+                return
+            }
+            lastFrameTime = currentTime
+            
             print("dbjfkdbfskdfbkdbfkjbdsfkj SampleHandler.processSampleBuffer() - Calling uploader.send() for video")
             os_log(.debug, log: broadcastLogger, "dbjfkdbfskdfbkdbfkjbdsfkj SampleHandler.processSampleBuffer() - Calling uploader.send() for video")
             uploader?.send(sample: sampleBuffer)

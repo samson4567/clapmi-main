@@ -1,6 +1,7 @@
 import 'package:clapmi/global_object_folder_jacket/global_functions/global_functions.dart';
 import 'package:clapmi/global_object_folder_jacket/global_variables/global_variables.dart';
 import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
@@ -51,13 +52,33 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   setUpEveryThingAndGotoApropriatePage() async {
+    // First check in-memory variable
     if (isLoggedIn) {
       await initializeHandlers();
       context.go(MyAppRouteConstant.feedScreen);
-    } else {
-      await Future.delayed(const Duration(seconds: 5));
-      context.push(MyAppRouteConstant.onboardingPage);
+      return;
     }
+
+    // If in-memory is false, check SharedPreferences directly as backup
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final status = prefs.getBool('initialLoginStatusKey');
+      print('Splash screen check - status: $status');
+
+      if (status != null && !status) {
+        // User is logged in according to SharedPreferences
+        isLoggedIn = true;
+        await initializeHandlers();
+        context.go(MyAppRouteConstant.feedScreen);
+        return;
+      }
+    } catch (e) {
+      print('Error reading SharedPreferences in splash: $e');
+    }
+
+    // Not logged in - go to onboarding
+    await Future.delayed(const Duration(seconds: 5));
+    context.push(MyAppRouteConstant.onboardingPage);
   }
 
   @override

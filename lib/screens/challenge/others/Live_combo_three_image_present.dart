@@ -98,6 +98,7 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
   late AnimationController _controller;
   late Animation<double> _positionAnimation;
   late Animation<double> _opacityAnimation;
+
   bool? isComboOngoingNow;
   int numberOfChallenger = 0;
   LiveGifter? liveChallenger;
@@ -1462,12 +1463,16 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
           ? {
               // iOS: uses broadcast extension (extension is configured in Info.plist)
               // Note: audio is always false for iOS broadcast - iOS doesn't provide audio in broadcast streams
+              // OPTIMIZED: Lower frame rate and add resolution constraints for better performance
               'video': {
                 'deviceId': 'broadcast',
                 'mandatory': {
-                  // 'minWidth': 1280,
-                  // 'minHeight': 720,
-                  'maxFrameRate': 30,
+                  'minWidth': 640,
+                  'minHeight': 480,
+                  'maxWidth': 1280,
+                  'maxHeight': 720,
+                  'maxFrameRate':
+                      15, // ✅ Reduced from 30 to 15 for smoother streaming
                 },
               },
               'audio': false, // iOS broadcast extension doesn't provide audio
@@ -1672,7 +1677,9 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
         track: localShareScreenTrack!,
         stream: shareScreenStream!,
         codec: screenCodec, // VP8 for Android, default for iOS
-        codecOptions: ProducerCodecOptions(videoGoogleStartBitrate: 2500),
+        codecOptions: ProducerCodecOptions(
+            videoGoogleStartBitrate:
+                1000), // ✅ Reduced from 2500 to 1000 for better performance
         source: 'screen-share',
         appData: {'mediaTag': 'screen-share', 'role': role},
       );

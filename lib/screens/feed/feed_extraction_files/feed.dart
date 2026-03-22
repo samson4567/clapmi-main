@@ -665,19 +665,37 @@ class _FeedScreenState extends State<FeedScreen> {
                                               SetPreviouslyStoredPostModelListEvent(
                                                   listOfPostModel));
                                         }
-                                        listOfFollowersPostModel =
-                                            listOfPostModel.where(
-                                          (element) {
-                                            // Use cached friend PIDs for O(1) lookup
-                                            return friendPids
-                                                .contains(element.authorId);
-                                          },
-                                        ).toList();
-                                        if (listOfFollowersPostModel.length <
-                                            10) {
-                                          context.read<PostBloc>().add(
-                                              CheckIfNeedMoreDataEvent(
-                                                  isVideoPost: false));
+                                        // FIX: Only filter and fetch more if user has friends
+                                        // ADDED: Null safety check to prevent blank feed
+                                        if (listOfPostModel == null ||
+                                            listOfPostModel.isEmpty) {
+                                          // Keep existing posts if new list is null/empty
+                                          if (listOfFollowersPostModel
+                                              .isEmpty) {
+                                            listOfFollowersPostModel = [];
+                                          }
+                                        } else if (friendPids.isNotEmpty) {
+                                          // User has friends - filter posts
+                                          listOfFollowersPostModel =
+                                              listOfPostModel.where(
+                                            (element) {
+                                              // Use cached friend PIDs for O(1) lookup
+                                              return friendPids
+                                                  .contains(element.authorId);
+                                            },
+                                          ).toList();
+
+                                          // Only fetch more if less than 10 posts
+                                          if (listOfFollowersPostModel.length <
+                                              10) {
+                                            context.read<PostBloc>().add(
+                                                CheckIfNeedMoreDataEvent(
+                                                    isVideoPost: false));
+                                          }
+                                        } else {
+                                          // User has no friends - show all posts instead
+                                          listOfFollowersPostModel =
+                                              List.from(listOfPostModel);
                                         }
                                         isLoadingMore = false;
                                         setState(() {});
@@ -1484,7 +1502,9 @@ class _ReactionPanelHorizontalState extends State<ReactionPanelHorizontal> {
   Widget build(BuildContext context) {
     // BlocConsumer might need adjustments depending on how reactions are handled now
 
+    // FIX: Only rebuild for clap-specific states, not all PostState changes
     return BlocConsumer<PostBloc, PostState>(listener: (context, state) {
+      // Only handle clap/unclap states - ignore other PostState changes to prevent blank feed
       if (state is ClapPostErrorState) {
         isClaped = false;
         isClapLoading = false;
@@ -1492,13 +1512,11 @@ class _ReactionPanelHorizontalState extends State<ReactionPanelHorizontal> {
       }
       if (state is ClapPostSuccessState) {
         isClapLoading = false;
-        // Update hasClapped in model to persist color state
         widget.model?.hasClapped = true;
         setState(() {});
       }
       if (state is UnclapPostSuccessState) {
         isClapLoading = false;
-        // Update hasClapped in model to persist color state
         widget.model?.hasClapped = false;
         setState(() {});
       }
@@ -1507,10 +1525,6 @@ class _ReactionPanelHorizontalState extends State<ReactionPanelHorizontal> {
         isClapLoading = false;
         setState(() {});
       }
-      // if(state is ClapPostSuccessState){
-      //   // print("SUCCESFULL CLAPP OF A POST");
-      //   context.read<ChatsAndSocialsBloc>().add(ChatSubscriptionRequestEvent());
-      // }
     }, builder: (context, state) {
       return BlocConsumer<ChatsAndSocialsBloc, ChatsAndSocialsState>(
         listener: (context, state) {

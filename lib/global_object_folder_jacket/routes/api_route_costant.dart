@@ -386,14 +386,20 @@ final GoRouter router = GoRouter(
         return const SplashScreen();
       },
       redirect: (context, state) {
-        final authPreference = getItInstance<AuthPreferenceService>();
-        final status = authPreference.getInitialLoginStatus();
-        print('$status hhhhhhhhhhhhhhhhh');
-        if (status == null) return MyAppRouteConstant.splashScreen;
-        if (status) return MyAppRouteConstant.splashScreen;
-        // getItInstance<AppBloc>().add(GetMyProfileEvent());
+        try {
+          final authPreference = getItInstance<AuthPreferenceService>();
+          final status = authPreference.getInitialLoginStatus();
+          print('$status hhhhhhhhhhhhhhhhh');
+          if (status == null) return MyAppRouteConstant.splashScreen;
+          if (status) return MyAppRouteConstant.splashScreen;
+          // getItInstance<AppBloc>().add(GetMyProfileEvent());
 
-        return MyAppRouteConstant.feedScreen;
+          return MyAppRouteConstant.feedScreen;
+        } catch (e) {
+          // If service not ready, stay on splash
+          print('AuthPreferenceService not ready: $e');
+          return null;
+        }
       },
     ),
     GoRoute(

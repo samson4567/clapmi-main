@@ -39,7 +39,13 @@ class HeaderInterceptor extends Interceptor {
             err.response?.data['message'] == 'Invalid refresh token' ||
             err.response?.data['message'] ==
                 'Invalid or expired refresh token')) {
-      await appPreferenceService.clearAll();
+      // Clear only auth tokens, preserve the login status flag
+      // This way user goes to login (not onboarding) when token expires
+      await appPreferenceService.removeValue(SecureKey.loginAuthTokenKey);
+      await appPreferenceService.removeValue(SecureKey.loginUserDataKey);
+      // Do NOT clear initialLoginStatusKey - keep it as false to indicate
+      // user was logged in (just their token expired and needs refresh)
+
       final navigator = rootNavigatorKey.currentState;
       if (navigator != null && navigator.mounted) {
         theclapAnimationController.dispose();
