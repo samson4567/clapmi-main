@@ -1,67 +1,75 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class TierData {
   final String name;
   final int coins;
-  final Color primaryColor;
-  final Color glowColor;
-  final List<Color> crystalColors;
+  // final Color primaryColor;
+  // final Color glowColor;
+  // final List<Color> crystalColors;
   final bool isActive;
+
+  final String imagePath;
 
   const TierData({
     required this.name,
     required this.coins,
-    required this.primaryColor,
-    required this.glowColor,
-    required this.crystalColors,
+    // required this.primaryColor,
+    // required this.glowColor,
+    // required this.crystalColors,
     this.isActive = false,
+    required this.imagePath,
   });
 }
 
 const tiers = [
   TierData(
+    imagePath: 'assets/icons/prii.png',
     name: 'PRIME',
     coins: 4000,
-    primaryColor: Color(0xFF00B4FF),
-    glowColor: Color(0xFF0077FF),
-    crystalColors: [Color(0xFF00CFFF), Color(0xFF0066FF), Color(0xFF00E5FF)],
+    // primaryColor: Color(0xFF00B4FF),
+    // glowColor: Color(0xFF0077FF),
+    // crystalColors: [Color(0xFF00CFFF), Color(0xFF0066FF), Color(0xFF00E5FF)],
     isActive: false,
   ),
   TierData(
+    imagePath: 'assets/icons/eli4.png',
     name: 'ELITE',
     coins: 4000,
-    primaryColor: Color(0xFFAA55FF),
-    glowColor: Color(0xFF7722FF),
-    crystalColors: [Color(0xFFCC88FF), Color(0xFF8833FF), Color(0xFFDD99FF)],
+    // primaryColor: Color(0xFFAA55FF),
+    // glowColor: Color(0xFF7722FF),
+    // crystalColors: [Color(0xFFCC88FF), Color(0xFF8833FF), Color(0xFFDD99FF)],
     isActive: true,
   ),
   TierData(
+    imagePath: 'assets/icons/ic.png',
     name: 'ICON',
     coins: 8000,
-    primaryColor: Color(0xFFFFAA22),
-    glowColor: Color(0xFFFF7700),
-    crystalColors: [Color(0xFFFFCC66), Color(0xFFFF8800), Color(0xFFFFDD88)],
+    // primaryColor: Color(0xFFFFAA22),
+    // glowColor: Color(0xFFFF7700),
+    // crystalColors: [Color(0xFFFFCC66), Color(0xFFFF8800), Color(0xFFFFDD88)],
     isActive: false,
   ),
 ];
 
 const benefits = [
-  _Benefit(icon: Icons.account_circle_outlined, label: 'Profile badge'),
-  _Benefit(icon: Icons.card_giftcard_outlined, label: 'Themed bounties'),
+  _Benefit(imagePath: 'assets/icons/profile.png', label: 'Profile badge'),
+  _Benefit(imagePath: 'assets/icons/gift.png', label: 'Themed bounties'),
   _Benefit(
-      icon: Icons.view_carousel_outlined, label: 'Category feature placements'),
+      imagePath: 'assets/icons/profile.png',
+      label: 'Category feature placements'),
   _Benefit(
-      icon: Icons.bar_chart_outlined, label: 'Stream performance insights'),
+      imagePath: 'assets/icons/profile.png',
+      label: 'Stream performance insights'),
   _Benefit(
-      icon: Icons.monetization_on_outlined,
-      label: 'Increased Clap coin rewards'),
+      imagePath: 'assets/icons/coin.png', label: 'Increased Clap coin rewards'),
 ];
 
 class _Benefit {
-  final IconData icon;
+  final String imagePath;
   final String label;
-  const _Benefit({required this.icon, required this.label});
+  const _Benefit({required this.imagePath, required this.label});
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -162,9 +170,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                       width: active ? 20 : 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: active
-                            ? tiers[_currentPage].primaryColor
-                            : Colors.white24,
+                        // color: active
+                        //     ? tiers[_currentPage].primaryColor
+                        //     : Colors.white24,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     );
@@ -200,34 +208,18 @@ class _TierCard extends StatelessWidget {
       children: [
         // Crystal gem + tier name
         SizedBox(
-          height: 220,
+          height: 100.h,
           child: Stack(
             alignment: Alignment.center,
             children: [
               // Glow behind crystal
-              AnimatedBuilder(
-                animation: pulseController,
-                builder: (_, __) {
-                  final pulse = 0.6 + 0.4 * pulseController.value;
-                  return Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: tier.glowColor.withOpacity(0.35 * pulse),
-                          blurRadius: 60,
-                          spreadRadius: 20,
-                        ),
-                      ],
-                    ),
-                  );
-                },
+
+              // Tier Image Icon
+              Image.asset(
+                tier.imagePath,
+                width: 100,
+                height: 100,
               ),
-              // Crystal
-              _CrystalGem(
-                  colors: tier.crystalColors, primaryColor: tier.primaryColor),
             ],
           ),
         ),
@@ -235,14 +227,14 @@ class _TierCard extends StatelessWidget {
         // Tier name
         Text(
           tier.name,
+          textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 6,
+            fontFamily: 'Poppins',
+            fontSize: 31,
+            fontWeight: FontWeight.w700,
+            height: 1.5, // line-height: 150%
+            letterSpacing: 0,
             color: Colors.white,
-            shadows: [
-              Shadow(color: tier.primaryColor.withOpacity(0.7), blurRadius: 20),
-            ],
           ),
         ),
 
@@ -272,27 +264,20 @@ class _TierCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1F2E),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: isCenter
-                      ? tier.primaryColor.withOpacity(0.3)
-                      : Colors.white10,
-                  width: 1,
+                gradient: const LinearGradient(
+                  begin: Alignment(-0.7, -1.0), // approximates 145deg
+                  end: Alignment(1, 1.0),
+                  colors: [
+                    Color(0xFF7A7F7F),
+                    Color(0xFF1E1E1E),
+                  ],
+                  stops: [-0.2, 0.3], // mimics -74% → 31%
                 ),
-                boxShadow: isCenter
-                    ? [
-                        BoxShadow(
-                          color: tier.glowColor.withOpacity(0.15),
-                          blurRadius: 30,
-                          spreadRadius: 4,
-                          offset: const Offset(0, 8),
-                        ),
-                      ]
-                    : [],
+                border: Border.all(color: Color(0XFFFFF7E8)),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -300,23 +285,36 @@ class _TierCard extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text('🪙', style: TextStyle(fontSize: 20)),
+                        Image.asset(
+                          'assets/icons/commentcoin.png',
+                          height: 28,
+                          width: 28,
+                        ),
                         const SizedBox(width: 6),
                         Text(
-                          '${tier.coins.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
+                          tier.coins.toString().replaceAllMapped(
+                                RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                (m) => '${m[1]},',
+                              ),
                           style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
+                            fontFamily: 'Poppins',
+                            fontSize: 25,
+                            fontWeight: FontWeight.w600,
+                            height: 1.5, // 150% line height
+                            letterSpacing: 0,
                             color: Colors.white,
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 4),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 3),
                           child: Text(
                             '/month',
-                            style: TextStyle(
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
                               fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              height: 1.5,
                               color: Colors.white54,
                             ),
                           ),
@@ -349,8 +347,12 @@ class _TierCard extends StatelessWidget {
                                   color: Colors.white.withOpacity(0.07),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: Icon(b.icon,
-                                    color: Colors.white70, size: 18),
+                                child: Image.asset(
+                                  b.imagePath,
+                                  width: 20,
+                                  height: 20,
+                                  color: Colors.white70,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Text(
@@ -580,7 +582,7 @@ class _StarfieldPainter extends CustomPainter {
       ..shader = const LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [Color(0xFF081525), Color(0xFF050D1A)],
+        colors: [Color(0xFF070707), Color(0xFF050D1A)],
       ).createShader(Offset.zero & size);
 
     canvas.drawRect(Offset.zero & size, bgPaint);
