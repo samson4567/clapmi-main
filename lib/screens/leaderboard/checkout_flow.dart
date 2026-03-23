@@ -264,6 +264,7 @@ class _TierPreviewCard extends StatelessWidget {
   final bool isActive;
   final String buttonText;
   final bool isActiveButton;
+  final bool isUpgradeButton;
   final VoidCallback? onPressed;
   final String? price;
   final String? paymentInfo;
@@ -275,6 +276,7 @@ class _TierPreviewCard extends StatelessWidget {
     required this.isActive,
     required this.buttonText,
     required this.isActiveButton,
+    this.isUpgradeButton = false,
     this.onPressed,
     this.price,
     this.paymentInfo,
@@ -286,7 +288,14 @@ class _TierPreviewCard extends StatelessWidget {
     return Container(
       width: 280,
       padding: const EdgeInsets.all(20),
-      decoration: TierCardDecoration(),
+      decoration: BoxDecoration(
+        image: const DecorationImage(
+          image: AssetImage('assets/icons/levelc.png'),
+          fit: BoxFit.cover,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+      ),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,7 +315,7 @@ class _TierPreviewCard extends StatelessWidget {
               const SizedBox(height: 20),
             ],
             // Button
-            _buildButton(),
+            if (buttonText.isNotEmpty) _buildButton(),
           ],
         ),
       ),
@@ -418,6 +427,31 @@ class _TierPreviewCard extends StatelessWidget {
   }
 
   Widget _buildButton() {
+    // Style for upgrade button (white, smaller)
+    if (isUpgradeButton) {
+      return SizedBox(
+        width: 120,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+          onPressed: onPressed,
+          child: Text(
+            buttonText,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      );
+    }
+    // Default style for current level
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
