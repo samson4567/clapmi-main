@@ -213,7 +213,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'ClapmiLeaderboard',
+                  'Clapmi Leaderboard',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'Poppins',
@@ -248,83 +248,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   Widget _buildPodiumGraphic() {
     return SizedBox(
-      width: 80,
-      height: 70,
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        children: [
-          Positioned(
-            left: 0,
-            bottom: 0,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 20,
-                  height: 20,
-                  decoration: const BoxDecoration(
-                      color: Color(0xFFB0BEC5), shape: BoxShape.circle),
-                  child: const Center(
-                      child: Text('2',
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black))),
-                ),
-                Container(
-                    width: 22, height: 28, color: const Color(0xFF78909C)),
-              ],
-            ),
-          ),
-          Positioned(
-            left: 28,
-            bottom: 0,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 22,
-                  height: 22,
-                  decoration: const BoxDecoration(
-                      color: Color(0xFFF5A623), shape: BoxShape.circle),
-                  child: const Center(
-                      child: Text('1',
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black))),
-                ),
-                Container(
-                    width: 24, height: 40, color: const Color(0xFF4A7CF7)),
-              ],
-            ),
-          ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 18,
-                  height: 18,
-                  decoration: const BoxDecoration(
-                      color: Color(0xFFCD7F32), shape: BoxShape.circle),
-                  child: const Center(
-                      child: Text('3',
-                          style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black))),
-                ),
-                Container(
-                    width: 20, height: 20, color: const Color(0xFFCD7F32)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+        width: 80, height: 80, child: Image.asset('assets/icons/illu.png'));
   }
 
   Widget _buildLevelTabs() {

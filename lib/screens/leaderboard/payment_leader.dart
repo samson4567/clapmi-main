@@ -11,15 +11,18 @@ class TierData {
   final bool isActive;
 
   final String imagePath;
+  final String buttonText;
+  final String headerText;
+  final List<String> benefits;
 
   const TierData({
     required this.name,
     required this.coins,
-    // required this.primaryColor,
-    // required this.glowColor,
-    // required this.crystalColors,
     this.isActive = false,
     required this.imagePath,
+    required this.buttonText,
+    required this.headerText,
+    required this.benefits,
   });
 }
 
@@ -28,10 +31,29 @@ const tiers = [
     imagePath: 'assets/icons/prii.png',
     name: 'PRIME',
     coins: 4000,
-    // primaryColor: Color(0xFF00B4FF),
-    // glowColor: Color(0xFF0077FF),
-    // crystalColors: [Color(0xFF00CFFF), Color(0xFF0066FF), Color(0xFF00E5FF)],
     isActive: false,
+    buttonText: 'Subscribe',
+    headerText: 'Access & Benefits',
+    benefits: [
+      'Increased ClapCoin rewards',
+      'Themed bounties',
+      'Category feature placements',
+      'Stream performance insights',
+    ],
+  ),
+  TierData(
+    imagePath: 'assets/icons/prii.png',
+    name: 'PRIME',
+    coins: 4000,
+    isActive: false,
+    buttonText: 'Upgrade',
+    headerText: 'Access & Benefits',
+    benefits: [
+      'Increased ClapCoin rewards',
+      'Themed bounties',
+      'Category feature placements',
+      'Stream performance insights',
+    ],
   ),
   TierData(
     imagePath: 'assets/icons/eli4.png',
@@ -41,6 +63,35 @@ const tiers = [
     // glowColor: Color(0xFF7722FF),
     // crystalColors: [Color(0xFFCC88FF), Color(0xFF8833FF), Color(0xFFDD99FF)],
     isActive: true,
+    buttonText: 'Subscribe',
+    headerText: 'Eligibility Metrics',
+    benefits: [
+      'Total livestreams: 20–50',
+      'Avg. live viewers: 100–250',
+      'Engagement rate: 8–12%',
+      'Revenue generated: \$351 – \$1500 (35,100 - 150,000CP)',
+      'Returning viewers: ≥ 35%',
+      '85% cashback from livestream',
+    ],
+  ),
+  TierData(
+    imagePath: 'assets/icons/eli4.png',
+    name: 'ELITE',
+    coins: 12000,
+    // primaryColor: Color(0xFFAA55FF),
+    // glowColor: Color(0xFF7722FF),
+    // crystalColors: [Color(0xFFCC88FF), Color(0xFF8833FF), Color(0xFFDD99FF)],
+    isActive: false,
+    buttonText: 'Upgrade',
+    headerText: 'Eligibility Metrics',
+    benefits: [
+      'Total livestreams: 20–50',
+      'Avg. live viewers: 100–250',
+      'Engagement rate: 8–12%',
+      'Revenue generated: \$351 – \$1500 (35,100 - 150,000CP)',
+      'Returning viewers: ≥ 35%',
+      '85% cashback from livestream',
+    ],
   ),
   TierData(
     imagePath: 'assets/icons/ic.png',
@@ -50,27 +101,77 @@ const tiers = [
     // glowColor: Color(0xFFFF7700),
     // crystalColors: [Color(0xFFFFCC66), Color(0xFFFF8800), Color(0xFFFFDD88)],
     isActive: false,
+    buttonText: 'Subscribe',
+    headerText: 'Eligibility Metrics',
+    benefits: [
+      'Total livestreams: 40–100+',
+      'Avg. live viewers: 250–750',
+      'Engagement rate: 12–18%',
+      'Revenue generated: \$1501- \$4999 (150,100 - 499,900CP)',
+      'Returning viewers: ≥ 50%',
+      '90% cashback from livestream',
+    ],
+  ),
+  TierData(
+    imagePath: 'assets/icons/ic.png',
+    name: 'ICON',
+    coins: 12000,
+    // primaryColor: Color(0xFFFFAA22),
+    // glowColor: Color(0xFFFF7700),
+    // crystalColors: [Color(0xFFFFCC66), Color(0xFFFF8800), Color(0xFFFFDD88)],
+    isActive: false,
+    buttonText: 'Upgrade',
+    headerText: 'Eligibility Metrics',
+    benefits: [
+      'Total livestreams: 40–100+',
+      'Avg. live viewers: 250–750',
+      'Engagement rate: 12–18%',
+      'Revenue generated: \$1501- \$4999 (150,100 - 499,900CP)',
+      'Returning viewers: ≥ 50%',
+      '90% cashback from livestream',
+    ],
+  ),
+  TierData(
+    imagePath: 'assets/icons/led.png',
+    name: 'LEGEND',
+    coins: 16000,
+    // primaryColor: Color(0xFFFFAA22),
+    // glowColor: Color(0xFFFF7700),
+    // crystalColors: [Color(0xFFFFCC66), Color(0xFFFF8800), Color(0xFFFFDD88)],
+    isActive: false,
+    buttonText: 'Subscribe',
+    headerText: 'Eligibility Metrics',
+    benefits: [
+      'Invitation-only OR exceptional performance',
+      'Avg. live viewers: 750+',
+      'Engagement rate: 18%+',
+      'Revenue generated: \$5000+ (500,000+)',
+      'Proven brand alignment & consistency',
+      '100% cash back',
+    ],
+  ),
+  TierData(
+    imagePath: 'assets/icons/led.png',
+    name: 'LEGEND',
+    coins: 20000,
+    // primaryColor: Color(0xFFFFAA22),
+    // glowColor: Color(0xFFFF7700),
+    // crystalColors: [Color(0xFFFFCC66), Color(0xFFFF8800), Color(0xFFFFDD88)],
+    isActive: false,
+    buttonText: 'Upgrade',
+    headerText: 'Eligibility Metrics',
+    benefits: [
+      'Invitation-only OR exceptional performance',
+      'Avg. live viewers: 750+',
+      'Engagement rate: 18%+',
+      'Revenue generated: \$5000+ (500,000+)',
+      'Proven brand alignment & consistency',
+      '100% cash back',
+    ],
   ),
 ];
 
-const benefits = [
-  _Benefit(imagePath: 'assets/icons/profile.png', label: 'Profile badge'),
-  _Benefit(imagePath: 'assets/icons/gift.png', label: 'Themed bounties'),
-  _Benefit(
-      imagePath: 'assets/icons/profile.png',
-      label: 'Category feature placements'),
-  _Benefit(
-      imagePath: 'assets/icons/profile.png',
-      label: 'Stream performance insights'),
-  _Benefit(
-      imagePath: 'assets/icons/coin.png', label: 'Increased Clap coin rewards'),
-];
-
-class _Benefit {
-  final String imagePath;
-  final String label;
-  const _Benefit({required this.imagePath, required this.label});
-}
+// End of tiers
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -108,8 +209,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // Starfield background
-          const _StarfieldBackground(),
+          // Background image
+          const Image(
+            image: AssetImage('assets/icons/pnc.png'),
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+          ),
 
           SafeArea(
             child: Column(
@@ -324,8 +430,8 @@ class _TierCard extends StatelessWidget {
 
                     const SizedBox(height: 16),
 
-                    const Text(
-                      'Access & Benefits',
+                    Text(
+                      tier.headerText,
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.white60,
@@ -336,31 +442,27 @@ class _TierCard extends StatelessWidget {
                     const SizedBox(height: 12),
 
                     // Benefits list
-                    ...benefits.map((b) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
+                    ...tier.benefits.map((b) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.07),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Image.asset(
-                                  b.imagePath,
-                                  width: 20,
-                                  height: 20,
+                              const Text(
+                                '●',
+                                style: TextStyle(
+                                  fontSize: 14,
                                   color: Colors.white70,
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Text(
-                                b.label,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w400,
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  b,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w400,
+                                  ),
                                 ),
                               ),
                             ],
@@ -387,9 +489,9 @@ class _TierCard extends StatelessWidget {
                                 ),
                                 elevation: 0,
                               ),
-                              child: const Text(
-                                'Subscribe',
-                                style: TextStyle(
+                              child: Text(
+                                tier.buttonText,
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -407,9 +509,9 @@ class _TierCard extends StatelessWidget {
                                 ),
                                 elevation: 0,
                               ),
-                              child: const Text(
-                                'Subscribe',
-                                style: TextStyle(
+                              child: Text(
+                                tier.buttonText,
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                 ),

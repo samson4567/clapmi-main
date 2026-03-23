@@ -24,6 +24,12 @@ class HeaderInterceptor extends Interceptor {
         TokenModel result = TokenModel.deserialize(serializedAccessToken);
         options.headers['Authorization'] = result.accessToken;
       }
+      // Add device ID header for authenticated requests
+      final deviceId =
+          appPreferenceService.getValue<String>(SecureKey.deviceIdKey);
+      if (deviceId != null) {
+        options.headers['X-Device-Id'] = deviceId;
+      }
     }
     if (isLoginEndpoint) {
       options.headers['x-client-type'] = 'mobile';

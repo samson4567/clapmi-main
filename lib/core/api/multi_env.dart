@@ -10,7 +10,7 @@ final class MultiEnv {
 
   factory MultiEnv() => _instance;
 
-  static final MultiEnv _instance = switch (!kDebugMode) {
+  static final MultiEnv _instance = switch (kDebugMode) {
     true => _DebugEnv(),
     false => _ProductionEnv(),
   }; //
