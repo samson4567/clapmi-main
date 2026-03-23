@@ -108,6 +108,7 @@ class MyAppRouteConstant {
   static const String verifyForgotPin = '/verifyForgotPin';
   static const String createNewPinForgetPin = '/createNewPinForgetPin';
   static const String subscriptionScreen = '/SubscriptionScreen';
+  static const String paymentCheckout = '/paymentCheckout';
 
   //PAYMENT AND WALLER ROUTES
   static const String fiatWithdrawal = '/fiatWithdrawal';

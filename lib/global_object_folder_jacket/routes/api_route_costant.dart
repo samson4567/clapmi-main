@@ -23,6 +23,7 @@ import 'package:clapmi/screens/Brag/brag_detail_screen.dart';
 import 'package:clapmi/screens/Brag/brag_screen_tu_tu.dart';
 import 'package:clapmi/screens/Brag/challenge_brag.dart';
 import 'package:clapmi/screens/NetworkAndRewards/clap_reward.dart';
+import 'package:clapmi/screens/leaderboard/payment_checkout.dart';
 import 'package:clapmi/screens/challenge/others/Single_livestream.dart';
 import 'package:clapmi/screens/challenge/start_challeng_now_chalenger_page.dart';
 import 'package:clapmi/screens/Brag_new/brag_new.dart';
@@ -858,6 +859,12 @@ final GoRouter router = GoRouter(
                 path: MyAppRouteConstant.clapReward,
                 builder: (context, state) {
                   return const ClapReward();
+                }),
+            GoRoute(
+                name: MyAppRouteConstant.paymentCheckout,
+                path: MyAppRouteConstant.paymentCheckout,
+                builder: (context, state) {
+                  return const LeaderboardPayemtUpgrade();
                 }),
           ],
         ),

@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
+import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
 
 class TierData {
   final String name;
@@ -472,48 +474,58 @@ class _TierCard extends StatelessWidget {
                     const Spacer(),
 
                     // Subscribe button
-                    SizedBox(
-                      width: double.infinity,
+                    Center(
                       child: tier.isActive
-                          ? ElevatedButton(
-                              onPressed: null,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white24,
-                                foregroundColor: Colors.white54,
-                                disabledBackgroundColor: Colors.white24,
-                                disabledForegroundColor: Colors.white54,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30),
+                          ? SizedBox(
+                              width: 102,
+                              height: 38,
+                              child: ElevatedButton(
+                                onPressed: null,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white24,
+                                  foregroundColor: Colors.white54,
+                                  disabledBackgroundColor: Colors.white24,
+                                  disabledForegroundColor: Colors.white54,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  elevation: 0,
                                 ),
-                                elevation: 0,
-                              ),
-                              child: Text(
-                                tier.buttonText,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                                child: Text(
+                                  tier.buttonText,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             )
-                          : ElevatedButton(
-                              onPressed: () {},
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: Colors.black,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30),
+                          : SizedBox(
+                              width: 102,
+                              height: 38,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  context
+                                      .push(MyAppRouteConstant.paymentCheckout);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  elevation: 0,
                                 ),
-                                elevation: 0,
-                              ),
-                              child: Text(
-                                tier.buttonText,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
+                                child: Text(
+                                  tier.buttonText,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
                             ),
