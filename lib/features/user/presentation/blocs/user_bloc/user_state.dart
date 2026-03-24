@@ -153,6 +153,28 @@ final class GetCreatorLeaderboardErrorState extends UserState {
   List<Object> get props => [errorMessage];
 }
 
+// Creator Levels States
+final class GetCreatorLevelsLoadingState extends UserState {
+  const GetCreatorLevelsLoadingState();
+}
+
+final class GetCreatorLevelsSuccessState extends UserState {
+  final CreatorLevelsResponse response;
+
+  const GetCreatorLevelsSuccessState({required this.response});
+
+  @override
+  List<Object> get props => [response];
+}
+
+final class GetCreatorLevelsErrorState extends UserState {
+  final String errorMessage;
+
+  const GetCreatorLevelsErrorState({required this.errorMessage});
+
+  @override
+  List<Object> get props => [errorMessage];
+}
 
 
 // GetUserDetails

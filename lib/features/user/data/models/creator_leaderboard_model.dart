@@ -29,11 +29,17 @@ class CreatorRankingModel {
   });
 
   factory CreatorRankingModel.fromJson(Map<String, dynamic> json) {
+    // Check multiple possible field names for the avatar image
+    String imageUrl = json['creator_image'] ??
+        json['avatar'] ??
+        json['profile_image'] ??
+        json['avatar_url'] ??
+        '';
     return CreatorRankingModel(
       creatorPid: json['creator_pid'] ?? '',
       creatorName: json['creator_name'] ?? '',
       creatorUsername: json['creator_username'] ?? '',
-      creatorImage: json['creator_image'] ?? '',
+      creatorImage: imageUrl,
       progressPercentage: json['progress_percentage'] ?? 0,
       level: CreatorLevel.fromJson(json['level'] ?? {}),
       score: json['score'] ?? '0',
@@ -217,7 +223,8 @@ class CreatorLeaderboardData {
   factory CreatorLeaderboardData.fromJson(Map<String, dynamic> json) {
     return CreatorLeaderboardData(
       rankings: (json['rankings'] as List<dynamic>?)
-              ?.map((e) => CreatorRankingModel.fromJson(e as Map<String, dynamic>))
+              ?.map((e) =>
+                  CreatorRankingModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
       pagination: PaginationInfo.fromJson(json['pagination'] ?? {}),
@@ -245,6 +252,140 @@ class PaginationInfo {
       perPage: json['per_page'] ?? 30,
       total: json['total'] ?? 0,
       lastPage: json['last_page'] ?? 1,
+    );
+  }
+}
+
+/// Response model for creator levels API
+class CreatorLevelsResponse {
+  final String message;
+  final bool success;
+  final CreatorLevelsData data;
+
+  CreatorLevelsResponse({
+    required this.message,
+    required this.success,
+    required this.data,
+  });
+
+  factory CreatorLevelsResponse.fromJson(Map<String, dynamic> json) {
+    return CreatorLevelsResponse(
+      message: json['message'] ?? '',
+      success: json['success'] ?? false,
+      data: CreatorLevelsData.fromJson(json['data'] ?? {}),
+    );
+  }
+}
+
+/// Data container for creator levels
+class CreatorLevelsData {
+  final List<CreatorLevelModel> creatorLevels;
+
+  CreatorLevelsData({required this.creatorLevels});
+
+  factory CreatorLevelsData.fromJson(Map<String, dynamic> json) {
+    return CreatorLevelsData(
+      creatorLevels: (json['creator_levels'] as List<dynamic>?)
+              ?.map(
+                  (e) => CreatorLevelModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+}
+
+/// Model for a single creator level
+class CreatorLevelModel {
+  final String uuid;
+  final String name;
+  final int position;
+  final int minStreams;
+  final int minAvgViewers;
+  final String minEngagementRate;
+  final int minRevenue;
+  final int minReturningViewers;
+  final int rollingWindowDays;
+  final LevelWeights weights;
+  final int payoutCreatorShare;
+  final int payoutFansShare;
+  final int payoutClapmiShare;
+  final bool isInviteOnly;
+  final int version;
+  final String? createdAt;
+  final String? updatedAt;
+  final int subscriptionAmount;
+  final String? badge;
+  final int livestreamShare;
+
+  CreatorLevelModel({
+    required this.uuid,
+    required this.name,
+    required this.position,
+    required this.minStreams,
+    required this.minAvgViewers,
+    required this.minEngagementRate,
+    required this.minRevenue,
+    required this.minReturningViewers,
+    required this.rollingWindowDays,
+    required this.weights,
+    required this.payoutCreatorShare,
+    required this.payoutFansShare,
+    required this.payoutClapmiShare,
+    required this.isInviteOnly,
+    required this.version,
+    this.createdAt,
+    this.updatedAt,
+    required this.subscriptionAmount,
+    this.badge,
+    required this.livestreamShare,
+  });
+
+  factory CreatorLevelModel.fromJson(Map<String, dynamic> json) {
+    return CreatorLevelModel(
+      uuid: json['uuid'] ?? '',
+      name: json['name'] ?? '',
+      position: json['position'] ?? 0,
+      minStreams: json['min_streams'] ?? 0,
+      minAvgViewers: json['min_avg_viewers'] ?? 0,
+      minEngagementRate: json['min_engagement_rate'] ?? '0',
+      minRevenue: json['min_revenue'] ?? 0,
+      minReturningViewers: json['min_returning_viewers'] ?? 0,
+      rollingWindowDays: json['rolling_window_days'] ?? 30,
+      weights: LevelWeights.fromJson(json['weights'] ?? {}),
+      payoutCreatorShare: json['payout_creator_share'] ?? 0,
+      payoutFansShare: json['payout_fans_share'] ?? 0,
+      payoutClapmiShare: json['payout_clapmi_share'] ?? 0,
+      isInviteOnly: json['is_invite_only'] ?? false,
+      version: json['version'] ?? 1,
+      createdAt: json['created_at'],
+      updatedAt: json['updated_at'],
+      subscriptionAmount: json['subscription_amount'] ?? 0,
+      badge: json['badge'],
+      livestreamShare: json['livestream_share'] ?? 0,
+    );
+  }
+}
+
+/// Weights for level calculation
+class LevelWeights {
+  final String consistency;
+  final String audience;
+  final String engagement;
+  final String revenue;
+
+  LevelWeights({
+    required this.consistency,
+    required this.audience,
+    required this.engagement,
+    required this.revenue,
+  });
+
+  factory LevelWeights.fromJson(Map<String, dynamic> json) {
+    return LevelWeights(
+      consistency: json['consistency']?.toString() ?? '0',
+      audience: json['audience']?.toString() ?? '0',
+      engagement: json['engagement']?.toString() ?? '0',
+      revenue: json['revenue']?.toString() ?? '0',
     );
   }
 }

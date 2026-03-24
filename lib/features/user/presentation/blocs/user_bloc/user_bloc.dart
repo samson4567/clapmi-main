@@ -19,6 +19,7 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     on<SelectProfilePictureEvent>(_onSelectProfilePictureEvent);
     on<GetUserDetailsEvent>(_onGetUserDetailsEvent);
     on<GetCreatorLeaderboardEvent>(_onGetCreatorLeaderboardEvent);
+    on<GetCreatorLevelsEvent>(_onGetCreatorLevelsEvent);
 
     // GetUserDetails
   }
@@ -117,6 +118,7 @@ class UserBloc extends Bloc<UserEvent, UserState> {
       levelName: event.levelName,
       page: event.page,
       timeFilter: event.timeFilter,
+      creator: event.creator,
     );
     print('UserBloc: Repository result received');
     result.fold(
@@ -131,6 +133,23 @@ class UserBloc extends Bloc<UserEvent, UserState> {
         print(
             'UserBloc: Success - data.data.rankings.length: ${data.data.rankings.length}');
         emit(GetCreatorLeaderboardSuccessState(response: data));
+      },
+    );
+  }
+
+  Future<void> _onGetCreatorLevelsEvent(
+      GetCreatorLevelsEvent event, Emitter<UserState> emit) async {
+    print('UserBloc: Starting getCreatorLevels request');
+    emit(GetCreatorLevelsLoadingState());
+    final result = await userRepository.getCreatorLevels();
+    result.fold(
+      (error) {
+        print('UserBloc: Error - ${error.message}');
+        emit(GetCreatorLevelsErrorState(errorMessage: error.message));
+      },
+      (data) {
+        print('UserBloc: Success - data.message: ${data.message}');
+        emit(GetCreatorLevelsSuccessState(response: data));
       },
     );
   }

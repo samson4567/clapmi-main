@@ -64,15 +64,21 @@ final class GetCreatorLeaderboardEvent extends UserEvent {
   final String? levelName;
   final int page;
   final String timeFilter; // 'week', 'month', 'year', 'all'
+  final String? creator; // creator pid to get specific user's ranking
 
   const GetCreatorLeaderboardEvent({
     this.levelName,
     this.page = 1,
     this.timeFilter = 'all',
+    this.creator,
   });
 
   @override
-  List<Object?> get props => [levelName, page, timeFilter];
+  List<Object?> get props => [levelName, page, timeFilter, creator];
+}
+
+final class GetCreatorLevelsEvent extends UserEvent {
+  const GetCreatorLevelsEvent();
 }
 
 

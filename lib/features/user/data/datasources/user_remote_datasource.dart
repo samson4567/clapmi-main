@@ -21,7 +21,8 @@ abstract class UserRemoteDatasource {
   });
   Future<UserEntity> getUserDetails();
   Future<CreatorLeaderboardResponse> getCreatorLeaderboard(
-      {String? levelName, int page = 1, String timeFilter = 'all'});
+      {String? levelName, int page = 1, String timeFilter = 'all', String? creator});
+  Future<CreatorLevelsResponse> getCreatorLevels();
 }
 
 class UserRemoteDatasourceImpl implements UserRemoteDatasource {
@@ -169,6 +170,7 @@ class UserRemoteDatasourceImpl implements UserRemoteDatasource {
     String? levelName,
     int page = 1,
     String timeFilter = 'all',
+    String? creator,
   }) async {
     final response = await networkClient.get(
       endpoint: EndpointConstant.getCreatorLeaderboard,
@@ -177,6 +179,7 @@ class UserRemoteDatasourceImpl implements UserRemoteDatasource {
         if (levelName != null) 'level_name': levelName,
         'page': page,
         if (timeFilter != 'all') 'time_filter': timeFilter,
+        if (creator != null) 'creator': creator,
       },
     );
     print('UserRemoteDatasource: raw response.data = ${response.data}');
@@ -203,5 +206,16 @@ class UserRemoteDatasourceImpl implements UserRemoteDatasource {
     print(
         'UserRemoteDatasource: parsed rankings count = ${result.data.rankings.length}');
     return result;
+  }
+
+  @override
+  Future<CreatorLevelsResponse> getCreatorLevels() async {
+    final response = await networkClient.get(
+      endpoint: EndpointConstant.getCreatorLevels,
+      isAuthHeaderRequired: true,
+    );
+
+    final json = response.data as Map<String, dynamic>;
+    return CreatorLevelsResponse.fromJson(json);
   }
 }

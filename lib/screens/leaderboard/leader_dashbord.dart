@@ -241,6 +241,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       _buildUserList(),
                       _buildPagination(),
                       const SizedBox(height: 16),
+                      _buildCurrentUserRanking(),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -706,14 +708,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) =>
                                 Image.asset(
-                              'assets/images/person2.png',
+                              'assets/images/profile1.png',
                               width: 32,
                               height: 32,
                               fit: BoxFit.cover,
                             ),
                           )
                         : Image.asset(
-                            'assets/images/person2.png',
+                            'assets/images/profile1.png',
                             width: 32,
                             height: 32,
                             fit: BoxFit.cover,
@@ -890,6 +892,211 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       ),
     );
   }
+
+  Widget _buildCurrentUserRanking() {
+    // Get current user's ranking from the rankings list
+    final currentUserPid = profileModelG?.pid;
+    if (currentUserPid == null || _creatorRankings.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Find current user's ranking in the list
+    final userIndex = _creatorRankings.indexWhere(
+      (ranking) => ranking.creatorPid == currentUserPid,
+    );
+
+    if (userIndex == -1) {
+      // User not in rankings - show message
+      return Container(
+        margin: const EdgeInsets.only(top: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: profileModelG?.myAvatar != null
+                  ? Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: MemoryImage(profileModelG!.myAvatar!),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    )
+                  : CachedNetworkImage(
+                      width: 40,
+                      height: 40,
+                      imageUrl: profileModelG?.image ?? '',
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        width: 40,
+                        height: 40,
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.person, size: 20),
+                      ),
+                      errorWidget: (context, error, trace) => Container(
+                        width: 40,
+                        height: 40,
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.person, size: 20),
+                      ),
+                    ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    profileModelG?.username ?? 'Your Profile',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    'You\'re not in the rankings yet',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.5),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4A7CF7).withOpacity(0.2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Text(
+                '-',
+                style: TextStyle(
+                  color: Color(0xFF4A7CF7),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final userRanking = _creatorRankings[userIndex];
+    // Use leaderboardRank from API response, fallback to index + 1 if not available
+    final rank = userRanking.leaderboardRank ?? (userIndex + 1);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF4A7CF7).withOpacity(0.2),
+            const Color(0xFF4A7CF7).withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF4A7CF7).withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFF4A7CF7),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Center(
+              child: Text(
+                '#$rank',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  userRanking.creatorUsername,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  '${userRanking.score} points',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.5),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (userRanking.creatorImage.isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: CachedNetworkImage(
+                width: 40,
+                height: 40,
+                imageUrl: userRanking.creatorImage,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  width: 40,
+                  height: 40,
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.person, size: 20),
+                ),
+                errorWidget: (context, error, trace) => Container(
+                  width: 40,
+                  height: 40,
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.person, size: 20),
+                ),
+              ),
+            )
+          else
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF4A7CF7).withOpacity(0.3),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Center(
+                child: Text(
+                  userRanking.creatorUsername.isNotEmpty
+                      ? userRanking.creatorUsername[0].toUpperCase()
+                      : '?',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -905,36 +1112,106 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isBenefitsExpanded = false;
+  List<CreatorLevelModel> _creatorLevels = [];
+  bool _isLevelsLoading = true;
+  // Store current user's ranking data for stats
+  CreatorRankingModel? _currentUserRanking;
+  bool _isRankingLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch creator levels when screen loads
+    context.read<UserBloc>().add(const GetCreatorLevelsEvent());
+    // Fetch creator leaderboard to get current user's stats
+    _loadUserRanking();
+  }
+
+  void _loadUserRanking() {
+    // Load all levels to find the current user
+    for (final level in ['Rookie', 'Prime', 'Elite', 'Icon', 'Legend']) {
+      context.read<UserBloc>().add(GetCreatorLeaderboardEvent(
+            levelName: level,
+            page: 1,
+            timeFilter: 'all',
+          ));
+    }
+    // Set a fallback timeout to stop loading if user not found
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted && _isRankingLoading) {
+        setState(() {
+          _isRankingLoading = false;
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildBackBar(context),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 16),
-                    _buildProfileHeader(),
-                    const SizedBox(height: 16),
-                    _buildLevelBenefitsCard(),
-                    const SizedBox(height: 12),
-                    _buildUnlockEliteCard(),
-                    const SizedBox(height: 12),
-                    _buildEarningsCard(),
-                    const SizedBox(height: 12),
-                    _buildStatsGrid(),
-                    const SizedBox(height: 24),
-                  ],
+    return BlocListener<UserBloc, UserState>(
+      listener: (context, state) {
+        if (state is GetCreatorLevelsSuccessState) {
+          setState(() {
+            _creatorLevels = state.response.data.creatorLevels;
+            _isLevelsLoading = false;
+          });
+        } else if (state is GetCreatorLevelsErrorState) {
+          print('ProfileScreen: Error loading levels - ${state.errorMessage}');
+          setState(() {
+            _isLevelsLoading = false;
+          });
+        } else if (state is GetCreatorLeaderboardSuccessState) {
+          // Find current user's ranking from the leaderboard data
+          final currentUserPid = profileModelG?.pid;
+          if (currentUserPid != null) {
+            final rankings = state.response.data.rankings;
+            final userIndex = rankings.indexWhere(
+              (ranking) => ranking.creatorPid == currentUserPid,
+            );
+            if (userIndex != -1) {
+              setState(() {
+                _currentUserRanking = rankings[userIndex];
+                _isRankingLoading = false;
+              });
+            }
+          }
+        } else if (state is GetCreatorLeaderboardErrorState) {
+          print(
+              'ProfileScreen: Error loading rankings - ${state.errorMessage}');
+          setState(() {
+            _isRankingLoading = false;
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0A0A0A),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildBackBar(context),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 16),
+                      _buildProfileHeader(),
+                      const SizedBox(height: 16),
+                      _buildLevelBenefitsCard(_creatorLevels, _isLevelsLoading),
+                      const SizedBox(height: 12),
+                      _buildUnlockEliteCard(_creatorLevels, _isLevelsLoading,
+                          _currentUserRanking),
+                      const SizedBox(height: 12),
+                      _buildEarningsCard(_creatorLevels, _isLevelsLoading),
+                      const SizedBox(height: 12),
+                      _buildStatsGrid(_currentUserRanking, _isRankingLoading),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -967,16 +1244,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileHeader() {
+    final userName =
+        profileModelG?.name ?? profileModelG?.username ?? 'Unknown User';
+    final userHandle = '@${profileModelG?.username ?? 'user'}';
+
     return Row(
       children: [
-        Image.asset('assets/images/person2.png'),
+        // Profile image
+        profileModelG?.myAvatar != null
+            ? Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(25),
+                  image: DecorationImage(
+                    image: MemoryImage(profileModelG!.myAvatar!),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              )
+            : CachedNetworkImage(
+                width: 50,
+                height: 50,
+                imageUrl: profileModelG?.image ?? '',
+                imageBuilder: (context, imageProvider) => Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(25),
+                    image: DecorationImage(
+                      image: imageProvider,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                placeholder: (context, url) => Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: const Icon(Icons.person),
+                ),
+                errorWidget: (context, error, trace) => Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: const Icon(Icons.person),
+                ),
+              ),
         const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'John doe',
+                userName,
                 style: TextStyle(
                   fontFamily: 'Poppins',
                   fontWeight: FontWeight.w500, // Medium (not bold)
@@ -987,7 +1312,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               Text(
-                '@johndoe',
+                userHandle,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Poppins',
@@ -1007,7 +1332,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text('Current level',
                 style: TextStyle(
                     color: Colors.white.withOpacity(0.5), fontSize: 12)),
-            const Text('Rookie',
+            Text('Rookie',
                 style: TextStyle(
                     color: Colors.white,
                     fontSize: 15,
@@ -1018,7 +1343,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildLevelBenefitsCard() {
+  Widget _buildLevelBenefitsCard(
+      List<CreatorLevelModel> creatorLevels, bool isLoading) {
+    if (isLoading) {
+      return Container(
+        height: 100,
+        alignment: Alignment.center,
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    }
+
+    // Use creatorLevels data to display level-specific information
+    final currentLevel = creatorLevels.isNotEmpty ? creatorLevels.first : null;
+
     return Container(
       decoration: BoxDecoration(
           color: const Color(0xFF141414),
@@ -1086,7 +1423,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildUnlockEliteCard() {
+  Widget _buildUnlockEliteCard(List<CreatorLevelModel> creatorLevels,
+      bool isLoading, CreatorRankingModel? userRanking) {
+    if (isLoading) {
+      return const SizedBox.shrink();
+    }
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1142,7 +1483,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: Colors.white.withOpacity(0.7), fontSize: 13)),
               ),
               Text(
-                '67%',
+                '${userRanking?.progressPercentage ?? 0}%',
                 textAlign: TextAlign.right,
                 style: TextStyle(
                     fontFamily: 'Poppins',
@@ -1157,8 +1498,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: const LinearProgressIndicator(
-              value: 0.67,
+            child: LinearProgressIndicator(
+              value: (userRanking?.progressPercentage ?? 0) / 100,
               minHeight: 6,
               backgroundColor: Colors.white12,
               valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8ABDE8)),
@@ -1169,7 +1510,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildEarningsCard() {
+  Widget _buildEarningsCard(
+      List<CreatorLevelModel> creatorLevels, bool isLoading) {
+    if (isLoading) {
+      return const SizedBox.shrink();
+    }
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1254,16 +1599,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatsGrid() {
+  Widget _buildStatsGrid(CreatorRankingModel? userRanking, bool isLoading) {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // Extract stats from API data or use defaults
+    final progress = userRanking?.progress;
+    final ranking = userRanking?.leaderboardRank ?? 0;
+    final earnedPoints = userRanking?.score ?? '0';
+    final winRate = progress?.winRate != null
+        ? '${((progress?.winRate ?? 0) * 100).toInt()}%'
+        : '0%';
+    final totalWins = progress?.totalWins?.toString() ?? '0';
+    final totalLivestreams = progress?.totalStreams30d?.toString() ?? '0';
+    final avgViewers = progress?.avgViewers30d != null
+        ? '${progress?.avgViewers30d!.toStringAsFixed(1)}k'
+        : '0';
+    final returningViewers = progress?.returningViewers30d?.toString() ?? '0';
+    final engagementRate = progress?.engagementRate30d != null
+        ? '${((progress?.engagementRate30d ?? 0) * 100).toInt()}%'
+        : '0%';
+
     final stats = [
-      ('Ranking', '#1', null),
-      ('Earned points', '20.5k', 'coin'),
-      ('Win rate', '85%', null),
-      ('Total wins', '50', null),
-      ('Total livestream', '75', null),
-      ('Avg. live viewers', '6k', null),
-      ('Returning viewers', '25', null),
-      ('Engagement rate', '60%', null),
+      ('Ranking', '#$ranking', null),
+      ('Earned points', earnedPoints, 'coin'),
+      ('Win rate', winRate, null),
+      ('Total wins', totalWins, null),
+      ('Total livestream', totalLivestreams, null),
+      ('Avg. live viewers', avgViewers, null),
+      ('Returning viewers', returningViewers, null),
+      ('Engagement rate', engagementRate, null),
     ];
 
     return Column(

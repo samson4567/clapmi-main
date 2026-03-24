@@ -97,13 +97,25 @@ class UserRepositoryImpl implements UserRepository {
     String? levelName,
     int page = 1,
     String timeFilter = 'all',
+    String? creator,
   }) async {
     try {
       final result = await userRemoteDatasource.getCreatorLeaderboard(
         levelName: levelName,
         page: page,
         timeFilter: timeFilter,
+        creator: creator,
       );
+      return right(result);
+    } catch (e) {
+      return left(mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, CreatorLevelsResponse>> getCreatorLevels() async {
+    try {
+      final result = await userRemoteDatasource.getCreatorLevels();
       return right(result);
     } catch (e) {
       return left(mapExceptionToFailure(e));

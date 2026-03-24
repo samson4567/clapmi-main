@@ -22,5 +22,7 @@ abstract class UserRepository {
     String? levelName,
     int page = 1,
     String timeFilter = 'all',
+    String? creator,
   });
+  Future<Either<Failure, CreatorLevelsResponse>> getCreatorLevels();
 }
