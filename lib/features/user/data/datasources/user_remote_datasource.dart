@@ -2,6 +2,7 @@ import 'package:clapmi/core/api/base_response.dart';
 import 'package:clapmi/core/api/clapmi_network_client.dart';
 import 'package:clapmi/core/constants/endpoint_constant.dart';
 import 'package:clapmi/core/db/app_preference_service.dart';
+import 'package:clapmi/features/user/data/models/creator_leaderboard_model.dart';
 import 'package:clapmi/features/user/data/models/user_model.dart';
 import 'package:clapmi/features/user/domain/entities/user_entity.dart';
 import "package:dio/dio.dart" as dio;
@@ -19,6 +20,8 @@ abstract class UserRemoteDatasource {
     required String password,
   });
   Future<UserEntity> getUserDetails();
+  Future<CreatorLeaderboardResponse> getCreatorLeaderboard(
+      {String? levelName, int page = 1, String timeFilter = 'all'});
 }
 
 class UserRemoteDatasourceImpl implements UserRemoteDatasource {
@@ -159,5 +162,46 @@ class UserRemoteDatasourceImpl implements UserRemoteDatasource {
     final user = UserModel.fromJson(response.data["user"]);
 
     return user;
+  }
+
+  @override
+  Future<CreatorLeaderboardResponse> getCreatorLeaderboard({
+    String? levelName,
+    int page = 1,
+    String timeFilter = 'all',
+  }) async {
+    final response = await networkClient.get(
+      endpoint: EndpointConstant.getCreatorLeaderboard,
+      isAuthHeaderRequired: true,
+      params: {
+        if (levelName != null) 'level_name': levelName,
+        'page': page,
+        if (timeFilter != 'all') 'time_filter': timeFilter,
+      },
+    );
+    print('UserRemoteDatasource: raw response.data = ${response.data}');
+    print(
+        'UserRemoteDatasource: keys in response.data = ${(response.data as Map<String, dynamic>).keys}');
+
+    // The API response structure is: {rankings: [...], pagination: {...}}
+    // NOT {message: "...", success: true, data: {rankings: [...], pagination: {...}}}
+    // So we need to construct the response manually
+    final json = response.data as Map<String, dynamic>;
+    final result = CreatorLeaderboardResponse(
+      message: 'Creator leaderboard fetched successfully',
+      success: true,
+      data: CreatorLeaderboardData(
+        rankings: (json['rankings'] as List<dynamic>?)
+                ?.map((e) =>
+                    CreatorRankingModel.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+        pagination: PaginationInfo.fromJson(json['pagination'] ?? {}),
+      ),
+    );
+    print('UserRemoteDatasource: parsed result = $result');
+    print(
+        'UserRemoteDatasource: parsed rankings count = ${result.data.rankings.length}');
+    return result;
   }
 }

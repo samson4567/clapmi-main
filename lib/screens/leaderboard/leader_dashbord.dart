@@ -1,5 +1,13 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:clapmi/core/app_variables.dart';
+import 'package:clapmi/features/user/data/models/creator_leaderboard_model.dart';
+import 'package:clapmi/features/user/presentation/blocs/user_bloc/user_bloc.dart';
+import 'package:clapmi/features/user/presentation/blocs/user_bloc/user_event.dart';
+import 'package:clapmi/features/user/presentation/blocs/user_bloc/user_state.dart';
 import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
@@ -16,6 +24,7 @@ class LeaderboardUser {
   final String avatarInitials;
   final Color avatarColor;
   final int? rankChange;
+  final String? avatarUrl; // Add field for creator image URL
 
   const LeaderboardUser({
     required this.rank,
@@ -26,6 +35,7 @@ class LeaderboardUser {
     required this.avatarInitials,
     required this.avatarColor,
     this.rankChange,
+    this.avatarUrl,
   });
 }
 
@@ -139,36 +149,104 @@ class LeaderboardScreen extends StatefulWidget {
 }
 
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
-  String _selectedLevel = 'Legend';
+  String _selectedLevel = 'Rookie';
   int _currentPage = 1;
+  List<CreatorRankingModel> _creatorRankings = [];
+  bool _isLoading = false;
+  String? _error;
+  int _totalPages = 1;
+  String _selectedTimeFilter = 'all'; // 'week', 'month', 'year', 'all'
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = ''; // Add field for total pages
 
-  final _levels = ['Legend', 'Icon', 'Elite', 'Prime'];
+  // Map UI level names to API level names
+  final _levels = ['Rookie', 'Prime', 'Elite', 'Icon', 'Legend'];
+
+  String _getApiLevelName(String uiLevel) {
+    // Convert UI level name to API expected format (Title Case)
+    switch (uiLevel.toLowerCase()) {
+      case 'legend':
+        return 'Legend';
+      case 'icon':
+        return 'Icon';
+      case 'elite':
+        return 'Elite';
+      case 'prime':
+        return 'Prime';
+      case 'rookie':
+      default:
+        return 'Rookie';
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCreatorLeaderboard();
+  }
+
+  void _loadCreatorLeaderboard() {
+    final levelName = _getApiLevelName(_selectedLevel);
+    print(
+        'Loading creator leaderboard for level: $levelName, page: $_currentPage, timeFilter: $_selectedTimeFilter');
+    context.read<UserBloc>().add(GetCreatorLeaderboardEvent(
+          levelName: levelName,
+          page: _currentPage,
+          timeFilter: _selectedTimeFilter,
+        ));
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildTopBar(),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeroHeader(),
-                    _buildLevelTabs(),
-                    _buildSearchAndFilter(),
-                    _buildTableHeader(),
-                    _buildUserList(),
-                    _buildPagination(),
-                    const SizedBox(height: 16),
-                  ],
+    return BlocListener<UserBloc, UserState>(
+      listener: (context, state) {
+        print('LeaderboardScreen received state: $state');
+        if (state is GetCreatorLeaderboardLoadingState) {
+          print('Loading state received');
+          setState(() {
+            _isLoading = true;
+            _error = null;
+          });
+        } else if (state is GetCreatorLeaderboardSuccessState) {
+          print(
+              'Success state received with ${state.response.data.rankings.length} rankings');
+          setState(() {
+            _creatorRankings = state.response.data.rankings;
+            _totalPages = state.response.data.pagination.lastPage;
+            _isLoading = false;
+          });
+        } else if (state is GetCreatorLeaderboardErrorState) {
+          print('Error state received: ${state.errorMessage}');
+          setState(() {
+            _error = state.errorMessage;
+            _isLoading = false;
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0A0A0A),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildTopBar(),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeroHeader(),
+                      _buildLevelTabs(),
+                      _buildSearchAndFilter(),
+                      _buildTableHeader(),
+                      _buildUserList(),
+                      _buildPagination(),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -179,7 +257,37 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          Image.asset('assets/images/person2.png'),
+          GestureDetector(
+            child: profileModelG?.myAvatar != null
+                ? Container(
+                    width: 30.w,
+                    height: 30.w,
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(30),
+                        image: DecorationImage(
+                            image: MemoryImage(profileModelG!.myAvatar!))),
+                  )
+                : Padding(
+                    padding: EdgeInsets.only(top: 6.h),
+                    child: ClipOval(
+                      child: CachedNetworkImage(
+                        height: 30.w,
+                        width: 30.w,
+                        imageUrl: profileModelG?.image ?? '',
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.person),
+                        ),
+                        errorWidget: (context, error, trace) => Container(
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.person),
+                        ),
+                      ),
+                    ),
+                  ),
+            onTap: () {},
+          ),
           const SizedBox(width: 12),
           const Text(
             'Leaderboard',
@@ -214,7 +322,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               children: [
                 Text(
                   'Clapmi Leaderboard',
-                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w500,
@@ -226,13 +333,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  "See where you stand amongst\nclapmi's top contributors.",
-                  textAlign: TextAlign.center,
+                  "See where you stand amongst clapmi's top contributors.",
                   style: TextStyle(
                     fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w400, // Regular
+                    fontWeight: FontWeight.w400,
                     fontSize: 13,
-                    height: 1.5, // 150% line-height
+                    height: 1.5,
                     letterSpacing: 0,
                     color: Colors.white.withOpacity(0.5),
                   ),
@@ -281,7 +387,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           ),
           const SizedBox(width: 6),
           ..._levels.map((level) => GestureDetector(
-                onTap: () => setState(() => _selectedLevel = level),
+                onTap: () => setState(() {
+                  _selectedLevel = level;
+                  _loadCreatorLeaderboard();
+                }),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Text(
@@ -320,15 +429,25 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   Icon(Icons.search,
                       color: Colors.white.withOpacity(0.4), size: 18),
                   const SizedBox(width: 8),
-                  Text(
-                    'Search',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w400, // Regular
-                      fontSize: 13, // fixed from 14 → 13
-                      height: 1.5, // 150% line-height
-                      letterSpacing: 0,
-                      color: Colors.white.withOpacity(0.3),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Search',
+                        hintStyle: TextStyle(
+                          color: Colors.white.withOpacity(0.3),
+                          fontSize: 13,
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
                     ),
                   ),
                 ],
@@ -342,22 +461,33 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             decoration: BoxDecoration(
                 color: const Color(0xFF1E1E1E),
                 borderRadius: BorderRadius.circular(10)),
-            child: const Row(
-              children: [
-                Text(
-                  'All time',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w400, // Regular
-                    fontSize: 13,
-                    height: 1.5, // 150% line-height
-                    letterSpacing: 0,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(width: 4),
-                Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 18),
+            child: DropdownButton<String>(
+              value: _selectedTimeFilter,
+              dropdownColor: const Color(0xFF1E1E1E),
+              underline: const SizedBox(),
+              icon: const Icon(Icons.keyboard_arrow_down,
+                  color: Colors.white, size: 18),
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w400,
+                fontSize: 13,
+                color: Colors.white,
+              ),
+              items: const [
+                DropdownMenuItem(value: 'all', child: Text('All time')),
+                DropdownMenuItem(value: 'week', child: Text('This week')),
+                DropdownMenuItem(value: 'month', child: Text('This month')),
+                DropdownMenuItem(value: 'year', child: Text('This year')),
               ],
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _selectedTimeFilter = value;
+                    _currentPage = 1; // Reset to first page when filter changes
+                    _loadCreatorLeaderboard();
+                  });
+                }
+              },
             ),
           ),
         ],
@@ -433,7 +563,94 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
   Widget _buildUserList() {
-    return Column(children: _users.map(_buildUserRow).toList());
+    if (_isLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: CircularProgressIndicator(color: Color(0xFF4A7CF7)),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            children: [
+              Text(
+                'Error loading leaderboard',
+                style: TextStyle(color: Colors.white.withOpacity(0.7)),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: _loadCreatorLeaderboard,
+                child: const Text('Retry',
+                    style: TextStyle(color: Color(0xFF4A7CF7))),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_creatorRankings.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            'No creators found for $_selectedLevel level',
+            style: TextStyle(color: Colors.white.withOpacity(0.5)),
+          ),
+        ),
+      );
+    }
+
+    // Map API data to local model for display
+    final users = _creatorRankings.asMap().entries.map((entry) {
+      final index = entry.key;
+      final creator = entry.value;
+      return LeaderboardUser(
+        rank: index + 1,
+        username: creator.creatorUsername,
+        clapPoints: creator.score,
+        winRate: ((creator.progress.winRate ?? 0) * 100).toInt(),
+        wins: creator.progress.totalWins ?? 0,
+        avatarInitials: creator.creatorUsername.isNotEmpty
+            ? creator.creatorUsername[0].toUpperCase()
+            : '?',
+        avatarColor: _getAvatarColor(index),
+        rankChange: null,
+        avatarUrl: creator.creatorImage, // Pass the creator image URL
+      );
+    }).toList();
+
+    // Filter by search query if not empty
+    final filteredUsers = _searchQuery.isEmpty
+        ? users
+        : users
+            .where((user) => user.username
+                .toLowerCase()
+                .contains(_searchQuery.toLowerCase()))
+            .toList();
+
+    return Column(children: filteredUsers.map(_buildUserRow).toList());
+  }
+
+  Color _getAvatarColor(int index) {
+    final colors = [
+      const Color(0xFF4A7CF7),
+      const Color(0xFFE91E8C),
+      const Color(0xFFFF6B35),
+      const Color(0xFF9B59B6),
+      const Color(0xFF2ECC71),
+      const Color(0xFFE74C3C),
+      const Color(0xFF1ABC9C),
+      const Color(0xFFF39C12),
+      const Color(0xFF3498DB),
+      const Color(0xFFE91E63),
+    ];
+    return colors[index % colors.length];
   }
 
   Widget _buildUserRow(LeaderboardUser user) {
@@ -481,12 +698,26 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      'assets/images/person2.png',
-                      width: 32,
-                      height: 32,
-                      fit: BoxFit.cover,
-                    ),
+                    child: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
+                        ? Image.network(
+                            user.avatarUrl!,
+                            width: 32,
+                            height: 32,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Image.asset(
+                              'assets/images/person2.png',
+                              width: 32,
+                              height: 32,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : Image.asset(
+                            'assets/images/person2.png',
+                            width: 32,
+                            height: 32,
+                            fit: BoxFit.cover,
+                          ),
                   ),
                   const SizedBox(width: 8),
                   Flexible(
@@ -559,58 +790,100 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           GestureDetector(
-            onTap: () =>
-                setState(() => _currentPage = (_currentPage - 1).clamp(1, 10)),
+            onTap: _currentPage > 1
+                ? () => setState(() {
+                      _currentPage = _currentPage - 1;
+                      _loadCreatorLeaderboard();
+                    })
+                : null,
             child: Row(children: [
               Icon(Icons.arrow_back,
-                  size: 16, color: Colors.white.withOpacity(0.5)),
+                  size: 16,
+                  color:
+                      Colors.white.withOpacity(_currentPage > 1 ? 0.5 : 0.2)),
               const SizedBox(width: 4),
               Text('Previous',
                   style: TextStyle(
-                      color: Colors.white.withOpacity(0.5), fontSize: 13)),
+                      color: Colors.white
+                          .withOpacity(_currentPage > 1 ? 0.5 : 0.2),
+                      fontSize: 13)),
             ]),
           ),
           const SizedBox(width: 20),
-          ...[1, 2, 3].map((page) => GestureDetector(
-                onTap: () => setState(() => _currentPage = page),
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  decoration: BoxDecoration(
-                    color: _currentPage == page
-                        ? Colors.white
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Text('$page',
-                        style: TextStyle(
-                          color: _currentPage == page
-                              ? Colors.black
-                              : Colors.white.withOpacity(0.5),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        )),
-                  ),
-                ),
-              )),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text('...',
-                style: TextStyle(color: Colors.white.withOpacity(0.4))),
-          ),
-          const SizedBox(width: 12),
           GestureDetector(
-            onTap: () =>
-                setState(() => _currentPage = (_currentPage + 1).clamp(1, 10)),
+            onTap: () => setState(() {
+              _currentPage = 1;
+              _loadCreatorLeaderboard();
+            }),
+            child: Container(
+              width: 32,
+              height: 32,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: BoxDecoration(
+                color: _currentPage == 1 ? Colors.white : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text('1',
+                    style: TextStyle(
+                      color: _currentPage == 1
+                          ? Colors.black
+                          : Colors.white.withOpacity(0.5),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    )),
+              ),
+            ),
+          ),
+          if (_currentPage > 2) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text('...',
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.5), fontSize: 13)),
+            ),
+            GestureDetector(
+              onTap: () {
+                _loadCreatorLeaderboard();
+              },
+              child: Container(
+                width: 32,
+                height: 32,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text('$_currentPage',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      )),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(width: 20),
+          GestureDetector(
+            onTap: _currentPage < _totalPages
+                ? () => setState(() {
+                      _currentPage = _currentPage + 1;
+                      _loadCreatorLeaderboard();
+                    })
+                : null,
             child: Row(children: [
               Text('Next',
                   style: TextStyle(
-                      color: Colors.white.withOpacity(0.5), fontSize: 13)),
+                      color: Colors.white
+                          .withOpacity(_currentPage < _totalPages ? 0.5 : 0.2),
+                      fontSize: 13)),
               const SizedBox(width: 4),
               Icon(Icons.arrow_forward,
-                  size: 16, color: Colors.white.withOpacity(0.5)),
+                  size: 16,
+                  color: Colors.white
+                      .withOpacity(_currentPage < _totalPages ? 0.5 : 0.2)),
             ]),
           ),
         ],
@@ -674,11 +947,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           GestureDetector(
             onTap: () => Navigator.pop(context),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.arrow_back_ios, color: Colors.white, size: 18),
-                SizedBox(width: 4),
-                Text('Back',
+                Image.asset(
+                  'assets/icons/back_leader.png',
+                  width: 24,
+                  height: 24,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 4),
+                const Text('Back',
                     style: TextStyle(color: Colors.white, fontSize: 16)),
               ],
             ),

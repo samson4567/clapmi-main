@@ -65,6 +65,7 @@ class EndpointConstant {
       '/rewards/claim/has-referred-5-people';
   static const String getReferrerQrCode = '/rewards/referral/qr';
   static const String getLeaderboard = '/rewards/leaderboards';
+  static const String getCreatorLeaderboard = '/creators/ranking';
   static const String referralCount = '/referrals/count';
 
   //* Settings

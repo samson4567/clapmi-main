@@ -39,8 +39,6 @@ import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_event
 import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_state.dart';
 import 'package:clapmi/global_object_folder_jacket/global_object.dart';
 import 'package:clapmi/screens/Brag/brag_screen_tu_controller.dart';
-import 'package:clapmi/screens/Brag/brag_screen_tu_tu.dart';
-import 'package:clapmi/screens/Brag/brag_util.dart';
 import 'package:clapmi/screens/chatsection/chats_list_page.dart';
 import 'package:clapmi/screens/feed/feed_extraction_files/showcase_widget.dart';
 import 'package:clapmi/screens/feed/feed_extraction_files/tutorials_status_flows_lists.dart';
@@ -52,7 +50,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
-import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'extraction.dart';

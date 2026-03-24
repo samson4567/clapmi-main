@@ -5,7 +5,7 @@ abstract class UserEvent extends Equatable {
   const UserEvent();
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 final class UserDetailUpdateEvent extends UserEvent {
@@ -58,6 +58,21 @@ final class GetUserDetailsEvent extends UserEvent {
 
   @override
   List<Object> get props => [email];
+}
+
+final class GetCreatorLeaderboardEvent extends UserEvent {
+  final String? levelName;
+  final int page;
+  final String timeFilter; // 'week', 'month', 'year', 'all'
+
+  const GetCreatorLeaderboardEvent({
+    this.levelName,
+    this.page = 1,
+    this.timeFilter = 'all',
+  });
+
+  @override
+  List<Object?> get props => [levelName, page, timeFilter];
 }
 
 

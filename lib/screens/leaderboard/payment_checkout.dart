@@ -13,7 +13,15 @@ class LeaderboardPayemtUpgrade extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
-        leading: const BackButton(color: Colors.white),
+        leading: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Image.asset(
+            'assets/icons/back_leader.png',
+            width: 24,
+            height: 24,
+            color: Colors.white,
+          ),
+        ),
         title: const Text(
           'Checkout',
           style: TextStyle(color: Colors.white),

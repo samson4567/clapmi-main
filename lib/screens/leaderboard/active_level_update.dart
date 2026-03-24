@@ -132,7 +132,14 @@ class ActiveLevelWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(30),
               ),
             ),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const CancellationEffectiveDateScreen(),
+                ),
+              );
+            },
             child: const Text(
               "Cancel",
               style: TextStyle(

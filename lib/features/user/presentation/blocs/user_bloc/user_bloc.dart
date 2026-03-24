@@ -18,6 +18,7 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     on<SelectBannerEvent>(_onSelectBannerEvent);
     on<SelectProfilePictureEvent>(_onSelectProfilePictureEvent);
     on<GetUserDetailsEvent>(_onGetUserDetailsEvent);
+    on<GetCreatorLeaderboardEvent>(_onGetCreatorLeaderboardEvent);
 
     // GetUserDetails
   }
@@ -105,6 +106,33 @@ class UserBloc extends Bloc<UserEvent, UserState> {
         GetUserDetailsSuccessState(userEntity: data),
       );
     });
+  }
+
+  Future<void> _onGetCreatorLeaderboardEvent(
+      GetCreatorLeaderboardEvent event, Emitter<UserState> emit) async {
+    print('UserBloc: Starting getCreatorLeaderboard request');
+    emit(GetCreatorLeaderboardLoadingState());
+    print('UserBloc: LoadingState emitted');
+    final result = await userRepository.getCreatorLeaderboard(
+      levelName: event.levelName,
+      page: event.page,
+      timeFilter: event.timeFilter,
+    );
+    print('UserBloc: Repository result received');
+    result.fold(
+      (error) {
+        print('UserBloc: Error - ${error.message}');
+        emit(GetCreatorLeaderboardErrorState(errorMessage: error.message));
+      },
+      (data) {
+        print('UserBloc: Success - data.message: ${data.message}');
+        print('UserBloc: Success - data.data: ${data.data}');
+        print('UserBloc: Success - data.data.rankings: ${data.data.rankings}');
+        print(
+            'UserBloc: Success - data.data.rankings.length: ${data.data.rankings.length}');
+        emit(GetCreatorLeaderboardSuccessState(response: data));
+      },
+    );
   }
 
   // _onGetUserDetailsEvent

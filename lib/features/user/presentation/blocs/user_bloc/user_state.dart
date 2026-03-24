@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:clapmi/features/user/data/models/creator_leaderboard_model.dart';
 import 'package:clapmi/features/user/domain/entities/user_entity.dart';
 import 'package:equatable/equatable.dart';
 
@@ -124,6 +125,29 @@ final class GetUserDetailsErrorState extends UserState {
   final String errorMessage;
 
   const GetUserDetailsErrorState({required this.errorMessage});
+
+  @override
+  List<Object> get props => [errorMessage];
+}
+
+// Creator Leaderboard States
+final class GetCreatorLeaderboardLoadingState extends UserState {
+  const GetCreatorLeaderboardLoadingState();
+}
+
+final class GetCreatorLeaderboardSuccessState extends UserState {
+  final CreatorLeaderboardResponse response;
+
+  const GetCreatorLeaderboardSuccessState({required this.response});
+
+  @override
+  List<Object> get props => [response];
+}
+
+final class GetCreatorLeaderboardErrorState extends UserState {
+  final String errorMessage;
+
+  const GetCreatorLeaderboardErrorState({required this.errorMessage});
 
   @override
   List<Object> get props => [errorMessage];

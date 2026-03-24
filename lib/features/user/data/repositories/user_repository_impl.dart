@@ -5,6 +5,7 @@ import 'package:clapmi/core/mapper/failure_mapper.dart';
 import 'package:clapmi/core/services/notification_handler_classes/notificationWorkers/push_notifications.dart';
 import 'package:clapmi/features/user/data/datasources/user_local_datasource.dart';
 import 'package:clapmi/features/user/data/datasources/user_remote_datasource.dart';
+import 'package:clapmi/features/user/data/models/creator_leaderboard_model.dart';
 import 'package:clapmi/features/user/domain/entities/user_entity.dart';
 import 'package:clapmi/features/user/domain/repositories/user_repository.dart';
 import 'package:dartz/dartz.dart';
@@ -87,6 +88,24 @@ class UserRepositoryImpl implements UserRepository {
       } catch (e2) {
         print("debug_print-UserRepositoryImpl-getUserDetails-error_is_$e");
       }
+      return left(mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, CreatorLeaderboardResponse>> getCreatorLeaderboard({
+    String? levelName,
+    int page = 1,
+    String timeFilter = 'all',
+  }) async {
+    try {
+      final result = await userRemoteDatasource.getCreatorLeaderboard(
+        levelName: levelName,
+        page: page,
+        timeFilter: timeFilter,
+      );
+      return right(result);
+    } catch (e) {
       return left(mapExceptionToFailure(e));
     }
   }

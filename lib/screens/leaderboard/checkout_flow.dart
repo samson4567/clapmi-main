@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'active_level_update.dart';
 import 'tier_card_components.dart';
+import 'upgrade_flow_styles.dart';
 
 class LeaderboardPayemtUpgrade extends StatelessWidget {
   const LeaderboardPayemtUpgrade({super.key});
@@ -12,7 +14,15 @@ class LeaderboardPayemtUpgrade extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
-        leading: const BackButton(color: Colors.white),
+        leading: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Image.asset(
+            'assets/icons/back_leader.png',
+            width: 24,
+            height: 24,
+            color: Colors.white,
+          ),
+        ),
         title: const Text(
           'Checkout',
           style: TextStyle(color: Colors.white),
@@ -162,7 +172,7 @@ class LeaderboardPayemtUpgrade extends StatelessWidget {
 }
 
 /// Upgrade preview screen - shows current level and target upgrade level side by side
-class UpgradePreviewScreen extends StatelessWidget {
+class UpgradePreviewScreen extends StatefulWidget {
   final String currentLevel;
   final String targetLevel;
   final int price;
@@ -183,75 +193,128 @@ class UpgradePreviewScreen extends StatelessWidget {
   });
 
   @override
+  State<UpgradePreviewScreen> createState() => _UpgradePreviewScreenState();
+}
+
+class _UpgradePreviewScreenState extends State<UpgradePreviewScreen> {
+  final PageController _controller = PageController(viewportFraction: 0.85);
+
+  int currentPage = 0;
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        leading: BackButton(
-          color: Colors.white,
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Upgrade',
-          style: TextStyle(color: Colors.white),
-        ),
-      ),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            // Horizontal scrollable cards
-            SizedBox(
-              height: 450,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: [
-                  // Current Level Card (ELITE)
-                  _TierPreviewCard(
-                    level: currentLevel,
-                    imagePath: currentImagePath,
-                    isActive: isCurrentActive,
-                    buttonText: 'Subscribed',
-                    isActiveButton: true,
-                    onPressed: null,
-                    price: '\$price',
-                    paymentInfo: 'Monthly',
-                    features: [
-                      'Profile badge',
-                      'Themed bounties',
-                      'Category feature placements',
+        child: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/icons/pnc.png'),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 40),
+
+              /// BACK BUTTON
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'assets/icons/back_leader.png',
+                        width: 24,
+                        height: 24,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text("Back", style: TextStyle(color: Colors.white)),
                     ],
                   ),
-                  const SizedBox(width: 16),
-                  // Target Level Card (ICON)
-                  _TierPreviewCard(
-                    level: targetLevel,
-                    imagePath: targetImagePath,
-                    isActive: false,
-                    buttonText: 'Upgrade',
-                    isActiveButton: false,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const LeaderboardPayemtUpgrade(),
-                        ),
-                      );
-                    },
-                    price: '\${(price * 2).toString()}',
-                    paymentInfo: 'Monthly',
-                    features: benefits,
-                  ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(height: 30),
-            // Benefits section
-          ],
+
+              const SizedBox(height: 40),
+
+              /// CAROUSEL
+              SizedBox(
+                height: 480,
+                child: PageView(
+                  controller: _controller,
+                  onPageChanged: (i) {
+                    setState(() => currentPage = i);
+                  },
+                  children: [
+                    /// CURRENT CARD
+                    _TierPreviewCard(
+                      level: widget.currentLevel,
+                      imagePath: widget.currentImagePath,
+                      isActive: true,
+                      buttonText: "Subscribed",
+                      isActiveButton: true,
+                      price: "4,000",
+                      paymentInfo: "/month",
+                      features: widget.benefits,
+                    ),
+
+                    /// TARGET CARD
+                    _TierPreviewCard(
+                      level: widget.targetLevel,
+                      imagePath: widget.targetImagePath,
+                      isActive: false,
+                      buttonText: "Upgrade Subscription",
+                      isActiveButton: false,
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const LeaderboardPayemtUpgrade(),
+                          ),
+                        );
+                      },
+                      price: "4,000",
+                      paymentInfo: "/month",
+                      features: widget.benefits,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              /// DOT INDICATOR
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(2, (index) {
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    width: currentPage == index ? 10 : 6,
+                    height: currentPage == index ? 10 : 6,
+                    decoration: BoxDecoration(
+                      color: currentPage == index ? Colors.white : Colors.grey,
+                      shape: BoxShape.circle,
+                    ),
+                  );
+                }),
+              ),
+
+              const SizedBox(height: 20),
+
+              /// NOTE TEXT
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  "Note: Upgrade will be in effect after the former subscription expires.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white54),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -264,7 +327,6 @@ class _TierPreviewCard extends StatelessWidget {
   final bool isActive;
   final String buttonText;
   final bool isActiveButton;
-  final bool isUpgradeButton;
   final VoidCallback? onPressed;
   final String? price;
   final String? paymentInfo;
@@ -276,7 +338,6 @@ class _TierPreviewCard extends StatelessWidget {
     required this.isActive,
     required this.buttonText,
     required this.isActiveButton,
-    this.isUpgradeButton = false,
     this.onPressed,
     this.price,
     this.paymentInfo,
@@ -285,192 +346,102 @@ class _TierPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 280,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        image: const DecorationImage(
-          image: AssetImage('assets/icons/levelc.png'),
-          fit: BoxFit.cover,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-      ),
-      child: SingleChildScrollView(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: TierCardDecoration(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
           children: [
-            // Header with icon and level
-            _header(),
-            const SizedBox(height: 20),
-            // Info section
-            if (price != null || paymentInfo != null) ...[
-              _infoSection(),
-              const SizedBox(height: 20),
-            ],
-            // Features
-            if (features != null && features!.isNotEmpty) ...[
-              _features(),
-              const SizedBox(height: 20),
-            ],
-            // Button
-            if (buttonText.isNotEmpty) _buildButton(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _header() {
-    return Row(
-      children: [
-        // Level icon
-        SizedBox(
-          width: 100,
-          height: 100,
-          child: Image.asset(
-            imagePath,
-            width: 100,
-            height: 100,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                level.toUpperCase(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                isActive ? 'Active' : 'Next',
-                style: TextStyle(
-                  color: isActive ? Colors.lightBlueAccent : Colors.grey,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _infoSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (price != null) _infoRow("Price:", price!),
-        if (paymentInfo != null) _infoRow("Payment:", paymentInfo!),
-      ],
-    );
-  }
-
-  Widget _infoRow(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: const TextStyle(color: Colors.grey, fontSize: 14)),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _features() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Benefits:',
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...features!.take(4).map((f) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.check, color: Colors.green, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      f,
-                      style:
-                          const TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
+            /// HEADER
+            Column(
+              children: [
+                Image.asset(imagePath, height: 80),
+                const SizedBox(height: 10),
+                Text(
+                  level,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
-              ),
-            )),
-      ],
-    );
-  }
+                ),
+                Text(
+                  isActive ? "Active" : "",
+                  style: const TextStyle(color: Colors.blue),
+                ),
+              ],
+            ),
 
-  Widget _buildButton() {
-    // Style for upgrade button (white, smaller)
-    if (isUpgradeButton) {
-      return SizedBox(
-        width: 120,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black,
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+            const SizedBox(height: 20),
+
+            /// PRICE
+            Row(
+              children: [
+                Image.asset(
+                  'assets/icons/commentcoin.png',
+                  height: 24,
+                  width: 24,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  "$price",
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  " $paymentInfo",
+                  style: const TextStyle(color: Colors.grey),
+                ),
+              ],
             ),
-          ),
-          onPressed: onPressed,
-          child: Text(
-            buttonText,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      );
-    }
-    // Default style for current level
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor:
-              isActiveButton ? Colors.white24 : const Color(0xFF006FCD),
-          foregroundColor: isActiveButton ? Colors.white54 : Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-        ),
-        onPressed: onPressed,
-        child: Text(
-          buttonText,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+
+            const SizedBox(height: 20),
+
+            /// FEATURES
+            ...features!.map((f) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check, color: Colors.white, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          f,
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+
+            const Spacer(),
+
+            /// BUTTON
+            Center(
+              child: isActiveButton
+                  ? const Text(
+                      "Subscribed",
+                      style: TextStyle(color: Colors.white54),
+                    )
+                  : ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
+                      ),
+                      onPressed: onPressed,
+                      child: Text(buttonText),
+                    ),
+            )
+          ],
         ),
       ),
     );
@@ -1024,6 +995,379 @@ class _ActiveLevelCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class CancellationEffectiveDateScreen extends StatelessWidget {
+  const CancellationEffectiveDateScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/icons/pnc.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                /// HEADER
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Image.asset(
+                        'assets/icons/back_leader.png',
+                        width: 24,
+                        height: 24,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text("Cancel Subscription",
+                        style: TextStyle(color: Colors.white)),
+                  ],
+                ),
+
+                const SizedBox(height: 40),
+
+                /// HERO (ICON + TITLE)
+                Column(
+                  children: [
+                    Image.asset(
+                      'assets/icons/eli4.png',
+                      height: 90,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "ELITE",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 30),
+
+                /// DESCRIPTION
+                const Text(
+                  "Your subscription will be cancelled at the end of your billing period on March 13, 2026, and you won’t be charged anymore.",
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w400,
+                    fontSize: 16,
+                    height: 1.5, // line-height: 150%
+                    letterSpacing: 0,
+                    color: Colors.white70,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                const Text(
+                  "After this date, you’ll no longer have access to these benefits from Clapmi:",
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w400,
+                    fontSize: 16,
+                    height: 1.5,
+                    letterSpacing: 0,
+                    color: Colors.white54,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                /// DROPDOWN
+                _CancelReasonDropdown(),
+
+                const Spacer(),
+
+                /// BUTTONS
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white24),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          "Keep Subscription",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF006FCD),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const CancellationConfirmedScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          "Cancel Subscription",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CancelReasonDropdown extends StatefulWidget {
+  @override
+  State<_CancelReasonDropdown> createState() => _CancelReasonDropdownState();
+}
+
+class _CancelReasonDropdownState extends State<_CancelReasonDropdown> {
+  String? selected;
+
+  final List<String> reasons = [
+    "Cost-related reasons",
+    "I found a better app",
+    "I don’t benefit from this service much",
+    "Decline to answer",
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.white24),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: DropdownButton<String>(
+        value: selected,
+        isExpanded: true,
+        dropdownColor: Colors.black,
+        hint: const Text(
+          "Select a reason for canceling",
+          style: TextStyle(color: Colors.white54),
+        ),
+        underline: const SizedBox(),
+        icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
+        items: reasons.map((r) {
+          return DropdownMenuItem(
+            value: r,
+            child: Text(
+              r,
+              style: const TextStyle(color: Colors.white),
+            ),
+          );
+        }).toList(),
+        onChanged: (val) {
+          setState(() => selected = val);
+        },
+      ),
+    );
+  }
+}
+
+class CancellationConfirmedScreen extends StatelessWidget {
+  const CancellationConfirmedScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            children: [
+              const Spacer(),
+
+              /// ICON
+              Container(
+                width: 90,
+                height: 90,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1E73BE),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check, color: Colors.white, size: 40),
+              ),
+
+              const SizedBox(height: 30),
+
+              const Text(
+                "Subscription Cancelled",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              const Text(
+                "Your clapmi subscription has successfully been cancelled",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70),
+              ),
+
+              const Spacer(),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E73BE),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const DowngradedScreen(),
+                      ),
+                    );
+                  },
+                  child:
+                      const Text("Done", style: TextStyle(color: Colors.white)),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class DowngradedScreen extends StatelessWidget {
+  const DowngradedScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/icons/pnc.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                const Spacer(),
+
+                const Text(
+                  "You are now on the",
+                  style: TextStyle(color: Colors.white70),
+                ),
+
+                const SizedBox(height: 8),
+
+                const Text(
+                  "BASIC TIER",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+
+                /// CARD
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        "Your new benefits:",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      SizedBox(height: 16),
+                      BenefitItem(text: 'Profile badge'),
+                      BenefitItem(text: 'Basic bounties'),
+                      BenefitItem(text: 'Standard support'),
+                    ],
+                  ),
+                ),
+
+                const Spacer(),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E73BE),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    },
+                    child: const Text("Done"),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
