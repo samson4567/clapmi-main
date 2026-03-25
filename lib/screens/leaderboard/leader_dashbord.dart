@@ -664,123 +664,119 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     if (user.rank == 2) rankIcon = 'assets/icons/rank2.svg';
     if (user.rank == 3) rankIcon = 'assets/icons/rank3.svg';
 
-    return GestureDetector(
-      onTap: () => Navigator.push(
-          context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color:
-              isCurrentUser ? const Color(0xFF1A2535) : const Color(0xFF141414),
-          borderRadius: BorderRadius.circular(12),
-          border: isCurrentUser
-              ? Border.all(color: const Color(0xFF4A7CF7).withOpacity(0.3))
-              : null,
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 36,
-              child: rankIcon != null
-                  ? SvgPicture.asset(
-                      rankIcon,
-                      width: 28,
-                      height: 28,
-                    )
-                  : Text(
-                      user.rank == 0 ? '-' : '#${user.rank}',
-                      style: TextStyle(
-                          color: Colors.white.withOpacity(0.5), fontSize: 12),
-                    ),
-            ),
-            Expanded(
-              flex: 3,
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
-                        ? Image.network(
-                            user.avatarUrl!,
-                            width: 32,
-                            height: 32,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Image.asset(
-                              'assets/images/profile1.png',
-                              width: 32,
-                              height: 32,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : Image.asset(
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color:
+            isCurrentUser ? const Color(0xFF1A2535) : const Color(0xFF141414),
+        borderRadius: BorderRadius.circular(12),
+        border: isCurrentUser
+            ? Border.all(color: const Color(0xFF4A7CF7).withOpacity(0.3))
+            : null,
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 36,
+            child: rankIcon != null
+                ? SvgPicture.asset(
+                    rankIcon,
+                    width: 28,
+                    height: 28,
+                  )
+                : Text(
+                    user.rank == 0 ? '-' : '#${user.rank}',
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.5), fontSize: 12),
+                  ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
+                      ? Image.network(
+                          user.avatarUrl!,
+                          width: 32,
+                          height: 32,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Image.asset(
                             'assets/images/profile1.png',
                             width: 32,
                             height: 32,
                             fit: BoxFit.cover,
                           ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(user.username,
-                        overflow: TextOverflow.ellipsis,
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 13)),
-                  ),
-                ],
-              ),
+                        )
+                      : Image.asset(
+                          'assets/images/profile1.png',
+                          width: 32,
+                          height: 32,
+                          fit: BoxFit.cover,
+                        ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(user.username,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          const TextStyle(color: Colors.white, fontSize: 13)),
+                ),
+              ],
             ),
-            Expanded(
-              flex: 3,
-              child: Row(
-                children: [
-                  SvgPicture.asset(
-                    'assets/icons/coin.svg',
-                    width: 14,
-                    height: 14,
-                    colorFilter: const ColorFilter.mode(
-                      Color(0xFFFFD700),
-                      BlendMode.srcIn,
-                    ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Row(
+              children: [
+                SvgPicture.asset(
+                  'assets/icons/coin.svg',
+                  width: 14,
+                  height: 14,
+                  colorFilter: const ColorFilter.mode(
+                    Color(0xFFFFD700),
+                    BlendMode.srcIn,
                   ),
+                ),
+                const SizedBox(width: 4),
+                Text('${user.clapPoints}',
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.8), fontSize: 12)),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text('${user.winRate}%',
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.8), fontSize: 13)),
+          ),
+          Expanded(
+            flex: 2,
+            child: Row(
+              children: [
+                Text('${user.wins}',
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.8), fontSize: 13)),
+                if (user.rankChange != null) ...[
                   const SizedBox(width: 4),
-                  Text('${user.clapPoints}',
-                      style: TextStyle(
-                          color: Colors.white.withOpacity(0.8), fontSize: 12)),
+                  Icon(
+                    user.rankChange! > 0
+                        ? Icons.arrow_drop_up
+                        : Icons.arrow_drop_down,
+                    color: user.rankChange! > 0
+                        ? Colors.blueAccent
+                        : Colors.redAccent,
+                    size: 18,
+                  ),
                 ],
-              ),
+              ],
             ),
-            Expanded(
-              flex: 2,
-              child: Text('${user.winRate}%',
-                  style: TextStyle(
-                      color: Colors.white.withOpacity(0.8), fontSize: 13)),
-            ),
-            Expanded(
-              flex: 2,
-              child: Row(
-                children: [
-                  Text('${user.wins}',
-                      style: TextStyle(
-                          color: Colors.white.withOpacity(0.8), fontSize: 13)),
-                  if (user.rankChange != null) ...[
-                    const SizedBox(width: 4),
-                    Icon(
-                      user.rankChange! > 0
-                          ? Icons.arrow_drop_up
-                          : Icons.arrow_drop_down,
-                      color: user.rankChange! > 0
-                          ? Colors.blueAccent
-                          : Colors.redAccent,
-                      size: 18,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -907,86 +903,91 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
     if (userIndex == -1) {
       // User not in rankings - show message
-      return Container(
-        margin: const EdgeInsets.only(top: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: profileModelG?.myAvatar != null
-                  ? Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        image: DecorationImage(
-                          image: MemoryImage(profileModelG!.myAvatar!),
-                          fit: BoxFit.cover,
+      return GestureDetector(
+        onTap: () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
+        child: Container(
+          margin: const EdgeInsets.only(top: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: profileModelG?.myAvatar != null
+                    ? Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          image: DecorationImage(
+                            image: MemoryImage(profileModelG!.myAvatar!),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      )
+                    : CachedNetworkImage(
+                        width: 40,
+                        height: 40,
+                        imageUrl: profileModelG?.image ?? '',
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          width: 40,
+                          height: 40,
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.person, size: 20),
+                        ),
+                        errorWidget: (context, error, trace) => Container(
+                          width: 40,
+                          height: 40,
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.person, size: 20),
                         ),
                       ),
-                    )
-                  : CachedNetworkImage(
-                      width: 40,
-                      height: 40,
-                      imageUrl: profileModelG?.image ?? '',
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        width: 40,
-                        height: 40,
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.person, size: 20),
-                      ),
-                      errorWidget: (context, error, trace) => Container(
-                        width: 40,
-                        height: 40,
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.person, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      profileModelG?.username ?? 'Your Profile',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    profileModelG?.username ?? 'Your Profile',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                    Text(
+                      'You\'re not in the rankings yet',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.5),
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                  Text(
-                    'You\'re not in the rankings yet',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF4A7CF7).withOpacity(0.2),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Text(
-                '-',
-                style: TextStyle(
-                  color: Color(0xFF4A7CF7),
-                  fontWeight: FontWeight.bold,
+                  ],
                 ),
               ),
-            ),
-          ],
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A7CF7).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Text(
+                  '-',
+                  style: TextStyle(
+                    color: Color(0xFF4A7CF7),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -995,105 +996,109 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     // Use leaderboardRank from API response, fallback to index + 1 if not available
     final rank = userRanking.leaderboardRank ?? (userIndex + 1);
 
-    return Container(
-      margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF4A7CF7).withOpacity(0.2),
-            const Color(0xFF4A7CF7).withOpacity(0.05),
-          ],
+    return GestureDetector(
+      onTap: () => Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
+      child: Container(
+        margin: const EdgeInsets.only(top: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF4A7CF7).withOpacity(0.2),
+              const Color(0xFF4A7CF7).withOpacity(0.05),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF4A7CF7).withOpacity(0.3)),
         ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF4A7CF7).withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFF4A7CF7),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Center(
-              child: Text(
-                '#$rank',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  userRanking.creatorUsername,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  '${userRanking.score} points',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (userRanking.creatorImage.isNotEmpty)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: CachedNetworkImage(
-                width: 40,
-                height: 40,
-                imageUrl: userRanking.creatorImage,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  width: 40,
-                  height: 40,
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.person, size: 20),
-                ),
-                errorWidget: (context, error, trace) => Container(
-                  width: 40,
-                  height: 40,
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.person, size: 20),
-                ),
-              ),
-            )
-          else
+        child: Row(
+          children: [
             Container(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: const Color(0xFF4A7CF7).withOpacity(0.3),
+                color: const Color(0xFF4A7CF7),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Center(
                 child: Text(
-                  userRanking.creatorUsername.isNotEmpty
-                      ? userRanking.creatorUsername[0].toUpperCase()
-                      : '?',
+                  '#$rank',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
+                    fontSize: 12,
                   ),
                 ),
               ),
             ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    userRanking.creatorUsername,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    '${userRanking.score} points',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.5),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (userRanking.creatorImage.isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: CachedNetworkImage(
+                  width: 40,
+                  height: 40,
+                  imageUrl: userRanking.creatorImage,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    width: 40,
+                    height: 40,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.person, size: 20),
+                  ),
+                  errorWidget: (context, error, trace) => Container(
+                    width: 40,
+                    height: 40,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.person, size: 20),
+                  ),
+                ),
+              )
+            else
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A7CF7).withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Center(
+                  child: Text(
+                    userRanking.creatorUsername.isNotEmpty
+                        ? userRanking.creatorUsername[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1128,12 +1133,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _loadUserRanking() {
-    // Load all levels to find the current user
+    // Get current user's PID to filter for their ranking only
+    final currentUserPid = profileModelG?.pid;
+
+    if (currentUserPid == null) {
+      print('LeaderboardScreen: No current user PID found');
+      return;
+    }
+
+    print(
+        'LeaderboardScreen: Loading ranking for current user: $currentUserPid');
+
+    // Load all levels to find the current user - pass creator parameter to filter
     for (final level in ['Rookie', 'Prime', 'Elite', 'Icon', 'Legend']) {
       context.read<UserBloc>().add(GetCreatorLeaderboardEvent(
             levelName: level,
             page: 1,
             timeFilter: 'all',
+            creator:
+                currentUserPid, // Pass creator to filter for current user only
           ));
     }
     // Set a fallback timeout to stop loading if user not found

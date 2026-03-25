@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
+import 'package:go_router/go_router.dart';
 
 class LevelOnboardingScreen extends StatefulWidget {
   const LevelOnboardingScreen({super.key});
@@ -47,7 +49,7 @@ class _LevelOnboardingScreenState extends State<LevelOnboardingScreen> {
           /// 🔹 BACKGROUND 1
           Positioned.fill(
             child: Image.asset(
-              'assets/icons/stuck.png',
+              'assets/icons/pnc.png',
               fit: BoxFit.cover,
             ),
           ),
@@ -55,7 +57,7 @@ class _LevelOnboardingScreenState extends State<LevelOnboardingScreen> {
           /// 🔹 BACKGROUND 2 (overlay)
           Positioned.fill(
             child: Image.asset(
-              'assets/icons/stuck2.png',
+              'assets/icons/stuck.png',
               fit: BoxFit.cover,
             ),
           ),
@@ -67,12 +69,15 @@ class _LevelOnboardingScreenState extends State<LevelOnboardingScreen> {
                 /// Back button
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.arrow_back, color: Colors.white),
-                      SizedBox(width: 6),
-                      Text("Back", style: TextStyle(color: Colors.white)),
-                    ],
+                  child: GestureDetector(
+                    onTap: () => context.pop(),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.arrow_back, color: Colors.white),
+                        SizedBox(width: 6),
+                        Text("Back", style: TextStyle(color: Colors.white)),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -132,7 +137,9 @@ class _LevelOnboardingScreenState extends State<LevelOnboardingScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 40),
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      context.push(MyAppRouteConstant.paymentLeader);
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.black,
@@ -180,7 +187,7 @@ class _GlassCard extends StatelessWidget {
         children: [
           // Background image
           Image.asset(
-            'assets/icons/stuck.png',
+            'assets/icons/stuck2.png',
             fit: BoxFit.cover,
           ),
           // Glassmorphism overlay
@@ -211,9 +218,11 @@ class _GlassCard extends StatelessWidget {
                   title,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFFEADAB),
+                    fontFamily: 'Poppins',
+                    fontSize: 25,
+                    fontWeight: FontWeight.w600,
+                    height: 1.5,
                   ),
                 ),
 
@@ -223,8 +232,11 @@ class _GlassCard extends StatelessWidget {
                   subtitle,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
+                    color: Color(0XFFFFFFFF),
+                    fontFamily: 'Poppins',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    height: 1.5,
                   ),
                 ),
 
@@ -234,8 +246,10 @@ class _GlassCard extends StatelessWidget {
                   description,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    color: Colors.white60,
-                    fontSize: 13,
+                    color: Color(0XFFFFFFFF),
+                    fontFamily: 'Poppins',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
                     height: 1.5,
                   ),
                 ),
@@ -245,13 +259,33 @@ class _GlassCard extends StatelessWidget {
                 /// bottom icons (fake placeholders)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: const [
-                    Icon(Icons.flash_on, color: Colors.white30),
-                    Icon(Icons.monetization_on, color: Colors.white30),
-                    Icon(Icons.verified, color: Colors.white30),
-                    Icon(Icons.person, color: Colors.white30),
+                  children: [
+                    Image.asset(
+                      'assets/images/likes.png',
+                      width: 24,
+                      height: 24,
+                      color: Color(0xFFFEADAB),
+                    ),
+                    Image.asset(
+                      'assets/images/coin1.png',
+                      width: 24,
+                      height: 24,
+                      color: Color(0xFFFEADAB),
+                    ),
+                    Image.asset(
+                      'assets/images/vote.png',
+                      width: 24,
+                      height: 24,
+                      color: Color(0xFFFEADAB),
+                    ),
+                    Image.asset(
+                      'assets/images/user-octagon.png',
+                      width: 24,
+                      height: 24,
+                      color: Color(0xFFFEADAB),
+                    ),
                   ],
-                ),
+                )
               ],
             ),
           ),

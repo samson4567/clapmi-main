@@ -1,5 +1,6 @@
 import 'package:clapmi/Models/brag_model.dart';
 import 'package:clapmi/core/app_variables.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:clapmi/features/app/data/models/user_model.dart';
 import 'package:clapmi/features/app/presentation/blocs/app/app_bloc.dart';
 import 'package:clapmi/features/app/presentation/blocs/app/app_event.dart';
@@ -97,7 +98,106 @@ class _MyAccountPageState extends State<MyAccountPage> {
                 },
                 builder: (context, state) {
                   if (state is GetUserProfileLoading) {
-                    return Center(child: CircularProgressIndicator());
+                    return Shimmer.fromColors(
+                      baseColor: Colors.grey[800]!,
+                      highlightColor: Colors.grey[600]!,
+                      child: SingleChildScrollView(
+                        physics: NeverScrollableScrollPhysics(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Banner placeholder
+                            Container(
+                              height: 200,
+                              width: double.infinity,
+                              color: Colors.white,
+                            ),
+                            SizedBox(height: 20),
+                            // Profile info placeholder
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    height: 24,
+                                    width: 150,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(height: 8),
+                                  Container(
+                                    height: 16,
+                                    width: 100,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(height: 16),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        height: 32,
+                                        width: 80,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                        ),
+                                      ),
+                                      SizedBox(width: 12),
+                                      Container(
+                                        height: 32,
+                                        width: 80,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 24),
+                                  // Stats placeholders
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceAround,
+                                    children: List.generate(
+                                        3,
+                                        (index) => Container(
+                                              height: 40,
+                                              width: 60,
+                                              color: Colors.white,
+                                            )),
+                                  ),
+                                  SizedBox(height: 24),
+                                  // Posts tabs placeholder
+                                  Container(
+                                    height: 40,
+                                    width: double.infinity,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(height: 16),
+                                  // Posts placeholder
+                                  GridView.builder(
+                                    shrinkWrap: true,
+                                    physics: NeverScrollableScrollPhysics(),
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 3,
+                                      crossAxisSpacing: 2,
+                                      mainAxisSpacing: 2,
+                                    ),
+                                    itemCount: 6,
+                                    itemBuilder: (context, index) => Container(
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
                   }
 
                   if (state is GetUserProfileError) {

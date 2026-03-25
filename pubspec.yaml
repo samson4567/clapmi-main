@@ -29,6 +29,7 @@ dependencies:
   flutter_local_notifications: 19.3.1
   flutter_screenutil: ^5.9.3
   flutter_svg: ^2.1.0
+  shimmer: ^3.0.0
   fluttertoast:
   #fvp: ^0.31.2
   gap: ^3.0.1
