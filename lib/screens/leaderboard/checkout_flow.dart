@@ -3,9 +3,80 @@ import 'package:flutter/material.dart';
 import 'active_level_update.dart';
 import 'tier_card_components.dart';
 import 'upgrade_flow_styles.dart';
+import 'package:clapmi/core/di/injector.dart';
+import 'package:clapmi/features/user/data/datasources/user_remote_datasource.dart';
+import 'package:clapmi/features/user/data/models/payment_grade_model.dart';
 
-class LeaderboardPayemtUpgrade extends StatelessWidget {
-  const LeaderboardPayemtUpgrade({super.key});
+class LeaderboardPayemtUpgrade extends StatefulWidget {
+  final String? tierUuid;
+  final String? tierName;
+
+  const LeaderboardPayemtUpgrade({super.key, this.tierUuid, this.tierName});
+
+  @override
+  State<LeaderboardPayemtUpgrade> createState() =>
+      _LeaderboardPayemtUpgradeState();
+}
+
+class _LeaderboardPayemtUpgradeState extends State<LeaderboardPayemtUpgrade> {
+  bool _isLoading = false;
+
+  final UserRemoteDatasource _datasource =
+      getItInstance<UserRemoteDatasource>();
+
+  Future<void> _handleSubscribe() async {
+    if (widget.tierUuid == null) {
+      // If no UUID, just navigate to success screen (for demo purposes)
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              PaymentSuccessScreen(levelName: widget.tierName ?? 'Level'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await _datasource.subscribeToGrade(widget.tierUuid!);
+
+      if (response.success == "true") {
+        // Navigate to success screen on successful subscription
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  PaymentSuccessScreen(levelName: widget.tierName ?? 'Level'),
+            ),
+          );
+        }
+      } else {
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.message)),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -147,25 +218,27 @@ class LeaderboardPayemtUpgrade extends StatelessWidget {
             borderRadius: BorderRadius.circular(30),
           ),
         ),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const PaymentSuccessScreen(),
-            ),
-          );
-        },
-        child: const Text(
-          'Checkout',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-            height: 1.5,
-            color: Colors.white,
-            letterSpacing: 0,
-          ),
-        ),
+        onPressed: _isLoading ? null : _handleSubscribe,
+        child: _isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : const Text(
+                'Checkout',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                  height: 1.5,
+                  color: Colors.white,
+                  letterSpacing: 0,
+                ),
+              ),
       ),
     );
   }
@@ -449,7 +522,9 @@ class _TierPreviewCard extends StatelessWidget {
 }
 
 class PaymentSuccessScreen extends StatelessWidget {
-  const PaymentSuccessScreen({super.key});
+  final String levelName;
+
+  const PaymentSuccessScreen({super.key, required this.levelName});
 
   @override
   Widget build(BuildContext context) {
@@ -500,7 +575,8 @@ class PaymentSuccessScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const LevelUpAnimatedScreen(),
+                        builder: (_) =>
+                            LevelUpAnimatedScreen(levelName: levelName),
                       ),
                     );
                   },
@@ -525,7 +601,9 @@ class PaymentSuccessScreen extends StatelessWidget {
 }
 
 class LevelUpAnimatedScreen extends StatefulWidget {
-  const LevelUpAnimatedScreen({super.key});
+  final String levelName;
+
+  const LevelUpAnimatedScreen({super.key, required this.levelName});
 
   @override
   State<LevelUpAnimatedScreen> createState() => _LevelUpAnimatedScreenState();
@@ -614,8 +692,8 @@ class _LevelUpAnimatedScreenState extends State<LevelUpAnimatedScreen>
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'Prime Unlocked',
+                Text(
+                  '${widget.levelName} Unlocked',
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 30,
@@ -792,11 +870,89 @@ class _LevelAnimatedState extends State<LevelAnimated>
   }
 }
 
-class ActiveLevelScreen extends StatelessWidget {
+class ActiveLevelScreen extends StatefulWidget {
   const ActiveLevelScreen({super.key});
 
   @override
+  State<ActiveLevelScreen> createState() => _ActiveLevelScreenState();
+}
+
+class _ActiveLevelScreenState extends State<ActiveLevelScreen> {
+  bool _isLoading = true;
+  String? _error;
+  PaymentGradeModel? _currentLevel;
+
+  final UserRemoteDatasource _datasource =
+      getItInstance<UserRemoteDatasource>();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCurrentLevel();
+  }
+
+  Future<void> _fetchCurrentLevel() async {
+    try {
+      final response = await _datasource.getPaymentGrades();
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          // Find the current level (where isCurrentLevel is true)
+          _currentLevel = response.data.data.firstWhere(
+            (grade) => grade.isCurrentLevel,
+            orElse: () => response.data.data.isNotEmpty
+                ? response.data.data.first
+                : throw Exception('No levels available'),
+          );
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _error = e.toString();
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error: $_error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _isLoading = true;
+                    _error = null;
+                  });
+                  _fetchCurrentLevel();
+                },
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final levelName = _currentLevel?.name ?? 'Unknown';
+    final levelImage = _currentLevel?.badgeUrl;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -810,12 +966,12 @@ class ActiveLevelScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: _ActiveLevelCard(
-                level: 'ELITE',
-                isActive: true,
-                nextPayment: 'April 30th, 2026',
-                price: '4,000',
+                level: levelName,
+                isActive: _currentLevel?.isCurrentLevel ?? false,
+                nextPayment: 'N/A',
+                price: _currentLevel?.subscriptionAmount.toString() ?? '0',
                 paymentMethod: 'Clapmi Wallet',
-                imagePath: 'assets/icons/eli4.png',
+                imagePath: levelImage ?? 'assets/icons/eli4.png',
               ),
             ),
           ),
@@ -868,7 +1024,7 @@ class _ActiveLevelCard extends StatelessWidget {
         SizedBox(
           width: 100,
           height: 100,
-          child: Image.asset(imagePath, width: 100, height: 100),
+          child: _buildImage(imagePath, 100, 100),
         ),
         const SizedBox(width: 12),
         Text(
@@ -889,6 +1045,26 @@ class _ActiveLevelCard extends StatelessWidget {
         )
       ],
     );
+  }
+
+  Widget _buildImage(String path, double width, double height) {
+    if (path.startsWith('http')) {
+      return Image.network(
+        path,
+        width: width,
+        height: height,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return Image.asset(
+            'assets/icons/eli4.png',
+            width: width,
+            height: height,
+          );
+        },
+      );
+    } else {
+      return Image.asset(path, width: width, height: height);
+    }
   }
 
   Widget _infoSection() {

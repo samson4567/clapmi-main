@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
+import 'package:clapmi/core/di/injector.dart';
+import 'package:clapmi/features/user/data/datasources/user_remote_datasource.dart';
+import 'package:clapmi/features/user/data/models/payment_grade_model.dart';
 
 class TierData {
   final String name;
@@ -190,6 +193,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
   int _currentPage = 0;
   late final AnimationController _pulseController;
 
+  final UserRemoteDatasource _datasource =
+      getItInstance<UserRemoteDatasource>();
+
+  List<PaymentGradeModel>? _paymentGrades;
+  bool _isLoading = true;
+  String? _error;
+
   @override
   void initState() {
     super.initState();
@@ -197,6 +207,33 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
       vsync: this,
       duration: const Duration(milliseconds: 2000),
     )..repeat(reverse: true);
+    _fetchPaymentGrades();
+  }
+
+  Future<void> _fetchPaymentGrades() async {
+    try {
+      final response = await _datasource.getPaymentGrades();
+
+      // Debug logging
+      print('Screen received response: $response');
+      print('Screen response.data: ${response.data}');
+      print('Screen response.data.data: ${response.data.data}');
+
+      if (mounted) {
+        setState(() {
+          _paymentGrades = response.data.data;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching payment grades: $e');
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -208,6 +245,66 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Handle loading state
+    if (_isLoading) {
+      return Scaffold(
+        body: Stack(
+          children: [
+            const Image(
+              image: AssetImage('assets/icons/pnc.png'),
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+            ),
+            const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Handle error state
+    if (_error != null || _paymentGrades == null || _paymentGrades!.isEmpty) {
+      return Scaffold(
+        body: Stack(
+          children: [
+            const Image(
+              image: AssetImage('assets/icons/pnc.png'),
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+            ),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline,
+                      color: Colors.white, size: 48),
+                  const SizedBox(height: 16),
+                  Text(
+                    _error ?? 'Failed to load payment grades',
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _isLoading = true;
+                        _error = null;
+                      });
+                      _fetchPaymentGrades();
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       body: Stack(
         children: [
@@ -246,10 +343,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                 Expanded(
                   child: PageView.builder(
                     controller: _pageController,
-                    itemCount: tiers.length,
+                    itemCount: _paymentGrades!.length,
                     onPageChanged: (i) => setState(() => _currentPage = i),
                     itemBuilder: (context, index) {
-                      final tier = tiers[index];
+                      final tier = _paymentGrades![index];
                       final isCenter = index == _currentPage;
                       return AnimatedScale(
                         scale: isCenter ? 1.0 : 0.92,
@@ -270,7 +367,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                 // Page indicator dots
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(tiers.length, (i) {
+                  children: List.generate(_paymentGrades!.length, (i) {
                     final active = i == _currentPage;
                     return AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
@@ -300,7 +397,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
 // ── Tier Card ─────────────────────────────────────────────────────────────────
 
 class _TierCard extends StatelessWidget {
-  final TierData tier;
+  final PaymentGradeModel tier;
   final AnimationController pulseController;
   final bool isCenter;
 
@@ -323,11 +420,22 @@ class _TierCard extends StatelessWidget {
               // Glow behind crystal
 
               // Tier Image Icon
-              Image.asset(
-                tier.imagePath,
-                width: 100,
-                height: 100,
-              ),
+              tier.badgeUrl != null
+                  ? Image.network(
+                      tier.badgeUrl!,
+                      width: 100,
+                      height: 100,
+                      errorBuilder: (context, error, stackTrace) => Image.asset(
+                        'assets/icons/prii.png',
+                        width: 100,
+                        height: 100,
+                      ),
+                    )
+                  : Image.asset(
+                      'assets/icons/prii.png',
+                      width: 100,
+                      height: 100,
+                    ),
             ],
           ),
         ),
@@ -400,10 +508,14 @@ class _TierCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          tier.coins.toString().replaceAllMapped(
-                                RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                                (m) => '${m[1]},',
-                              ),
+                          tier.subscriptionAmount == 0
+                              ? 'Free'
+                              : tier.subscriptionAmount
+                                  .toString()
+                                  .replaceAllMapped(
+                                    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                    (m) => '${m[1]},',
+                                  ),
                           style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 25,
@@ -413,27 +525,29 @@ class _TierCard extends StatelessWidget {
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 3),
-                          child: Text(
-                            '/month',
-                            style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              height: 1.5,
-                              color: Colors.white54,
+                        if (tier.subscriptionAmount > 0) ...[
+                          const SizedBox(width: 4),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 3),
+                            child: Text(
+                              '/month',
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                height: 1.5,
+                                color: Colors.white54,
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
 
                     const SizedBox(height: 16),
 
                     Text(
-                      tier.headerText,
+                      'Eligibility Metrics',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.white60,
@@ -459,7 +573,7 @@ class _TierCard extends StatelessWidget {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  b,
+                                  b.label,
                                   style: const TextStyle(
                                     fontSize: 14,
                                     color: Colors.white,
@@ -475,7 +589,7 @@ class _TierCard extends StatelessWidget {
 
                     // Subscribe button
                     Center(
-                      child: tier.isActive
+                      child: tier.isCurrentLevel
                           ? SizedBox(
                               width: 102,
                               height: 38,
@@ -494,7 +608,11 @@ class _TierCard extends StatelessWidget {
                                   elevation: 0,
                                 ),
                                 child: Text(
-                                  tier.buttonText,
+                                  tier.isSubscribed
+                                      ? 'Current'
+                                      : (tier.isNextLevel
+                                          ? 'Upgrade'
+                                          : 'Subscribe'),
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
@@ -507,8 +625,14 @@ class _TierCard extends StatelessWidget {
                               height: 38,
                               child: ElevatedButton(
                                 onPressed: () {
-                                  context
-                                      .push(MyAppRouteConstant.paymentCheckout);
+                                  context.push(
+                                    MyAppRouteConstant.paymentCheckout,
+                                    extra: {
+                                      'tierUuid': tier.uuid,
+                                      'tierName': tier.name,
+                                      'tierPrice': tier.subscriptionAmount,
+                                    },
+                                  );
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
@@ -521,7 +645,11 @@ class _TierCard extends StatelessWidget {
                                   elevation: 0,
                                 ),
                                 child: Text(
-                                  tier.buttonText,
+                                  tier.isSubscribed
+                                      ? 'Current'
+                                      : (tier.isNextLevel
+                                          ? 'Upgrade'
+                                          : 'Subscribe'),
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,

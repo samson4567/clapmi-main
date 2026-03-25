@@ -341,7 +341,7 @@ abstract class ApiClient<T> {
             //  if (responseData['error'] is Map<String, dynamic>) {
             //   errorMapMessage['error'] = responseData['error']['password'];
             // }
-            //  errorMessage = responseData['message'] ?? errorMessage;
+            errorMessage = responseData['message'] ?? errorMessage;
             try {
               errorMessage =
                   (responseData['errors'] as Map?)?.values.join('\n') as String;

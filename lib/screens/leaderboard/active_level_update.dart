@@ -70,12 +70,28 @@ class ActiveLevelWidget extends StatelessWidget {
     return SizedBox(
       width: 100,
       height: 100,
-      child: Image.asset(
-        imagePath,
-        width: 100,
-        height: 100,
-      ),
+      child: _buildImage(imagePath, 100, 100),
     );
+  }
+
+  Widget _buildImage(String path, double width, double height) {
+    if (path.startsWith('http')) {
+      return Image.network(
+        path,
+        width: width,
+        height: height,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return Image.asset(
+            'assets/icons/eli4.png',
+            width: width,
+            height: height,
+          );
+        },
+      );
+    } else {
+      return Image.asset(path, width: width, height: height);
+    }
   }
 
   Widget _infoSection() {

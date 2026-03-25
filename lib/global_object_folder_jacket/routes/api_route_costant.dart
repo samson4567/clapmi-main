@@ -23,6 +23,7 @@ import 'package:clapmi/screens/Brag/brag_detail_screen.dart';
 import 'package:clapmi/screens/Brag/brag_screen_tu_tu.dart';
 import 'package:clapmi/screens/Brag/challenge_brag.dart';
 import 'package:clapmi/screens/NetworkAndRewards/clap_reward.dart';
+import 'package:clapmi/screens/leaderboard/clapmiplus/clapmi_plus.dart';
 import 'package:clapmi/screens/leaderboard/payment_checkout.dart';
 import 'package:clapmi/screens/challenge/others/Single_livestream.dart';
 import 'package:clapmi/screens/challenge/start_challeng_now_chalenger_page.dart';
@@ -49,6 +50,7 @@ import 'package:clapmi/screens/feed/feed_extraction_files/post_new.dart';
 import 'package:clapmi/screens/generalSearchPage/general_search_page.dart';
 import 'package:clapmi/screens/leaderboard/leader_dashbord.dart';
 import 'package:clapmi/screens/leaderboard/payment_leader.dart';
+import 'package:clapmi/screens/leaderboard/unlock_elite.dart';
 import 'package:clapmi/screens/posts/post.dart';
 import 'package:clapmi/screens/posts/post_%20report.dart';
 import 'package:clapmi/screens/posts/your_report.dart';
@@ -848,10 +850,28 @@ final GoRouter router = GoRouter(
                   return const LeaderboardScreen();
                 }),
             GoRoute(
+                name: MyAppRouteConstant.clapmiplus,
+                path: MyAppRouteConstant.clapmiplus,
+                builder: (context, state) {
+                  return const LevelOnboardingScreen();
+                }),
+            GoRoute(
                 name: MyAppRouteConstant.subscriptionScreen,
                 path: MyAppRouteConstant.subscriptionScreen,
                 builder: (context, state) {
                   return const SubscriptionScreen();
+                }),
+            GoRoute(
+                name: MyAppRouteConstant.paymentLeader,
+                path: MyAppRouteConstant.paymentLeader,
+                builder: (context, state) {
+                  return const SubscriptionScreen();
+                }),
+            GoRoute(
+                name: MyAppRouteConstant.unlockElite,
+                path: MyAppRouteConstant.unlockElite,
+                builder: (context, state) {
+                  return const UnlockEliteScreen();
                 }),
             //subscriptionScreen
             GoRoute(
@@ -864,7 +884,17 @@ final GoRouter router = GoRouter(
                 name: MyAppRouteConstant.paymentCheckout,
                 path: MyAppRouteConstant.paymentCheckout,
                 builder: (context, state) {
-                  return const LeaderboardPayemtUpgrade();
+                  // Extract the tier info from the extra parameter
+                  final extra = state.extra as Map<String, dynamic>?;
+                  final tierUuid = extra?['tierUuid'] as String?;
+                  final tierName = extra?['tierName'] as String?;
+                  final tierPrice = extra?['tierPrice'] as int?;
+
+                  return LeaderboardPayemtUpgrade(
+                    tierUuid: tierUuid,
+                    tierName: tierName,
+                    tierPrice: tierPrice,
+                  );
                 }),
           ],
         ),

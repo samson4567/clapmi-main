@@ -3,6 +3,7 @@ import 'package:clapmi/core/api/clapmi_network_client.dart';
 import 'package:clapmi/core/constants/endpoint_constant.dart';
 import 'package:clapmi/core/db/app_preference_service.dart';
 import 'package:clapmi/features/user/data/models/creator_leaderboard_model.dart';
+import 'package:clapmi/features/user/data/models/payment_grade_model.dart';
 import 'package:clapmi/features/user/data/models/user_model.dart';
 import 'package:clapmi/features/user/domain/entities/user_entity.dart';
 import "package:dio/dio.dart" as dio;
@@ -21,8 +22,13 @@ abstract class UserRemoteDatasource {
   });
   Future<UserEntity> getUserDetails();
   Future<CreatorLeaderboardResponse> getCreatorLeaderboard(
-      {String? levelName, int page = 1, String timeFilter = 'all', String? creator});
+      {String? levelName,
+      int page = 1,
+      String timeFilter = 'all',
+      String? creator});
   Future<CreatorLevelsResponse> getCreatorLevels();
+  Future<PaymentGradesResponse> getPaymentGrades();
+  Future<BaseResponse> subscribeToGrade(String uuid);
 }
 
 class UserRemoteDatasourceImpl implements UserRemoteDatasource {
@@ -33,6 +39,32 @@ class UserRemoteDatasourceImpl implements UserRemoteDatasource {
   final AppPreferenceService appPreferenceService;
 
   final ClapMiNetworkClient networkClient;
+
+  // Simple in-memory cache for payment grades
+  PaymentGradesResponse? _cachedPaymentGrades;
+  DateTime? _paymentGradesCacheTime;
+
+  // Simple in-memory cache for creator levels
+  CreatorLevelsResponse? _cachedCreatorLevels;
+  DateTime? _creatorLevelsCacheTime;
+
+  static const _cacheDuration = Duration(minutes: 5); // Cache for 5 minutes
+
+  // Check if cache is valid for payment grades
+  bool get _isPaymentGradesCacheValid {
+    if (_cachedPaymentGrades == null || _paymentGradesCacheTime == null) {
+      return false;
+    }
+    return DateTime.now().difference(_paymentGradesCacheTime!) < _cacheDuration;
+  }
+
+  // Check if cache is valid for creator levels
+  bool get _isCreatorLevelsCacheValid {
+    if (_cachedCreatorLevels == null || _creatorLevelsCacheTime == null) {
+      return false;
+    }
+    return DateTime.now().difference(_creatorLevelsCacheTime!) < _cacheDuration;
+  }
 
   @override
   Future<String> updatePassword(
@@ -210,12 +242,109 @@ class UserRemoteDatasourceImpl implements UserRemoteDatasource {
 
   @override
   Future<CreatorLevelsResponse> getCreatorLevels() async {
+    // Return cached data if available and valid
+    if (_isCreatorLevelsCacheValid) {
+      return _cachedCreatorLevels!;
+    }
+
     final response = await networkClient.get(
       endpoint: EndpointConstant.getCreatorLevels,
       isAuthHeaderRequired: true,
     );
 
     final json = response.data as Map<String, dynamic>;
-    return CreatorLevelsResponse.fromJson(json);
+
+    // Cache the response
+    _cachedCreatorLevels = CreatorLevelsResponse.fromJson(json);
+    _creatorLevelsCacheTime = DateTime.now();
+
+    return _cachedCreatorLevels!;
+  }
+
+  // Method to clear creator levels cache
+  void clearCreatorLevelsCache() {
+    _cachedCreatorLevels = null;
+    _creatorLevelsCacheTime = null;
+  }
+
+  // Clear all caches
+  void clearAllCaches() {
+    clearPaymentGradesCache();
+    clearCreatorLevelsCache();
+  }
+
+  @override
+  Future<PaymentGradesResponse> getPaymentGrades() async {
+    // Return cached data if available and valid
+    if (_isPaymentGradesCacheValid) {
+      return _cachedPaymentGrades!;
+    }
+
+    final response = await networkClient.get(
+      endpoint: EndpointConstant.paymentGrades,
+      isAuthHeaderRequired: true,
+    );
+
+    final json = response.data as Map<String, dynamic>;
+
+    // Cache the response
+    _cachedPaymentGrades = PaymentGradesResponse.fromJson(json);
+    _paymentGradesCacheTime = DateTime.now();
+
+    return _cachedPaymentGrades!;
+  }
+
+  // Method to clear cache (useful after subscription)
+  void clearPaymentGradesCache() {
+    _cachedPaymentGrades = null;
+    _paymentGradesCacheTime = null;
+  }
+
+  @override
+  Future<BaseResponse> subscribeToGrade(String uuid) async {
+    // Construct the endpoint: /creators/{uuid}/subscribe
+    final endpoint = '/creators/$uuid/subscribe';
+
+    try {
+      // ClapMiNetworkClient.post already returns BaseResponse.fromJson(response)
+      // So we can return it directly
+      final response = await networkClient.post(
+        endpoint: endpoint,
+        isAuthHeaderRequired: true,
+        data: {},
+      );
+
+      // Clear caches after successful subscription to refresh data
+      // Check if the response indicates success
+      if (response.success == 'true') {
+        clearAllCaches();
+      }
+
+      return response;
+    } on dio.DioException catch (e) {
+      // Handle DioException - extract error message from response
+      final response = e.response;
+      if (response?.data != null) {
+        final data = response!.data;
+        if (data is Map) {
+          return BaseResponse(
+            success: 'false',
+            message: data['message'] ?? e.message ?? 'An error occurred',
+            data: null,
+          );
+        }
+      }
+      return BaseResponse(
+        success: 'false',
+        message: e.message ?? 'An error occurred',
+        data: null,
+      );
+    } catch (error) {
+      return BaseResponse(
+        success: 'false',
+        message: error.toString(),
+        data: null,
+      );
+    }
   }
 }

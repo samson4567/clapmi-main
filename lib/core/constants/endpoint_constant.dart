@@ -48,6 +48,10 @@ class EndpointConstant {
   static const String delPost = '/posts';
   static const String editPost = '/posts';
 
+  //* Leaderboard Payment Grades
+  static const String paymentGrades = '/creator/payment-grades';
+  static const String subscribeToGrade = '/creators/subscribe';
+
   static const String createVideoPost = '/videos/create';
   static const String uploadUrl = '/upload-url';
 

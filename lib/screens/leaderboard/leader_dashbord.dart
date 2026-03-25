@@ -1332,7 +1332,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text('Current level',
                 style: TextStyle(
                     color: Colors.white.withOpacity(0.5), fontSize: 12)),
-            Text('Rookie',
+            Text(_currentUserRanking?.level.name ?? 'Rookie',
                 style: TextStyle(
                     color: Colors.white,
                     fontSize: 15,
@@ -1391,7 +1391,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 14),
                 OutlinedButton(
                   onPressed: () {
-                    context.go(MyAppRouteConstant.subscriptionScreen);
+                    context.go(MyAppRouteConstant.paymentLeader);
                   },
                   style: OutlinedButton.styleFrom(
                     backgroundColor: Color(0XFFB0D2F0),
@@ -1403,7 +1403,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         horizontal: 20, vertical: 10),
                   ),
                   child: const Text(
-                    'Pay to unlock elite',
+                    'Pay to unlock prime',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Poppins',
@@ -1450,12 +1450,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const Spacer(),
-              SvgPicture.asset('assets/icons/rank.svg')
+              Image.asset(
+                'assets/icons/elite.png',
+                height: 100.h,
+                width: 100.w,
+              )
             ],
           ),
           const SizedBox(height: 12),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              context.go(MyAppRouteConstant.unlockElite);
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4A7CF7),
               shape: RoundedRectangleBorder(

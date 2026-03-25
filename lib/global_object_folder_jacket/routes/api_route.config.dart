@@ -102,12 +102,15 @@ class MyAppRouteConstant {
   static const String walletEmailVerification = '/walletEmailVerification';
   static const String clapReward = '/clapReward';
   static const String leaderboard = '/leaderboard';
+  static const String clapmiplus = '/clapmiplus';
   static const String startOrjoin = '/startOrJoin';
   static const String googleWebview = '/googleWebview';
   static const String hwclapmiworks = '/howToClapmiScreen';
   static const String verifyForgotPin = '/verifyForgotPin';
   static const String createNewPinForgetPin = '/createNewPinForgetPin';
   static const String subscriptionScreen = '/SubscriptionScreen';
+  static const String paymentLeader = '/paymentLeader';
+  static const String unlockElite = '/unlockElite';
   static const String paymentCheckout = '/paymentCheckout';
 
   //PAYMENT AND WALLER ROUTES
