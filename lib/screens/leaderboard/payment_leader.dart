@@ -6,13 +6,12 @@ import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart'
 import 'package:clapmi/core/di/injector.dart';
 import 'package:clapmi/features/user/data/datasources/user_remote_datasource.dart';
 import 'package:clapmi/features/user/data/models/payment_grade_model.dart';
+import 'package:shimmer/shimmer.dart';
 
 class TierData {
   final String name;
   final int coins;
-  // final Color primaryColor;
-  // final Color glowColor;
-  // final List<Color> crystalColors;
+
   final bool isActive;
 
   final String imagePath;
@@ -256,8 +255,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
               width: double.infinity,
               height: double.infinity,
             ),
-            const Center(
-              child: CircularProgressIndicator(color: Colors.white),
+            Shimmer.fromColors(
+              baseColor: Colors.grey[800]!,
+              highlightColor: Colors.grey[700]!,
+              child: Container(
+                color: Colors.white,
+                child: const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+              ),
             ),
           ],
         ),
@@ -326,7 +332,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: TextButton.icon(
-                      onPressed: () {},
+                      onPressed: () => context.pop(),
                       icon: const Icon(Icons.chevron_left,
                           color: Colors.white, size: 22),
                       label: const Text(

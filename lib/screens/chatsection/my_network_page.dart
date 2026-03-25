@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 
 class MyNetworkPage extends StatefulWidget {
   const MyNetworkPage({super.key});
@@ -107,8 +108,24 @@ class _MyNetworkPageState extends State<MyNetworkPage> {
             ],
           ),
           body: isLoading
-              ? Center(
-                  child: CircularProgressIndicator.adaptive(),
+              ? Shimmer.fromColors(
+                  baseColor: Colors.grey[800]!,
+                  highlightColor: Colors.grey[700]!,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 10),
+                    itemCount: 8,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        height: 70,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      );
+                    },
+                  ),
                 )
               : (friends.isNotEmpty)
                   ? ListView.builder(

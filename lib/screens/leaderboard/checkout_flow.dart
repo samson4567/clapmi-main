@@ -253,6 +253,7 @@ class UpgradePreviewScreen extends StatefulWidget {
   final String currentImagePath;
   final String targetImagePath;
   final bool isCurrentActive;
+  final String? tierUuid; // Add tier UUID for payment checkout
 
   const UpgradePreviewScreen({
     super.key,
@@ -263,6 +264,7 @@ class UpgradePreviewScreen extends StatefulWidget {
     this.currentImagePath = 'assets/icons/eli4.png',
     this.targetImagePath = 'assets/icons/ic.png',
     this.isCurrentActive = true,
+    this.tierUuid,
   });
 
   @override
@@ -344,7 +346,9 @@ class _UpgradePreviewScreenState extends State<UpgradePreviewScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const LeaderboardPayemtUpgrade(),
+                            builder: (_) => LeaderboardPayemtUpgrade(
+                              tierUuid: widget.tierUuid,
+                            ),
                           ),
                         );
                       },

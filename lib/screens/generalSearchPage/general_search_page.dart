@@ -9,6 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart'; // Add Bloc import
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async'; // for debounce
+import 'package:shimmer/shimmer.dart';
 
 class SocialGeeralSearch extends StatefulWidget {
   const SocialGeeralSearch({super.key});
@@ -141,8 +142,23 @@ class _SocialGeeralSearchState extends State<SocialGeeralSearch> {
                       return _buildTrendingContent();
                     }
                     if (state is SearchLoading) {
-                      return const Center(
-                        child: CircularProgressIndicator.adaptive(),
+                      return Shimmer.fromColors(
+                        baseColor: Colors.grey[800]!,
+                        highlightColor: Colors.grey[700]!,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: 8,
+                          itemBuilder: (context, index) {
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              height: 70,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            );
+                          },
+                        ),
                       );
                     } else if (state is SearchLoaded) {
                       if (selecetdTab == "Users") {

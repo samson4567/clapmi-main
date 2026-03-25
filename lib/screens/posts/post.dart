@@ -9,6 +9,7 @@ import 'package:clapmi/screens/feed/feed_extraction_files/extraction.dart';
 import 'package:clapmi/screens/posts/post_components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shimmer/shimmer.dart';
 
 class PostScreen extends StatefulWidget {
   final String? postId;
@@ -128,7 +129,18 @@ class _PostScreenState extends State<PostScreen> {
                 ],
               )
             : Center(
-                child: CircularProgressIndicator.adaptive(),
+                child: Shimmer.fromColors(
+                  baseColor: Colors.grey[800]!,
+                  highlightColor: Colors.grey[700]!,
+                  child: Container(
+                    height: 400,
+                    margin: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
               );
       }),
     );

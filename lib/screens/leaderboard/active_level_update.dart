@@ -10,6 +10,8 @@ class ActiveLevelWidget extends StatelessWidget {
   final String price;
   final String paymentMethod;
   final String imagePath;
+  final String? subscriptionEnd; // Add subscription end date
+  final String? tierUuid; // Add tier UUID for upgrade
 
   const ActiveLevelWidget({
     super.key,
@@ -19,6 +21,8 @@ class ActiveLevelWidget extends StatelessWidget {
     required this.price,
     required this.paymentMethod,
     this.imagePath = 'assets/icons/eli4.png',
+    this.subscriptionEnd,
+    this.tierUuid,
   });
 
   @override
@@ -98,6 +102,8 @@ class ActiveLevelWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (subscriptionEnd != null)
+          _infoRow("Subscription ends:", subscriptionEnd!),
         _infoRow("Next payment:", nextPayment),
         _infoRow("Price:", price),
         _infoRow("Payment method:", paymentMethod),
@@ -179,11 +185,12 @@ class ActiveLevelWidget extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const UpgradePreviewScreen(
+                  builder: (_) => UpgradePreviewScreen(
                     currentLevel: 'ELITE',
                     targetLevel: 'ICON',
                     price: 8000,
-                    benefits: [
+                    tierUuid: tierUuid, // Pass the UUID
+                    benefits: const [
                       'Total livestreams: 40–100+',
                       'Avg. live viewers: 250–750',
                       'Engagement rate: 12–18%',

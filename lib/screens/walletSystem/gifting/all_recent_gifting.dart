@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 
 class AllRecentGifting extends StatelessWidget {
   const AllRecentGifting({super.key});
@@ -40,7 +41,24 @@ class AllRecentGifting extends StatelessWidget {
               child: BlocBuilder<WalletBloc, WalletState>(
                 builder: (context, state) {
                   if (state is RecentGiftingLoadingState) {
-                    return const Center(child: CircularProgressIndicator());
+                    return Shimmer.fromColors(
+                      baseColor: Colors.grey[800]!,
+                      highlightColor: Colors.grey[700]!,
+                      child: ListView.builder(
+                        padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(context).padding.bottom + 16),
+                        itemCount: 8,
+                        itemBuilder: (context, index) {
+                          return Container(
+                            height: 70,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          );
+                        },
+                      ),
+                    );
                   } else if (state is RecentGiftingSuccessState) {
                     final giftings = state.recentGiftings;
                     if (giftings.isEmpty) {

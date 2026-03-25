@@ -24,6 +24,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 
 class OthersAccountPage extends StatefulWidget {
   final String userId;
@@ -135,7 +136,51 @@ class _OthersAccountPageState extends State<OthersAccountPage> {
               },
               builder: (context, state) {
                 if (state is GetUserProfileLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Shimmer.fromColors(
+                    baseColor: Colors.grey[800]!,
+                    highlightColor: Colors.grey[700]!,
+                    child: Container(
+                      color: Colors.white,
+                      child: Column(
+                        children: [
+                          // Banner placeholder
+                          Container(
+                            height: 200.h,
+                            color: Colors.white,
+                          ),
+                          SizedBox(height: 60.h),
+                          // Username placeholder
+                          Container(
+                            height: 20.h,
+                            width: 150.w,
+                            margin: EdgeInsets.symmetric(horizontal: 16.w),
+                            color: Colors.white,
+                          ),
+                          SizedBox(height: 8.h),
+                          // Bio placeholder
+                          Container(
+                            height: 16.h,
+                            width: double.infinity,
+                            margin: EdgeInsets.symmetric(horizontal: 16.w),
+                            color: Colors.white,
+                          ),
+                          SizedBox(height: 24.h),
+                          // Stats row placeholder
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: List.generate(
+                              3,
+                              (index) => Container(
+                                height: 40.h,
+                                width: 60.w,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 } else if (state is GetUserProfileError) {
                   return Center(
                       child: Text(

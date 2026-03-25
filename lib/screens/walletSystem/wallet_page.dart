@@ -13,6 +13,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 import 'asset_box.dart';
 import 'balance_card.dart';
 
@@ -209,8 +210,55 @@ class _WalletViewState extends State<WalletView> {
                     BlocBuilder<WalletBloc, WalletState>(
                       builder: (context, state) {
                         if (state is RecentGiftingLoadingState) {
-                          return const Center(
-                              child: CircularProgressIndicator());
+                          return Shimmer.fromColors(
+                            baseColor: Colors.grey[800]!,
+                            highlightColor: Colors.grey[700]!,
+                            child: Column(
+                              children: List.generate(
+                                3,
+                                (index) => Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Container(
+                                              width: 120,
+                                              height: 14,
+                                              color: Colors.white,
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Container(
+                                              width: 80,
+                                              height: 12,
+                                              color: Colors.white,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
                         } else if (state is RecentGiftingSuccessState) {
                           print(
                               "This is the gifting @@@@@@@@@@@@@@ ${state.recentGiftings}");

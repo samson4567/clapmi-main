@@ -19,6 +19,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 
 class ChatPage extends StatefulWidget {
   final ChatUserData? user;
@@ -361,8 +362,27 @@ class _ChatPageState extends State<ChatPage> {
   Widget _buildMessagesArea() {
     // Show loading indicator while fetching messages
     if (_isLoadingMessages) {
-      return const Center(
-        child: CircularProgressIndicator.adaptive(),
+      return Shimmer.fromColors(
+        baseColor: Colors.grey[800]!,
+        highlightColor: Colors.grey[700]!,
+        child: ListView.builder(
+          itemCount: 15,
+          itemBuilder: (context, index) {
+            final isMe = index % 2 == 0;
+            return Container(
+              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+              alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                width: 200,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            );
+          },
+        ),
       );
     }
 

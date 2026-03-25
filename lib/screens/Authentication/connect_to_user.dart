@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 
 class ConnectWithUserScreen extends StatefulWidget {
   const ConnectWithUserScreen({super.key});
@@ -66,7 +67,20 @@ class _ConnectWithUserScreenState extends State<ConnectWithUserScreen> {
         },
         builder: (context, state) {
           if (state is GetRandomUserLoadingState) {
-            return const Center(child: CircularProgressIndicator.adaptive());
+            return Shimmer.fromColors(
+              baseColor: Colors.grey[800]!,
+              highlightColor: Colors.grey[700]!,
+              child: Center(
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            );
           }
           if (state is GetRandomUserErrorState) {
             return const Center(child: Text("An error has occurred"));

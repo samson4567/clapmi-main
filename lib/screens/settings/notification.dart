@@ -5,6 +5,7 @@ import 'package:clapmi/global_object_folder_jacket/global_widgets/global_widgets
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shimmer/shimmer.dart';
 
 class NotificationSettings extends StatefulWidget {
   const NotificationSettings({super.key});
@@ -42,7 +43,26 @@ class _NotificationSettingsState extends State<NotificationSettings> {
       },
       builder: (context, state) {
         if (state is NotificationSettingsLoading) {
-          return Scaffold(body: Center(child: CircularProgressIndicator()));
+          return Scaffold(
+            body: Shimmer.fromColors(
+              baseColor: Colors.grey[800]!,
+              highlightColor: Colors.grey[700]!,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: List.generate(
+                  5,
+                  (index) => Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
         }
         if (state is NotificationSettingsLoaded) {
           return Scaffold(

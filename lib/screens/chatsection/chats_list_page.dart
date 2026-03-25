@@ -17,6 +17,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 
 class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
@@ -245,7 +246,57 @@ class _ChatListPageState extends State<ChatListPage>
   /// FIXED: Build body based on loading state to reduce rebuilds
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator.adaptive());
+      return Shimmer.fromColors(
+        baseColor: Colors.grey[800]!,
+        highlightColor: Colors.grey[700]!,
+        child: ListView.separated(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+          itemCount: 8,
+          separatorBuilder: (_, __) => Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Divider(
+              color: Colors.white.withOpacity(0.08),
+              height: 1,
+            ),
+          ),
+          itemBuilder: (context, index) {
+            return Container(
+              padding: EdgeInsets.symmetric(vertical: 12.h),
+              child: Row(
+                children: [
+                  Container(
+                    width: 56.w,
+                    height: 56.w,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 120.w,
+                          height: 16.h,
+                          color: Colors.white,
+                        ),
+                        SizedBox(height: 6.h),
+                        Container(
+                          width: 180.w,
+                          height: 12.h,
+                          color: Colors.white,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
     }
 
     if (chatFriends.isEmpty) {

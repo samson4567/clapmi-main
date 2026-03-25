@@ -23,6 +23,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 
 class ChallengeListScreen extends StatefulWidget {
   final bool? isComingFromCommboSet;
@@ -150,7 +151,25 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
         },
         builder: (context, state) {
           if (state is GetCombosLoadingState) {
-            return const Center(child: CircularProgressIndicator());
+            return Shimmer.fromColors(
+              baseColor: Colors.grey[800]!,
+              highlightColor: Colors.grey[700]!,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(8),
+                itemCount: 5,
+                itemBuilder: (context, index) {
+                  return Container(
+                    margin:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  );
+                },
+              ),
+            );
           }
           return Center(
             child: SingleChildScrollView(

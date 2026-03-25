@@ -72,10 +72,16 @@ class _LevelOnboardingScreenState extends State<LevelOnboardingScreen> {
                   child: GestureDetector(
                     onTap: () => context.pop(),
                     child: Row(
-                      children: const [
-                        Icon(Icons.arrow_back, color: Colors.white),
-                        SizedBox(width: 6),
-                        Text("Back", style: TextStyle(color: Colors.white)),
+                      children: [
+                        Image.asset(
+                          'assets/icons/back_leader.png',
+                          width: 24,
+                          height: 24,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 6),
+                        const Text("Back",
+                            style: TextStyle(color: Colors.white)),
                       ],
                     ),
                   ),

@@ -10,6 +10,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 
 // ─────────────────────────────────────────────
 // DATA MODELS
@@ -566,10 +567,59 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   Widget _buildUserList() {
     if (_isLoading) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: CircularProgressIndicator(color: Color(0xFF4A7CF7)),
+      return Shimmer.fromColors(
+        baseColor: const Color(0xFF1E1E1E),
+        highlightColor: const Color(0xFF2C2C2C),
+        child: ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: 5,
+          itemBuilder: (context, index) {
+            return Container(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          height: 14,
+                          width: 100,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          height: 10,
+                          width: 60,
+                          color: Colors.white,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    height: 14,
+                    width: 40,
+                    color: Colors.white,
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       );
     }
@@ -1350,11 +1400,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text('Current level',
                 style: TextStyle(
                     color: Colors.white.withOpacity(0.5), fontSize: 12)),
-            Text(_currentUserRanking?.level.name ?? 'Rookie',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_currentUserRanking?.level.badge != null &&
+                    _currentUserRanking!.level.badge.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: Image.network(
+                      _currentUserRanking!.level.badge,
+                      width: 20,
+                      height: 20,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.star,
+                        color: Colors.amber,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                Text(_currentUserRanking?.level.name ?? 'Rookie',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold)),
+              ],
+            ),
           ],
         ),
       ],
@@ -1364,10 +1435,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildLevelBenefitsCard(
       List<CreatorLevelModel> creatorLevels, bool isLoading) {
     if (isLoading) {
-      return Container(
-        height: 100,
-        alignment: Alignment.center,
-        child: CircularProgressIndicator(color: Colors.white),
+      return Shimmer.fromColors(
+        baseColor: const Color(0xFF1E1E1E),
+        highlightColor: const Color(0xFF2C2C2C),
+        child: Container(
+          height: 100,
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
       );
     }
 
@@ -1421,7 +1499,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         horizontal: 20, vertical: 10),
                   ),
                   child: const Text(
-                    'Pay to unlock prime',
+                    'Pay to unlock next level',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Poppins',
@@ -1537,7 +1615,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildEarningsCard(
       List<CreatorLevelModel> creatorLevels, bool isLoading) {
     if (isLoading) {
-      return const SizedBox.shrink();
+      return Shimmer.fromColors(
+        baseColor: const Color(0xFF1E1E1E),
+        highlightColor: const Color(0xFF2C2C2C),
+        child: Container(
+          height: 100,
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      );
     }
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1625,7 +1714,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildStatsGrid(CreatorRankingModel? userRanking, bool isLoading) {
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return Shimmer.fromColors(
+        baseColor: const Color(0xFF1E1E1E),
+        highlightColor: const Color(0xFF2C2C2C),
+        child: GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 2.4,
+          children: List.generate(8, (index) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            );
+          }),
+        ),
+      );
     }
 
     // Extract stats from API data or use defaults

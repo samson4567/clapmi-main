@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:clapmi/features/user/data/datasources/user_remote_datasource.dart';
 import 'package:clapmi/features/user/data/models/payment_grade_model.dart';
 import 'package:clapmi/core/di/injector.dart';
+import 'package:shimmer/shimmer.dart';
 
 class UnlockEliteScreen extends StatefulWidget {
   const UnlockEliteScreen({super.key});
@@ -104,8 +105,25 @@ class _UnlockEliteScreenState extends State<UnlockEliteScreen> {
 
   Widget _buildContent() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.white),
+      return Shimmer.fromColors(
+        baseColor: Colors.grey[800]!,
+        highlightColor: Colors.grey[700]!,
+        child: Container(
+          color: Colors.black,
+          child: Column(
+            children: List.generate(
+              4,
+              (index) => Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+        ),
       );
     }
 

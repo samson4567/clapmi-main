@@ -6,6 +6,7 @@ import 'package:clapmi/screens/feed/feed_extraction_files/feed.dart';
 import 'package:clapmi/screens/feed/feed_extraction_files/extraction.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shimmer/shimmer.dart';
 
 class BragDetailScreen extends StatefulWidget {
   final BragModel model;
@@ -134,7 +135,53 @@ class _BragDetailScreenState extends State<BragDetailScreen> {
                         child: Text("Error is \n${snapshot.error}"),
                       );
                     }
-                    return Center(child: CircularProgressIndicator.adaptive());
+                    return Shimmer.fromColors(
+                      baseColor: Colors.grey[800]!,
+                      highlightColor: Colors.grey[700]!,
+                      child: Container(
+                        color: Colors.white,
+                        child: Column(
+                          children: [
+                            Container(
+                              height: 300.h,
+                              color: Colors.white,
+                            ),
+                            SizedBox(height: 16.h),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16.w),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    height: 20.h,
+                                    width: double.infinity,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(height: 8.h),
+                                  Container(
+                                    height: 16.h,
+                                    width: 200.w,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(height: 16.h),
+                                  Row(
+                                    children: List.generate(
+                                      3,
+                                      (index) => Container(
+                                        height: 30.h,
+                                        width: 60.w,
+                                        margin: EdgeInsets.only(right: 8.w),
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
                   }),
             ),
             Align(

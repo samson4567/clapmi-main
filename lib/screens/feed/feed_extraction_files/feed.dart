@@ -52,6 +52,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:shimmer/shimmer.dart';
 import 'extraction.dart';
 
 final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -834,12 +835,19 @@ class _FeedScreenState extends State<FeedScreen> {
                                                   ],
                                                 );
                                               } else {
-                                                return Center(
-                                                    child:
-                                                        CircularProgressIndicator
-                                                            .adaptive(
-                                                  backgroundColor: Colors.white,
-                                                ));
+                                                return Shimmer.fromColors(
+                                                  baseColor: Colors.grey[800]!,
+                                                  highlightColor:
+                                                      Colors.grey[700]!,
+                                                  child: Container(
+                                                    width: 50,
+                                                    height: 50,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  ),
+                                                );
                                               }
                                               //* PostWidget
                                             },
@@ -990,11 +998,18 @@ class _FeedScreenState extends State<FeedScreen> {
                                               ],
                                             );
                                           } else {
-                                            return Center(
-                                                child: CircularProgressIndicator
-                                                    .adaptive(
-                                              backgroundColor: Colors.white,
-                                            ));
+                                            return Shimmer.fromColors(
+                                              baseColor: Colors.grey[800]!,
+                                              highlightColor: Colors.grey[700]!,
+                                              child: Container(
+                                                width: 50,
+                                                height: 50,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                            );
                                           }
                                           //* PostWidget
                                         },
@@ -1027,7 +1042,18 @@ class _FeedScreenState extends State<FeedScreen> {
                               child: Container(
                                 color: Colors.black45,
                                 alignment: Alignment.center,
-                                child: CircularProgressIndicator.adaptive(),
+                                child: Shimmer.fromColors(
+                                  baseColor: Colors.grey[800]!,
+                                  highlightColor: Colors.grey[700]!,
+                                  child: Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ],

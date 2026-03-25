@@ -9,6 +9,7 @@ import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 
 class BuildYourFeedScreen extends StatefulWidget {
   const BuildYourFeedScreen({super.key});
@@ -81,7 +82,20 @@ class _BuildYourFeedScreenState extends State<BuildYourFeedScreen> {
         },
         builder: (context, state) {
           if (state is LoadInterestLoadingState) {
-            return Center(child: CircularProgressIndicator.adaptive());
+            return Shimmer.fromColors(
+              baseColor: Colors.grey[800]!,
+              highlightColor: Colors.grey[700]!,
+              child: Center(
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            );
           }
           if (state is LoadInterestErrorState) {
             return Center(
