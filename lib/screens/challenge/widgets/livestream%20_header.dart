@@ -175,8 +175,9 @@ class LivestreamHeader extends StatelessWidget {
                   height: 30,
                   width: 40,
                   action: () async {
-                    // Only share if we have a valid UUID
-                    final shareId = bragID.isNotEmpty ? bragID : (model?.uuid ?? ""); if (shareId.isEmpty) {
+                    // Use bragID for livestream share (primary), fallback to model?.uuid
+                    final shareId = bragID.isNotEmpty ? bragID : (model?.uuid ?? '');
+                    if (shareId.isEmpty) {
                       return;
                     }
                     final result = await SharePlus.instance.share(ShareParams(
@@ -188,7 +189,6 @@ class LivestreamHeader extends StatelessWidget {
                       context.read<PostBloc>().add(
                             SharePostEvent(
                               postID: shareId,
-                              //localPostModel?.uuid ?? "",
                             ),
                           );
                     }

@@ -3,10 +3,12 @@ import 'package:clapmi/features/combo/domain/repositories/combo_repository.dart'
 import 'package:clapmi/features/combo/presentation/blocs/combo_bloc/combo_event.dart';
 import 'package:clapmi/features/combo/presentation/blocs/combo_bloc/combo_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:clapmi/core/services/device_service.dart';
 
 class ComboBloc extends Bloc<ComboEvent, ComboState> {
   final ComboRepository comboRepository;
   final AppBloc appBloc;
+  final DeviceService _deviceService = DeviceService();
 
   ComboBloc({required this.appBloc, required this.comboRepository})
       : super(ComboInitial()) {
@@ -176,7 +178,9 @@ class ComboBloc extends Bloc<ComboEvent, ComboState> {
     );
     result.fold(
       (error) => emit(JoinCompanionErrorState(errorMessage: error.message)),
-      (companionResult) {
+      (companionResult) async {
+        // Persist device role as companion after successful join
+        await _deviceService.setDeviceRole(DeviceRole.companion);
         emit(JoinCompanionSuccessState(result: companionResult));
       },
     );

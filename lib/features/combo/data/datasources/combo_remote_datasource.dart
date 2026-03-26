@@ -4,6 +4,7 @@ import 'package:clapmi/core/db/app_preference_service.dart';
 import 'package:clapmi/features/combo/data/models/combo_model.dart';
 import 'package:clapmi/features/combo/domain/entities/combo_entity.dart';
 import 'package:dio/dio.dart';
+import 'package:clapmi/core/services/device_service.dart';
 
 abstract class ComboRemoteDatasource {
   Future<List<ComboEntity>> getLiveCombos();
@@ -31,6 +32,7 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
   final AppPreferenceService appPreferenceService;
 
   final ClapMiNetworkClient networkClient;
+  final DeviceService _deviceService = DeviceService();
 
   @override
   Future<List<ComboModel>> getLiveCombos() async {
@@ -44,7 +46,7 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
         return ComboModel.fromJson(e);
       },
     ).toList();
-    //  print("This is the list response and result \\${result.toString()}");
+    //  print("This is the list response and result ${result.toString()}");
     return result;
   }
 
@@ -68,14 +70,14 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
     // try {
     print("THIS IS TO GET THE COMBO DETAILS");
     final response = await networkClient.get(
-      endpoint: "[0m{[33mEndpointConstant.getSingleCombo[0m}/$comboID",
+      endpoint: "${EndpointConstant.getSingleCombo}/$comboID",
       isAuthHeaderRequired: true,
     );
     final result = ComboModel.fromJson(response.data);
-    print('This is getting combo details \\${result}');
+    print('This is getting combo details ${result}');
     return result;
     // } catch (e) {
-    //   print("This is the error coming from the endpoint \\${e.toString()}--- ");
+    //   print("This is the error coming from the endpoint ${e.toString()}--- ");
     //   throw (UnknownException(message: e.toString()));
     // }
   }
@@ -83,13 +85,19 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
   @override
   Future<String> startCombo({required String comboID}) async {
     print("This is starting a combo something anyways $comboID");
-    final response = await networkClient.post(
-        endpoint: "[0m{[33mEndpointConstant.getSingleCombo[0m}/$comboID/start",
-        isAuthHeaderRequired: true,
-        data: {'start': comboID});
-    print("This is the response......................... \\${response.message}");
-    print("\\${response.data}");
-    return response.message;
+    try {
+      final response = await networkClient.post(
+          endpoint: "${EndpointConstant.getSingleCombo}/$comboID/start",
+          isAuthHeaderRequired: true,
+          data: {'start': comboID});
+      print("This is the response......................... ${response.message}");
+      print("${response.data}");
+      // Return message if available, otherwise return success message
+      return response.message?.isNotEmpty == true ? response.message! : "Combo started successfully";
+    } catch (e) {
+      print("Start combo error: $e");
+      rethrow;
+    }
   }
 
   @override
@@ -105,35 +113,43 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
     return response.message;
   }
 
-  // joinComboGround
-
   @override
   Future<String> joinComboGround({required String comboID}) async {
+    final deviceId = await _deviceService.getDeviceId();
+    // Ensure device_id is stored in AppPreferenceService for header interceptor
+    await appPreferenceService.saveValue('device_id', deviceId);
     final response = await networkClient.post(
         endpoint: EndpointConstant.joinComboGround,
         isAuthHeaderRequired: true,
         data: {
           "combo": comboID,
+          "device_id": deviceId,
         });
     return response.message;
   }
 
   @override
   Future<String> leaveComboGround({required String comboID}) async {
+    final deviceId = await _deviceService.getDeviceId();
+    // Ensure device_id is stored in AppPreferenceService for header interceptor
+    await appPreferenceService.saveValue('device_id', deviceId);
     final response = await networkClient.post(
         endpoint: EndpointConstant.leaveComboGround,
         isAuthHeaderRequired: true,
         data: {
           "combo": comboID,
+          "device_id": deviceId,
         });
     print(
-        "This is the response coming from leaving combo-ground \\${response.data.toString()}"
+        "This is the response coming from leaving combo-ground ${response.data.toString()}"
     );
     return response.message;
   }
 
   @override
   Future<SwitchDeviceResult> switchDevice({required String comboID, required String deviceId}) async {
+    // Ensure device_id is stored in AppPreferenceService for header interceptor
+    await appPreferenceService.saveValue('device_id', deviceId);
     final requestOptions = Options();
     requestOptions.headers = {
       'X-Device-ID': deviceId,
@@ -145,6 +161,7 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
       options: requestOptions,
       data: {
         'combo': comboID,
+        'device_id': deviceId,
       },
     );
     
@@ -153,6 +170,8 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
 
   @override
   Future<JoinCompanionResult> joinCompanion({required String comboID, required String deviceId}) async {
+    // Ensure device_id is stored in AppPreferenceService for header interceptor
+    await appPreferenceService.saveValue('device_id', deviceId);
     final requestOptions = Options();
     requestOptions.headers = {
       'X-Device-ID': deviceId,
@@ -164,6 +183,7 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
       options: requestOptions,
       data: {
         'combo': comboID,
+        'device_id': deviceId,
       },
     );
     
@@ -190,15 +210,15 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
     print('Time to get the single combo of $comboId');
     try {
       final response = await networkClient.get(
-        endpoint: '[0m{[33mEndpointConstant.getLiveCombo[0m}$comboId',
+        endpoint: '${EndpointConstant.getLiveCombo}$comboId',
         isAuthHeaderRequired: true,
       );
-      print("This is the response data here ------ \\${response.data}");
+      print("This is the response data here ------ ${response.data}");
       final resultMap = LiveComboModel.fromMap(response.data);
-      print("*****The converted result of Live is \\${resultMap.stake}");
+      print("*****The converted result of Live is ${resultMap.stake}");
       return resultMap;
     } catch (e) {
-      print("This is the error message \\${e.toString()}");
+      print("This is the error message ${e.toString()}");
       rethrow;
     }
   }
@@ -251,5 +271,3 @@ class JoinCompanionResult {
     );
   }
 }
-
-// leaveComboGround

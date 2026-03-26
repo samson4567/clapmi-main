@@ -147,6 +147,7 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
           }
           if (state is StartComboErrorState) {
             print("This is start combo error state");
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.errorMessage)));
           }
         },
         builder: (context, state) {
@@ -300,12 +301,37 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
             if (state is CreateComboErrorState) {
               print("This is the error state------");
               isLoading = false;
-              final liveCombo = liveCombos?.firstWhere(
-                  (combo) => combo.host?.profile == profileModelG?.pid);
+              // Find the live combo if exists, or set to null to avoid crash
+              ComboEntity? liveCombo;
+              if (liveCombos != null && liveCombos!.isNotEmpty) {
+                try {
+                  liveCombo = liveCombos!.firstWhere(
+                      (combo) => combo.host?.profile == profileModelG?.pid);
+                } catch (e) {
+                  // No matching combo found, set to null
+                  liveCombo = null;
+                }
+              }
+              // Extract error message from the Map
+              String? extractedErrorMessage;
+              if (state.errorMessage is Map) {
+                final errorMap = state.errorMessage as Map<String, dynamic>;
+                // Check for 'challenge' key which contains the actual error
+                if (errorMap.containsKey('challenge')) {
+                  final challengeError = errorMap['challenge'];
+                  if (challengeError is List && challengeError.isNotEmpty) {
+                    extractedErrorMessage = challengeError.first.toString();
+                  }
+                } else if (errorMap.containsKey('message')) {
+                  extractedErrorMessage = errorMap['message']?.toString();
+                }
+              }
               context.pop();
+              // Show error dialog with the actual error message
               showLiveStreamError(
                 context,
                 livecombo: liveCombo,
+                errorMessage: extractedErrorMessage,
               );
             }
           },

@@ -8,7 +8,7 @@ class DeviceService {
   factory DeviceService() => _singleton;
   DeviceService._internal();
 
-  static const String _deviceIdKey = 'clapmi_device_uuid';
+  static const String _deviceIdKey = 'device_id';
   static const String _deviceRoleKey = 'clapmi_device_role';
 
   SharedPreferences? _prefs;

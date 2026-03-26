@@ -193,16 +193,19 @@ class DeviceSwitchReady {
 /// Data class for device-switch-requested event
 class DeviceSwitchRequested {
   final String newDevice;
+  final String oldDeviceId;
   final String message;
 
   DeviceSwitchRequested({
     required this.newDevice,
+    required this.oldDeviceId,
     required this.message,
   });
 
   factory DeviceSwitchRequested.fromJson(Map<String, dynamic> json) {
     return DeviceSwitchRequested(
       newDevice: json['newDevice'] ?? '',
+      oldDeviceId: json['old_device_id'] ?? '',
       message: json['message'] ?? '',
     );
   }

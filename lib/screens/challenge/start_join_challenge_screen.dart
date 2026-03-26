@@ -124,6 +124,10 @@ class _StartOrJoinChallengeScreenState
               isLoading = true;
             });
           }
+          if (state is StartComboErrorState) {
+            setState(() { isLoading = false; });
+            popUpMessages(context, state.errorMessage);
+          }
           if (state is JoinComboGroundLoadingState) {
             setState(() {
               isLoading = true;
