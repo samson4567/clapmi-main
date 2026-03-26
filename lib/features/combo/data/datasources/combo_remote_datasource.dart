@@ -3,6 +3,7 @@ import 'package:clapmi/core/constants/endpoint_constant.dart';
 import 'package:clapmi/core/db/app_preference_service.dart';
 import 'package:clapmi/features/combo/data/models/combo_model.dart';
 import 'package:clapmi/features/combo/domain/entities/combo_entity.dart';
+import 'package:dio/dio.dart';
 
 abstract class ComboRemoteDatasource {
   Future<List<ComboEntity>> getLiveCombos();
@@ -43,7 +44,7 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
         return ComboModel.fromJson(e);
       },
     ).toList();
-    //  print("This is the list response and result ${result.toString()}");
+    //  print("This is the list response and result \\${result.toString()}");
     return result;
   }
 
@@ -67,14 +68,14 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
     // try {
     print("THIS IS TO GET THE COMBO DETAILS");
     final response = await networkClient.get(
-      endpoint: "${EndpointConstant.getSingleCombo}/$comboID",
+      endpoint: "[0m{[33mEndpointConstant.getSingleCombo[0m}/$comboID",
       isAuthHeaderRequired: true,
     );
     final result = ComboModel.fromJson(response.data);
-    print('This is getting combo details $result');
+    print('This is getting combo details \\${result}');
     return result;
     // } catch (e) {
-    //   print("This is the error coming from the endpoint ${e.toString()}--- ");
+    //   print("This is the error coming from the endpoint \\${e.toString()}--- ");
     //   throw (UnknownException(message: e.toString()));
     // }
   }
@@ -83,11 +84,11 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
   Future<String> startCombo({required String comboID}) async {
     print("This is starting a combo something anyways $comboID");
     final response = await networkClient.post(
-        endpoint: "${EndpointConstant.getSingleCombo}/$comboID/start",
+        endpoint: "[0m{[33mEndpointConstant.getSingleCombo[0m}/$comboID/start",
         isAuthHeaderRequired: true,
         data: {'start': comboID});
-    print("This is the response......................... ${response.message}");
-    print("${response.data}");
+    print("This is the response......................... \\${response.message}");
+    print("\\${response.data}");
     return response.message;
   }
 
@@ -126,15 +127,22 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
           "combo": comboID,
         });
     print(
-        "This is the response coming from leaving combo-ground ${response.data.toString()}");
+        "This is the response coming from leaving combo-ground \\${response.data.toString()}"
+    );
     return response.message;
   }
 
   @override
   Future<SwitchDeviceResult> switchDevice({required String comboID, required String deviceId}) async {
+    final requestOptions = Options();
+    requestOptions.headers = {
+      'X-Device-ID': deviceId,
+    };
+    
     final response = await networkClient.post(
       endpoint: EndpointConstant.switchDevice,
       isAuthHeaderRequired: true,
+      options: requestOptions,
       data: {
         'combo': comboID,
       },
@@ -145,9 +153,15 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
 
   @override
   Future<JoinCompanionResult> joinCompanion({required String comboID, required String deviceId}) async {
+    final requestOptions = Options();
+    requestOptions.headers = {
+      'X-Device-ID': deviceId,
+    };
+    
     final response = await networkClient.post(
       endpoint: EndpointConstant.joinCompanion,
       isAuthHeaderRequired: true,
+      options: requestOptions,
       data: {
         'combo': comboID,
       },
@@ -176,15 +190,15 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
     print('Time to get the single combo of $comboId');
     try {
       final response = await networkClient.get(
-        endpoint: '${EndpointConstant.getLiveCombo}$comboId',
+        endpoint: '[0m{[33mEndpointConstant.getLiveCombo[0m}$comboId',
         isAuthHeaderRequired: true,
       );
-      print("This is the response data here ------ ${response.data}");
+      print("This is the response data here ------ \\${response.data}");
       final resultMap = LiveComboModel.fromMap(response.data);
-      print("*****The converted result of Live is ${resultMap.stake}");
+      print("*****The converted result of Live is \\${resultMap.stake}");
       return resultMap;
     } catch (e) {
-      print("This is the error message ${e.toString()}");
+      print("This is the error message \\${e.toString()}");
       rethrow;
     }
   }
