@@ -102,6 +102,8 @@ class EndpointConstant {
   static const String setReminderForCombo = '/combos/reminder';
   static const String joinComboGround = '/combo-grounds/join';
   static const String leaveComboGround = '/combo-grounds/leave';
+  static const String switchDevice = '/combo-grounds/switch-device';
+  static const String joinCompanion = '/combo-grounds/join-companion';
   static const String getListofBragchallenger = '/brags/';
   // static const String getListofSingleBragchallenger = '/brags/';
   static const String getLiveCombo = '/combo-grounds/';

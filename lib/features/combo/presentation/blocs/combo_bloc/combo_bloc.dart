@@ -19,6 +19,8 @@ class ComboBloc extends Bloc<ComboEvent, ComboState> {
     on<LeaveComboGroundEvent>(_onLeaveComboGroundEvent);
     on<RescheduleChallengeEvent>(_onRescheduleChallengeEventHandler);
     on<GetLiveComboEvent>(_getLiveComboEventHandler);
+    on<SwitchDeviceEvent>(_onSwitchDeviceEvent);
+    on<JoinCompanionEvent>(_onJoinCompanionEvent);
     // LeaveComboGround
   }
 
@@ -146,5 +148,37 @@ class ComboBloc extends Bloc<ComboEvent, ComboState> {
         liveCombo: tempLive,
       ));
     });
+  }
+
+  // Handle SwitchDeviceEvent
+  Future<void> _onSwitchDeviceEvent(
+      SwitchDeviceEvent event, Emitter<ComboState> emit) async {
+    emit(SwitchDeviceLoadingState());
+    final result = await comboRepository.switchDevice(
+      comboID: event.comboID,
+      deviceId: event.deviceId,
+    );
+    result.fold(
+      (error) => emit(SwitchDeviceErrorState(errorMessage: error.message)),
+      (switchResult) {
+        emit(SwitchDeviceSuccessState(result: switchResult));
+      },
+    );
+  }
+
+  // Handle JoinCompanionEvent
+  Future<void> _onJoinCompanionEvent(
+      JoinCompanionEvent event, Emitter<ComboState> emit) async {
+    emit(JoinCompanionLoadingState());
+    final result = await comboRepository.joinCompanion(
+      comboID: event.comboID,
+      deviceId: event.deviceId,
+    );
+    result.fold(
+      (error) => emit(JoinCompanionErrorState(errorMessage: error.message)),
+      (companionResult) {
+        emit(JoinCompanionSuccessState(result: companionResult));
+      },
+    );
   }
 }

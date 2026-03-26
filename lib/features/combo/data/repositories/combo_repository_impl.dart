@@ -148,6 +148,34 @@ class ComboRepositoryImpl implements ComboRepository {
   }
 
   @override
+  Future<Either<Failure, SwitchDeviceResult>> switchDevice(
+      {required String comboID, required String deviceId}) async {
+    try {
+      final result = await comboRemoteDatasource.switchDevice(
+        comboID: comboID,
+        deviceId: deviceId,
+      );
+      return right(result);
+    } catch (e) {
+      return left(mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, JoinCompanionResult>> joinCompanion(
+      {required String comboID, required String deviceId}) async {
+    try {
+      final result = await comboRemoteDatasource.joinCompanion(
+        comboID: comboID,
+        deviceId: deviceId,
+      );
+      return right(result);
+    } catch (e) {
+      return left(mapExceptionToFailure(e));
+    }
+  }
+
+  @override
   Future<Either<Failure, LiveComboEntity>> getSingleLiveCombo(
       {required String comboId}) async {
     try {

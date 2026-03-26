@@ -1,4 +1,5 @@
 import 'package:clapmi/features/combo/domain/entities/combo_entity.dart';
+import 'package:clapmi/features/combo/data/datasources/combo_remote_datasource.dart';
 import 'package:dartz/dartz.dart';
 import 'package:clapmi/core/error/failure.dart';
 
@@ -12,6 +13,8 @@ abstract class ComboRepository {
       {required String comboID, required String time});
   Future<Either<Failure, String>> joinComboGround({required String comboID});
   Future<Either<Failure, String>> leaveComboGround({required String comboID});
+  Future<Either<Failure, SwitchDeviceResult>> switchDevice({required String comboID, required String deviceId});
+  Future<Either<Failure, JoinCompanionResult>> joinCompanion({required String comboID, required String deviceId});
   Future<Either<Failure, String>> rescheduleChallenge(
       {required String postID, required String newTime});
   

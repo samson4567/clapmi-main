@@ -1787,6 +1787,10 @@ class _ReactionPanelHorizontalState extends State<ReactionPanelHorizontal> {
                   height: 30,
                   width: 40,
                   action: () async {
+                    // Only share if we have a valid post UUID
+                    if (widget.model?.uuid == null) {
+                      return;
+                    }
                     final result = await SharePlus.instance.share(ShareParams(
                         title: 'Check out the Post',
                         text:

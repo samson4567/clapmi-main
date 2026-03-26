@@ -41,6 +41,7 @@ class _WithdrawalPinState extends State<WithdrawalPin> {
   String trxKey = const Uuid().v4();
   final TextEditingController pinController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  bool isLoading = false;
 
   @override
   void dispose() {
@@ -54,7 +55,15 @@ class _WithdrawalPinState extends State<WithdrawalPin> {
       body: SafeArea(
         child: BlocConsumer<WalletBloc, WalletState>(
           listener: (context, state) {
+            // Handle local loading state for Continue button
+            if (state is WalletLoading) {
+              if (!isLoading) {
+                setState(() => isLoading = true);
+              }
+            }
+
             if (state is WalletError) {
+              setState(() => isLoading = false);
               pinController.clear();
               ScaffoldMessenger.of(context)
                   .showSnackBar(generalSnackBar(state.message));
@@ -93,6 +102,7 @@ class _WithdrawalPinState extends State<WithdrawalPin> {
             }
 
             if (state is WithdrawalSuccessful || state is OrderCreated) {
+              setState(() => isLoading = false);
               context.push(MyAppRouteConstant.withdrawalSuccessful);
               ScaffoldMessenger.of(context).showSnackBar(
                 generalSnackBar(
@@ -217,10 +227,10 @@ class _WithdrawalPinState extends State<WithdrawalPin> {
                       const Gap(16),
                       Expanded(
                         child: PillButton(
-                          onTap: state is WalletLoading
+                          onTap: isLoading || state is WalletLoading
                               ? null
                               : _onContinuePressed,
-                          child: state is WalletLoading
+                          child: isLoading || state is WalletLoading
                               ? const SizedBox(
                                   height: 20,
                                   width: 20,
@@ -250,6 +260,9 @@ class _WithdrawalPinState extends State<WithdrawalPin> {
   }
 
   void _onContinuePressed() {
+    // Prevent multiple rapid taps during loading
+    if (isLoading) return;
+
     // Validate pin length
     if (pinController.text.length != 4) {
       ScaffoldMessenger.of(context).showSnackBar(

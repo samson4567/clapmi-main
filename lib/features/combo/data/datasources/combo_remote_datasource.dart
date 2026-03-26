@@ -13,6 +13,8 @@ abstract class ComboRemoteDatasource {
       {required String comboID, required String time});
   Future<String> joinComboGround({required String comboID});
   Future<String> leaveComboGround({required String comboID});
+  Future<SwitchDeviceResult> switchDevice({required String comboID, required String deviceId});
+  Future<JoinCompanionResult> joinCompanion({required String comboID, required String deviceId});
   Future<String> rescheduleChallenge(
       {required String postID, required String newTime});
 
@@ -129,6 +131,32 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
   }
 
   @override
+  Future<SwitchDeviceResult> switchDevice({required String comboID, required String deviceId}) async {
+    final response = await networkClient.post(
+      endpoint: EndpointConstant.switchDevice,
+      isAuthHeaderRequired: true,
+      data: {
+        'combo': comboID,
+      },
+    );
+    
+    return SwitchDeviceResult.fromJson(response.data);
+  }
+
+  @override
+  Future<JoinCompanionResult> joinCompanion({required String comboID, required String deviceId}) async {
+    final response = await networkClient.post(
+      endpoint: EndpointConstant.joinCompanion,
+      isAuthHeaderRequired: true,
+      data: {
+        'combo': comboID,
+      },
+    );
+    
+    return JoinCompanionResult.fromJson(response.data);
+  }
+
+  @override
   Future<String> rescheduleChallenge(
       {required String postID, required String newTime}) async {
     print(postID);
@@ -159,6 +187,54 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
       print("This is the error message ${e.toString()}");
       rethrow;
     }
+  }
+}
+
+/// Result class for switch-device API response
+class SwitchDeviceResult {
+  final bool success;
+  final String? oldDeviceId;
+  final String? newDeviceId;
+  final String? message;
+
+  SwitchDeviceResult({
+    required this.success,
+    this.oldDeviceId,
+    this.newDeviceId,
+    this.message,
+  });
+
+  factory SwitchDeviceResult.fromJson(Map<String, dynamic> json) {
+    return SwitchDeviceResult(
+      success: json['success'] ?? false,
+      oldDeviceId: json['data']?['old_device_id'],
+      newDeviceId: json['data']?['new_device_id'],
+      message: json['message'],
+    );
+  }
+}
+
+/// Result class for join-companion API response
+class JoinCompanionResult {
+  final bool success;
+  final String? deviceId;
+  final String? deviceRole;
+  final String? message;
+
+  JoinCompanionResult({
+    required this.success,
+    this.deviceId,
+    this.deviceRole,
+    this.message,
+  });
+
+  factory JoinCompanionResult.fromJson(Map<String, dynamic> json) {
+    return JoinCompanionResult(
+      success: json['success'] ?? false,
+      deviceId: json['data']?['device_id'],
+      deviceRole: json['data']?['device_role'],
+      message: json['message'],
+    );
   }
 }
 

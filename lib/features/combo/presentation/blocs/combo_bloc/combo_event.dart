@@ -1,4 +1,5 @@
 import 'package:clapmi/features/combo/domain/entities/combo_entity.dart';
+import 'package:clapmi/features/combo/data/datasources/combo_remote_datasource.dart';
 import 'package:equatable/equatable.dart';
 
 abstract class ComboEvent extends Equatable {
@@ -79,5 +80,27 @@ class RescheduleChallengeEvent extends ComboEvent {
 class GetLiveComboEvent extends ComboEvent {
   const GetLiveComboEvent({required this.combo});
   final ComboEntity combo;
+}
+
+// SwitchDevice
+final class SwitchDeviceEvent extends ComboEvent {
+  final String comboID;
+  final String deviceId;
+
+  const SwitchDeviceEvent({required this.comboID, required this.deviceId});
+
+  @override
+  List<Object> get props => [comboID, deviceId];
+}
+
+// JoinCompanion
+final class JoinCompanionEvent extends ComboEvent {
+  final String comboID;
+  final String deviceId;
+
+  const JoinCompanionEvent({required this.comboID, required this.deviceId});
+
+  @override
+  List<Object> get props => [comboID, deviceId];
 }
 // JoinComboGround

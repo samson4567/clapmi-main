@@ -43,6 +43,9 @@ class _FiatWithdrawalScreenState extends State<FiatWithdrawalScreen> {
   }
 
   void _validateAndProceed() {
+    // Prevent multiple rapid taps during loading
+    if (isLoading) return;
+
     if (!_formKey.currentState!.validate()) return;
 
     if (selectedBank == null) {
@@ -57,7 +60,7 @@ class _FiatWithdrawalScreenState extends State<FiatWithdrawalScreen> {
     setState(() {
       hasError = false;
       errorMessage = '';
-      isLoading = true;  // Show loading immediately
+      isLoading = true; // Show loading immediately
       _pendingProceedAfterKyc = true;
     });
 
@@ -113,7 +116,10 @@ class _FiatWithdrawalScreenState extends State<FiatWithdrawalScreen> {
 
         // ── KYC status: loading ──────────────────────────────────────────
         if (state is GetUserKYCStatusLoadingState) {
-          setState(() => isLoading = true);
+          // Keep loading state - don't override if already loading from user action
+          if (!isLoading) {
+            setState(() => isLoading = true);
+          }
         }
 
         // ── KYC status: error ────────────────────────────────────────────
@@ -129,17 +135,20 @@ class _FiatWithdrawalScreenState extends State<FiatWithdrawalScreen> {
         // ── KYC status: success ──────────────────────────────────────────
         if (state is GetUserKYCStatusSuccessState && _pendingProceedAfterKyc) {
           setState(() {
-            isLoading = false;
             _pendingProceedAfterKyc = false;
+            // Don't set isLoading = false here, let the quote request handle it
           });
 
           final entity = state.theGetUserKycStatusResponseEntity;
 
           // ✅ isVerified is a bool — compare correctly, NOT to a string
           if (entity.isVerified == true) {
+            // Set loading to true for quote request
+            setState(() => isLoading = true);
             _proceedWithQuote();
           } else {
             // ❌ Not verified — show KYC modal
+            setState(() => isLoading = false);
             KycVerificationModal.show(
               context,
               onStartKyc: () {},
@@ -459,18 +468,21 @@ class _FiatWithdrawalScreenState extends State<FiatWithdrawalScreen> {
                                     horizontal: 24, vertical: 12),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(28),
-                                  color: isLoading 
-                                      ? AppColors.primaryColor.withOpacity(0.5)  // Dim when loading
+                                  color: isLoading
+                                      ? AppColors.primaryColor
+                                          .withOpacity(0.5) // Dim when loading
                                       : AppColors.primaryColor,
                                 ),
                                 child: isLoading
                                     ? SizedBox(
                                         height: 20,
                                         width: 20,
-                                        child: CircularProgressIndicator.adaptive(
+                                        child:
+                                            CircularProgressIndicator.adaptive(
                                           strokeWidth: 2,
                                           backgroundColor: Colors.white,
-                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
                                             Colors.white.withOpacity(0.8),
                                           ),
                                         ),

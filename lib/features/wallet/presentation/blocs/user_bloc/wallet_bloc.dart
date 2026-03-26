@@ -334,6 +334,7 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
 
   Future<void> _createOrderEventHandler(
       CreateOrderEvent event, Emitter<WalletState> emit) async {
+    emit(WalletLoading());
     final result = await walletRepository.createOrder(
         orderId: event.orderId, idempotencykey: event.idempotencykey);
     result.fold((error) => emit(WalletError(message: error.message)),
@@ -342,6 +343,7 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
 
   Future<void> _ressetPinEventHandler(
       ResetPinWithDrawalEvent event, Emitter<WalletState> emit) async {
+    emit(WalletLoading());
     final result = await walletRepository.restWithDrawalEvent(
         pin: event.pin, pinConfirmation: event.pinconfirmation);
     result.fold((error) => emit(WalletError(message: error.message)),

@@ -1,4 +1,5 @@
 import 'package:clapmi/features/combo/domain/entities/combo_entity.dart';
+import 'package:clapmi/features/combo/data/datasources/combo_remote_datasource.dart';
 import 'package:equatable/equatable.dart';
 
 sealed class ComboState extends Equatable {
@@ -214,4 +215,50 @@ class LiveComboLoaded extends ComboState {
 
 class LiveComboLoading extends ComboState {
   const LiveComboLoading();
+}
+
+// SwitchDevice
+final class SwitchDeviceLoadingState extends ComboState {
+  const SwitchDeviceLoadingState();
+}
+
+final class SwitchDeviceSuccessState extends ComboState {
+  final SwitchDeviceResult result;
+
+  const SwitchDeviceSuccessState({required this.result});
+
+  @override
+  List<Object> get props => [result];
+}
+
+final class SwitchDeviceErrorState extends ComboState {
+  final String errorMessage;
+
+  const SwitchDeviceErrorState({required this.errorMessage});
+
+  @override
+  List<Object> get props => [errorMessage];
+}
+
+// JoinCompanion
+final class JoinCompanionLoadingState extends ComboState {
+  const JoinCompanionLoadingState();
+}
+
+final class JoinCompanionSuccessState extends ComboState {
+  final JoinCompanionResult result;
+
+  const JoinCompanionSuccessState({required this.result});
+
+  @override
+  List<Object> get props => [result];
+}
+
+final class JoinCompanionErrorState extends ComboState {
+  final String errorMessage;
+
+  const JoinCompanionErrorState({required this.errorMessage});
+
+  @override
+  List<Object> get props => [errorMessage];
 }
