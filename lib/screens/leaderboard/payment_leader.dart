@@ -6,6 +6,7 @@ import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart'
 import 'package:clapmi/core/di/injector.dart';
 import 'package:clapmi/features/user/data/datasources/user_remote_datasource.dart';
 import 'package:clapmi/features/user/data/models/payment_grade_model.dart';
+import 'package:clapmi/features/user/domain/entities/user_entity.dart';
 import 'package:shimmer/shimmer.dart';
 
 class TierData {
@@ -198,6 +199,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
   List<PaymentGradeModel>? _paymentGrades;
   bool _isLoading = true;
   String? _error;
+  bool _isPlusUser = false;
 
   @override
   void initState() {
@@ -211,6 +213,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
 
   Future<void> _fetchPaymentGrades() async {
     try {
+      // Note: is_clapmi_plus check would ideally come from the API
+      // For now, we show current + next level only
+      _isPlusUser = false;
+
+      // Fetch payment grades
       final response = await _datasource.getPaymentGrades();
 
       // Debug logging
@@ -220,7 +227,31 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
 
       if (mounted) {
         setState(() {
-          _paymentGrades = response.data.data;
+          // Filter out free/rookie tiers (subscriptionAmount == 0)
+          List<PaymentGradeModel> filteredTiers = response.data.data
+              .where((tier) => tier.subscriptionAmount > 0)
+              .toList();
+
+          // If not plus user, show current level and next level only
+          if (!_isPlusUser && filteredTiers.isNotEmpty) {
+            // Find current level position
+            final currentTierIndex = filteredTiers.indexWhere(
+              (tier) => tier.isCurrentLevel,
+            );
+            
+            if (currentTierIndex != -1) {
+              final currentPosition = filteredTiers[currentTierIndex].position;
+              
+              // Show: current level + next level (higher position), hide previous levels
+              filteredTiers = filteredTiers
+                  .where((tier) =>
+                      tier.isCurrentLevel ||
+                      (tier.position > currentPosition))
+                  .toList();
+            }
+          }
+
+          _paymentGrades = filteredTiers;
           _isLoading = false;
         });
       }
@@ -332,7 +363,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: TextButton.icon(
-                      onPressed: () => context.pop(),
+                      onPressed: () {
+                        // Try to pop, if that fails go to leaderboard
+                        if (!Navigator.of(context).canPop()) {
+                          context.go('/leaderboard');
+                        } else {
+                          Navigator.of(context).pop();
+                        }
+                      },
                       icon: const Icon(Icons.chevron_left,
                           color: Colors.white, size: 22),
                       label: const Text(
@@ -595,42 +633,13 @@ class _TierCard extends StatelessWidget {
 
                     // Subscribe button
                     Center(
-                      child: tier.isCurrentLevel
-                          ? SizedBox(
-                              width: 102,
-                              height: 38,
-                              child: ElevatedButton(
-                                onPressed: null,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white24,
-                                  foregroundColor: Colors.white54,
-                                  disabledBackgroundColor: Colors.white24,
-                                  disabledForegroundColor: Colors.white54,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 8),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                child: Text(
-                                  tier.isSubscribed
-                                      ? 'Current'
-                                      : (tier.isNextLevel
-                                          ? 'Upgrade'
-                                          : 'Subscribe'),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            )
-                          : SizedBox(
-                              width: 102,
-                              height: 38,
-                              child: ElevatedButton(
-                                onPressed: () {
+                      child: SizedBox(
+                        width: 140,
+                        height: 38,
+                        child: ElevatedButton(
+                          onPressed: tier.isCurrentLevel
+                              ? null
+                              : () {
                                   context.push(
                                     MyAppRouteConstant.paymentCheckout,
                                     extra: {
@@ -640,29 +649,35 @@ class _TierCard extends StatelessWidget {
                                     },
                                   );
                                 },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 8),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                child: Text(
-                                  tier.isSubscribed
-                                      ? 'Current'
-                                      : (tier.isNextLevel
-                                          ? 'Upgrade'
-                                          : 'Subscribe'),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: tier.isCurrentLevel
+                                ? Colors.white24
+                                : Colors.white,
+                            foregroundColor: tier.isCurrentLevel
+                                ? Colors.white54
+                                : Colors.black,
+                            disabledBackgroundColor: Colors.white24,
+                            disabledForegroundColor: Colors.white54,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
                             ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            tier.isCurrentLevel && tier.isSubscribed
+                                ? 'Current'
+                                : 'Upgrade',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: tier.isCurrentLevel && tier.isSubscribed
+                                  ? FontWeight.w600
+                                  : FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),

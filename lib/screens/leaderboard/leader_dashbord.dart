@@ -159,6 +159,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   String _selectedTimeFilter = 'all'; // 'week', 'month', 'year', 'all'
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = ''; // Add field for total pages
+  CreatorRankingModel? _currentUserRanking; // Store current user's ranking
 
   // Map UI level names to API level names
   final _levels = ['Rookie', 'Prime', 'Elite', 'Icon', 'Legend'];
@@ -289,7 +290,15 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       ),
                     ),
                   ),
-            onTap: () {},
+            onTap: () {
+              // Open drawer - try Scaffold first, then use global key
+              if (context.canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                // Use GoRouter to navigate to feed where drawer is available
+                context.go('/feed');
+              }
+            },
           ),
           const SizedBox(width: 12),
           const Text(
@@ -940,13 +949,100 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
   Widget _buildCurrentUserRanking() {
-    // Get current user's ranking from the rankings list
+    // Get current user's ranking - prefer _currentUserRanking (set from filtered query)
     final currentUserPid = profileModelG?.pid;
-    if (currentUserPid == null || _creatorRankings.isEmpty) {
+    if (currentUserPid == null) {
       return const SizedBox.shrink();
     }
 
-    // Find current user's ranking in the list
+    // First try to use _currentUserRanking which is populated from filtered user query
+    if (_currentUserRanking != null) {
+      final rank = _currentUserRanking!.leaderboardRank ?? 1;
+      return GestureDetector(
+        onTap: () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
+        child: Container(
+          margin: const EdgeInsets.only(top: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFF4A7CF7).withOpacity(0.2),
+                const Color(0xFF4A7CF7).withOpacity(0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF4A7CF7).withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A7CF7),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Center(
+                  child: Text(
+                    '#$rank',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      profileModelG?.username ?? 'Your Profile',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      'Current Ranking',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.5),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A7CF7).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  '#$rank',
+                  style: const TextStyle(
+                    color: Color(0xFF4A7CF7),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Fallback: Check if user is in _creatorRankings (general leaderboard)
+    if (_creatorRankings.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     final userIndex = _creatorRankings.indexWhere(
       (ranking) => ranking.creatorPid == currentUserPid,
     );
@@ -1499,7 +1595,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         horizontal: 20, vertical: 10),
                   ),
                   child: const Text(
-                    'Pay to unlock next level',
+                    'Pay to unlock next prime',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Poppins',

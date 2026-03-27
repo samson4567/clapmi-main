@@ -805,108 +805,7 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                                     userName: profileModelG?.username ?? '',
                                     myavatar: profileModelG?.myAvatar),
                               ),
-                            Positioned(
-                              bottom: MediaQuery.of(context).viewInsets.bottom,
-                              child: SizedBox(
-                                width: MediaQuery.of(context).size.width,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    IgnorePointer(
-                                        ignoring: true,
-                                        child: Container(
-                                          height: visibleCount * commentHeight,
-                                          margin: EdgeInsets.only(bottom: 8.h),
-                                          child: ListView.builder(
-                                            shrinkWrap: true,
-                                            controller: _scrollController,
-                                            itemExtent: commentHeight,
-                                            itemCount: _comments.length,
-                                            itemBuilder: (context, index) =>
-                                                _buildAnimatedComment(index),
-                                          ),
-                                        )),
-                                    if (isComboOngoingNow == true ||
-                                        isComboOngoingNow == false)
-                                      LiveStreamBottomSession(
-                                        comboId: widget.comboId,
-                                        comboInfo: widget.comboInfo,
-                                        bragID: widget.bragID,
-                                        isLiveOngoing:
-                                            isComboOngoingNow == true,
-                                        liveChallenger: liveChallenger,
-                                        sendComment: (comment) {
-                                          _addComment({
-                                            'state': comment,
-                                            'stateName': 'commentLive',
-                                          });
-                                        },
-                                        onUserClappEvent: (value) {
-                                          if (value) {
-                                            setState(() {
-                                              _controller.reset();
-                                              _controller.forward();
-                                              userClappEvent = value;
-                                            });
-                                          }
-                                        },
-                                        onLiveMicPressed: (value) {
-                                          value ? enableMic() : disableMic();
-                                        },
-                                        isMicEnabled: isAudioOn,
-                                        onLiveCameraPressed: (value) {
-                                          value
-                                              ? enableCamera(false)
-                                              : disableCamera();
-                                        },
-                                        isCameraEnable: isVideoOn,
-                                        isLiveRecording: isFrontCameraSelected,
-                                        onLiveRecordingPressed: (value) {
-                                          if (value) {
-                                            setState(() {
-                                              isFrontCameraSelected = true;
-                                            });
-                                            enableCamera(true);
-                                          }
-                                        },
-                                        isScreenShared:
-                                            screenshareRender?.srcObject !=
-                                                null,
-                                        onShareScreenPressed: (value) {
-                                          value
-                                              ? showModalBottomSheet(
-                                                  context: context,
-                                                  builder: (context) {
-                                                    return ScreenSharingIcon(
-                                                      onPress: () {
-                                                        enableShareScreen();
-                                                      },
-                                                    );
-                                                  },
-                                                )
-                                              : stopScreenShare();
-                                        },
-                                        onEnlargeScreenPressed: (value) {},
-                                        isScreenEnlarged: false,
-                                        onExitPressed: (value) {
-                                          if (value) {
-                                            showModalBottomSheet(
-                                                context: context,
-                                                builder: (context) {
-                                                  return EndliveStream(
-                                                    comboId: widget.comboId,
-                                                  );
-                                                });
-                                          }
-                                        },
-                                        onTurnedOffPressed: (value) {},
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
+
                             if (!isthereInternet)
                               Positioned.fill(
                                 child: AbsorbPointer(
@@ -937,6 +836,116 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                                   ),
                                 ),
                               ),
+                            // BOTTOM SECTION WITH COMMENTS AND BUTTONS
+                            Positioned(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                              child: SizedBox(
+                                width: MediaQuery.of(context).size.width,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    IgnorePointer(
+                                        ignoring: true,
+                                        child: Container(
+                                          height: visibleCount * commentHeight,
+                                          margin: EdgeInsets.only(bottom: 8.h),
+                                          child: ListView.builder(
+                                            shrinkWrap: true,
+                                            controller: _scrollController,
+                                            itemExtent: commentHeight,
+                                            itemCount: _comments.length,
+                                            itemBuilder: (context, index) =>
+                                                _buildAnimatedComment(index),
+                                          ),
+                                        )),
+                                    // BOTTOM BUTTON SESSION OF THE LIVESTREAM SCREEN
+                                    LiveStreamBottomSession(
+                                      comboId: widget.comboId,
+                                      comboInfo: widget.comboInfo,
+                                      bragID: widget.bragID,
+                                      isLiveOngoing: isComboOngoingNow == true,
+                                      liveChallenger: liveChallenger,
+                                      sendComment: (comment) {
+                                        _addComment({
+                                          'state': comment,
+                                          'stateName': 'commentLive',
+                                        });
+                                      },
+                                      onUserClappEvent: (value) {
+                                        if (value) {
+                                          setState(() {
+                                            _controller.reset();
+                                            _controller.forward();
+                                            userClappEvent = value;
+                                          });
+                                        }
+                                      },
+                                      onLiveMicPressed: (value) {
+                                        value ? enableMic() : disableMic();
+                                      },
+                                      isMicEnabled: isAudioOn,
+                                      onLiveCameraPressed: (value) {
+                                        value
+                                            ? enableCamera(false)
+                                            : disableCamera();
+                                      },
+                                      isCameraEnable: isVideoOn,
+                                      isLiveRecording: isFrontCameraSelected,
+                                      onLiveRecordingPressed: (value) {
+                                        if (value) {
+                                          setState(() {
+                                            isFrontCameraSelected = true;
+                                          });
+                                          enableCamera(true);
+                                        }
+                                      },
+                                      isScreenShared:
+                                          screenshareRender?.srcObject != null,
+                                      onShareScreenPressed: (value) {
+                                        value
+                                            ? showModalBottomSheet(
+                                                context: context,
+                                                builder: (context) {
+                                                  return ScreenSharingIcon(
+                                                    onPress: () {
+                                                      enableShareScreen();
+                                                    },
+                                                  );
+                                                },
+                                              )
+                                            : stopScreenShare();
+                                      },
+                                      onEnlargeScreenPressed: (value) {},
+                                      isScreenEnlarged: false,
+                                      onExitPressed: (value) {
+                                        if (value) {
+                                          showModalBottomSheet(
+                                              context: context,
+                                              builder: (context) {
+                                                return EndliveStream(
+                                                  comboId: widget.comboId,
+                                                );
+                                              });
+                                        }
+                                      },
+                                      onTurnedOffPressed: (value) {
+                                        if (value) {
+                                          showModalBottomSheet(
+                                              context: context,
+                                              builder: (context) {
+                                                return EndliveStream(
+                                                  comboId: widget.comboId,
+                                                );
+                                              });
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ]);
               },
             ),

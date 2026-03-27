@@ -356,3 +356,130 @@ class BoostSuccessWidget extends StatelessWidget {
     );
   }
 }
+
+class RecordingControlsSheet extends StatefulWidget {
+  const RecordingControlsSheet({super.key});
+
+  @override
+  State<RecordingControlsSheet> createState() => _RecordingControlsSheetState();
+}
+
+class _RecordingControlsSheetState extends State<RecordingControlsSheet> {
+  bool _isRecording = false;
+
+  void _toggleRecording() {
+    setState(() => _isRecording = !_isRecording);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          // Buttons row
+          Row(
+            children: [
+              // Screen share button
+              Expanded(
+                child: _ControlButton(
+                  svgAsset: 'assets/icons/screenshare.svg',
+                  label: 'Screen share',
+                  isActive: false,
+                  onTap: () {
+                    // handle screen share
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Record / Stop Recording button
+              Expanded(
+                child: _ControlButton(
+                  svgAsset: 'assets/icons/rec.svg',
+                  label: _isRecording ? 'Stop Recording' : 'Record',
+                  isActive: _isRecording,
+                  onTap: _toggleRecording,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ControlButton extends StatelessWidget {
+  final String svgAsset;
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _ControlButton({
+    required this.svgAsset,
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color bgColor =
+        isActive ? const Color(0xFFF0F0F0) : const Color(0xFF2C2C2E);
+    final Color contentColor = isActive ? Colors.black : Colors.white;
+    final Border? border = isActive
+        ? null
+        : Border.all(color: const Color(0xFF7B5EA7), width: 1.5);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        height: 110,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(20),
+          border: border,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SvgPicture.asset(
+              svgAsset,
+              width: 28,
+              height: 28,
+              colorFilter: ColorFilter.mode(contentColor, BlendMode.srcIn),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: TextStyle(
+                color: contentColor,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

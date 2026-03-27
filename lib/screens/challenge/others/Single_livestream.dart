@@ -28,6 +28,7 @@ class SingleLiveStreaming extends StatefulWidget {
 class _SingleLiveStreamingState extends State<SingleLiveStreaming> {
   final TextEditingController _commentController = TextEditingController();
   bool showPopup = false;
+  bool _isMinimized = false;
 
   @override
   Widget build(BuildContext context) {
@@ -271,10 +272,26 @@ class _SingleLiveStreamingState extends State<SingleLiveStreaming> {
                   ),
                 ),
               ),
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.close,
-                    size: 25.98, color: Color.fromRGBO(255, 255, 255, 0.173)),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      print('Minimize button clicked');
+                      setState(() {
+                        _isMinimized = !_isMinimized;
+                      });
+                    },
+                    icon: const Icon(Icons.minimize,
+                        size: 25.98, color: Colors.white),
+                  ),
+                  IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.close,
+                        size: 25.98,
+                        color: Color.fromRGBO(255, 255, 255, 0.173)),
+                  ),
+                ],
               ),
             ],
           ),

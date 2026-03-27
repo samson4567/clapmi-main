@@ -247,7 +247,7 @@ class DrawerList extends StatelessWidget {
           ),
           ListTile(
             leading: Image.asset(
-              "assets/icons/marketeq_reward.png",
+              "assets/icons/ranking.png",
               width: 30,
               height: 30,
               color: Colors.white.withValues(alpha: 3.0),
@@ -266,7 +266,7 @@ class DrawerList extends StatelessWidget {
           ),
           ListTile(
             leading: Image.asset(
-              "assets/icons/marketeq_reward.png",
+              "assets/icons/like.png",
               width: 30,
               height: 30,
               color: Colors.white.withValues(alpha: 3.0),
