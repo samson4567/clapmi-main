@@ -168,7 +168,12 @@ class LivestreamHeader extends StatelessWidget {
                       fontSize: 12.sp,
                       fontFamily: 'Poppins'),
                 ),
+
                 const Spacer(),
+                SvgPicture.asset('assets/images/livrec.svg'),
+                SizedBox(
+                  width: 5.h,
+                ),
                 //ShareIcon
                 FancyContainer(
                   isAsync: false,
@@ -176,7 +181,9 @@ class LivestreamHeader extends StatelessWidget {
                   width: 40,
                   action: () async {
                     // Only share if we have a valid UUID
-                    final shareId = bragID.isNotEmpty ? bragID : (model?.uuid ?? ""); if (shareId.isEmpty) {
+                    final shareId =
+                        bragID.isNotEmpty ? bragID : (model?.uuid ?? "");
+                    if (shareId.isEmpty) {
                       return;
                     }
                     final result = await SharePlus.instance.share(ShareParams(
@@ -542,13 +549,6 @@ class LivestreamHeader extends StatelessWidget {
                             )
                 ],
               ),
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: 140.w,
-              ),
-              child: buildTimerCapsule(
-                  timerCountdown ?? ''), // pass LiveComboEntity instance
-            )
           ],
         );
       },

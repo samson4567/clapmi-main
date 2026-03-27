@@ -741,10 +741,19 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                                 }
                               },
                             ),
+                            // Timer positioned outside LivestreamHeader
+                            Positioned(
+                              top: 150.h,
+                              left: 0,
+                              right: 0,
+                              child: Center(
+                                child: buildTimerCapsule(timerCountdown ?? ''),
+                              ),
+                            ),
                             if (widget.comboInfo.type == "multiple" ||
                                 isComboOngoingNow == true)
                               Positioned(
-                                  top: 150.h,
+                                  top: 180.h,
                                   left: 8,
                                   child: SizedBox(
                                     child: ProgressBars(

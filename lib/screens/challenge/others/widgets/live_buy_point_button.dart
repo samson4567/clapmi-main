@@ -159,6 +159,38 @@ class LiveInteractionButton extends StatelessWidget {
         //     isEnabled: widget.isScreenEnlarged),
         buttonWidget(Appassets.liveExit, widget.onExitPressed),
         //  buttonWidget(Appassets.liveTurnedOff, widget.onTurnedOffPressed)
+        // Hamburger button for RecordingControlsSheet
+        GestureDetector(
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              backgroundColor: Colors.transparent,
+              isScrollControlled: true,
+              builder: (_) => RecordingControlsSheet(
+                initialRecordingState: widget.isLiveRecording,
+                onRecordingStateChanged: (isRecording) {
+                  widget.onLiveRecordingPressed(isRecording);
+                },
+              ),
+            );
+          },
+          child: Container(
+            margin: EdgeInsets.only(bottom: 4.h),
+            height: 35.w,
+            width: 35.w,
+            decoration: BoxDecoration(
+                color: getFigmaColor('3D3D3D'),
+                borderRadius: BorderRadius.circular(25.w)),
+            child: SvgPicture.asset(
+              height: 10.w,
+              width: 10.w,
+              color: Colors.white,
+              clipBehavior: Clip.hardEdge,
+              Appassets.hamburger,
+              fit: BoxFit.none,
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -358,17 +390,31 @@ class BoostSuccessWidget extends StatelessWidget {
 }
 
 class RecordingControlsSheet extends StatefulWidget {
-  const RecordingControlsSheet({super.key});
+  final Function(bool)? onRecordingStateChanged;
+  final bool initialRecordingState;
+
+  const RecordingControlsSheet({
+    super.key,
+    this.onRecordingStateChanged,
+    this.initialRecordingState = false,
+  });
 
   @override
   State<RecordingControlsSheet> createState() => _RecordingControlsSheetState();
 }
 
 class _RecordingControlsSheetState extends State<RecordingControlsSheet> {
-  bool _isRecording = false;
+  late bool _isRecording;
+
+  @override
+  void initState() {
+    super.initState();
+    _isRecording = widget.initialRecordingState;
+  }
 
   void _toggleRecording() {
     setState(() => _isRecording = !_isRecording);
+    widget.onRecordingStateChanged?.call(_isRecording);
   }
 
   @override
@@ -479,6 +525,402 @@ class _ControlButton extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+enum PopRecordVariant { initial, confirm }
+
+class PopRecord extends StatelessWidget {
+  final PopRecordVariant variant;
+  final VoidCallback onNo;
+  final VoidCallback? onLater;
+  final VoidCallback onYes;
+
+  const PopRecord({
+    super.key,
+    this.variant = PopRecordVariant.initial,
+    required this.onNo,
+    this.onLater,
+    required this.onYes,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      child: variant == PopRecordVariant.initial
+          ? _InitialVariant(
+              onNo: onNo,
+              onLater: onLater ?? () {},
+              onYes: onYes,
+            )
+          : _ConfirmVariant(
+              onNo: onNo,
+              onYes: onYes,
+            ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────
+// Initial variant  →  "Record your livestream"
+// ─────────────────────────────────────────
+class _InitialVariant extends StatelessWidget {
+  final VoidCallback onNo;
+  final VoidCallback onLater;
+  final VoidCallback onYes;
+
+  const _InitialVariant({
+    required this.onNo,
+    required this.onLater,
+    required this.onYes,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: [
+        SvgPicture.asset(
+          'assets/icons/large_background.svg',
+          fit: BoxFit.fill,
+          width: double.infinity,
+        ),
+
+        Positioned.fill(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 80, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 16),
+                const Text(
+                  'Record your livestream',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _PopButton(
+                        label: 'No',
+                        onTap: onNo,
+                        style: _PopButtonStyle.dark,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _PopButton(
+                        label: 'Later',
+                        onTap: onLater,
+                        style: _PopButtonStyle.dark,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _PopButton(
+                        label: 'Yes',
+                        onTap: onYes,
+                        style: _PopButtonStyle.blue,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // video.svg floating above card
+        Positioned(
+          top: -52,
+          child: SvgPicture.asset(
+            'assets/icons/video.svg',
+            width: 100,
+            height: 100,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────
+// Confirm variant  →  "Want to record your stream"
+// ─────────────────────────────────────────
+class _ConfirmVariant extends StatelessWidget {
+  final VoidCallback onNo;
+  final VoidCallback onYes;
+
+  const _ConfirmVariant({
+    required this.onNo,
+    required this.onYes,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: [
+        SvgPicture.asset(
+          'assets/icons/large_background.svg',
+          fit: BoxFit.fill,
+          width: double.infinity,
+        ),
+        Positioned.fill(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon + title inline
+                Row(
+                  children: [
+                    SvgPicture.asset(
+                      'assets/icons/video.svg',
+                      width: 52,
+                      height: 52,
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Want to record your stream',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _PopButton(
+                        label: 'No',
+                        onTap: onNo,
+                        style: _PopButtonStyle.outlined,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _PopButton(
+                        label: 'Yes',
+                        onTap: onYes,
+                        style: _PopButtonStyle.blue,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────
+// Shared button
+// ─────────────────────────────────────────
+enum _PopButtonStyle { dark, outlined, blue }
+
+class _PopButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final _PopButtonStyle style;
+
+  const _PopButton({
+    required this.label,
+    required this.onTap,
+    required this.style,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: style == _PopButtonStyle.blue
+              ? const Color(0xFF2196F3)
+              : const Color(0xFF1E1E22),
+          borderRadius: BorderRadius.circular(30),
+          border: style == _PopButtonStyle.outlined
+              ? Border.all(color: const Color(0xFF2196F3), width: 2)
+              : null,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// // In your PopRecord widget, update onYes:
+// PopRecord(
+//   onNo: () => Navigator.pop(context),
+//   onLater: () => Navigator.pop(context),
+//   onYes: () {
+//     Navigator.pop(context); // close PopRecord
+//     showDialog(
+//       context: context,
+//       barrierColor: Colors.black54,
+//       builder: (_) => PopRecordConfirm(
+//         onNo: () => Navigator.pop(context),
+//         onYes: () {
+//           Navigator.pop(context);
+//           // ✅ start actual recording here
+//         },
+//       ),
+//     );
+//   },
+// ),
+
+class DownloadFileContainer extends StatelessWidget {
+  final VoidCallback onOpen;
+  final VoidCallback onShare;
+
+  const DownloadFileContainer({
+    super.key,
+    required this.onOpen,
+    required this.onShare,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 408,
+      height: 164,
+      padding: const EdgeInsets.only(
+        top: 16,
+        right: 16,
+        bottom: 24,
+        left: 16,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFF181919),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── Top info card ──
+          Container(
+            width: 376,
+            height: 68,
+            padding: const EdgeInsets.only(
+              top: 18,
+              right: 17,
+              bottom: 18,
+              left: 17,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFF3D3D3D),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                // download.png icon
+                Image.asset(
+                  'assets/icons/download.png',
+                  width: 24,
+                  height: 24,
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Video successfully saved to device',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ── Buttons row ──
+          Row(
+            children: [
+              // Open button
+              Expanded(
+                child: GestureDetector(
+                  onTap: onOpen,
+                  child: Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2A2A2A),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'Open',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Share button
+              Expanded(
+                child: GestureDetector(
+                  onTap: onShare,
+                  child: Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2196F3),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'Share',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
