@@ -69,6 +69,9 @@ import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../features/wallet/data/repositories/wallet_repo.dart';
+import 'package:clapmi/features/livestream/data/datasources/recording_remote_datasource.dart';
+import 'package:clapmi/features/livestream/data/services/recording_service.dart';
+import 'package:clapmi/features/livestream/presentation/blocs/recording/recording_bloc.dart';
 
 final getItInstance = GetIt.I;
 
@@ -366,6 +369,24 @@ Future init() async {
         appBloc: getItInstance<AppBloc>(),
       ));
   getItInstance.registerLazySingleton(() => VideoFeedProvider());
+
+  // RecordingBloc
+  getItInstance.registerLazySingleton<RecordingRemoteDataSource>(
+      () => RecordingRemoteDataSource());
+
+  // Register RecordingService
+  getItInstance.registerLazySingleton(
+    () => RecordingService(
+      remoteDataSource: getItInstance<RecordingRemoteDataSource>(),
+    ),
+  );
+
+  getItInstance.registerLazySingleton(
+    () => RecordingBloc(
+      recordingDataSource: getItInstance<RecordingRemoteDataSource>(),
+    ),
+  );
+
   await getItInstance.allReady();
 }
 

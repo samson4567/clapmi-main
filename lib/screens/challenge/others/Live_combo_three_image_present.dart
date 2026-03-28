@@ -3,7 +3,14 @@ import 'dart:async';
 import 'dart:io';
 import 'package:clapmi/core/api/multi_env.dart';
 import 'package:clapmi/core/app_variables.dart';
+import 'package:clapmi/core/di/injector.dart';
 import 'package:clapmi/core/services/notification_handler_classes/notificationWorkers/util_functions.dart';
+import 'package:clapmi/features/livestream/data/datasources/recording_remote_datasource.dart';
+import 'package:clapmi/features/livestream/presentation/blocs/recording/recording_bloc.dart';
+import 'package:clapmi/features/livestream/presentation/widgets/record_started_notification.dart';
+import 'package:clapmi/features/livestream/presentation/widgets/download_file_container.dart';
+import 'package:clapmi/features/livestream/presentation/widgets/confirm_variant.dart';
+import 'package:clapmi/screens/challenge/others/widgets/live_buy_point_button.dart';
 import 'package:clapmi/features/chats_and_socials/domain/entities/live_reactions_entities.dart';
 import 'package:clapmi/features/chats_and_socials/presentation/blocs/user_bloc/chats_and_socials_bloc.dart';
 import 'package:clapmi/features/chats_and_socials/presentation/blocs/user_bloc/chats_and_socials_event.dart';
@@ -119,6 +126,10 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
       'path': '/ss/socket.io',
     });
 
+    // Connect socket to RecordingRemoteDataSource
+    final recordingDataSource = getItInstance<RecordingRemoteDataSource>();
+    recordingDataSource.setSocket(socket!);
+
     socket?.onConnect((_) async {
       debugPrint("✅ Connected to SFU Server");
       socket?.off('new-producer');
@@ -170,6 +181,40 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
         setState(() {
           _isLoading = false;
         });
+
+        // Show PopRecord dialog for host/challenger to prompt recording
+        if (role == 'host' || role == 'challenger') {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            showDialog(
+              context: context,
+              barrierColor: Colors.black54,
+              builder: (_) => PopRecord(
+                variant: PopRecordVariant.initial,
+                onNo: () => Navigator.pop(context),
+                onLater: () => Navigator.pop(context),
+                onYes: () {
+                  Navigator.pop(context);
+                  // Show confirmation dialog
+                  showDialog(
+                    context: context,
+                    barrierColor: Colors.black54,
+                    builder: (_) => PopRecord(
+                      variant: PopRecordVariant.confirm,
+                      onNo: () => Navigator.pop(context),
+                      onYes: () {
+                        Navigator.pop(context);
+                        // Start recording
+                        context.read<RecordingBloc>().add(
+                              StartRecording(roomId: roomId),
+                            );
+                      },
+                    ),
+                  );
+                },
+              ),
+            );
+          });
+        }
       }
 
       for (var producer in producers) {
@@ -416,547 +461,589 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
       body: SafeArea(
         child: Stack(
           children: [
-            BlocConsumer<ChatsAndSocialsBloc, ChatsAndSocialsState>(
-              listener: (context, state) {
-                if (state is LiveCommentState) {
-                  _addComment({
-                    'state': state.commentData,
-                    'stateName': 'commentLive',
-                  });
-                }
-                if (state is ClappLiveState) {
-                  _controller.reset();
-                  _controller.forward();
-                }
-                if (state is ComboEnded) {
-                  debugPrint(
-                      "Combo has ended ${state.comboDetails.toString()}");
-                  if (isComboOngoingNow == true) {
-                    setState(() {
-                      isComboOngoingNow = false;
-                      countdownTimer(
-                          startTime: widget.comboInfo.metaData?.start_time,
-                          durationTime: widget.comboInfo.duration);
-                    });
-                  } else {
-                    debugPrint("An host has left the livestream------------");
-                    setState(() {
-                      timerCountdown = "00:00:00";
-                    });
-                    _timer?.cancel();
-                  }
-                }
-                if (state is PotAmount) {
-                  setState(() {
-                    totalGiftingPot = state.totalAmount;
-                  });
-                }
-                if (state is UserJoined) {
-                  setState(() {
-                    numberOfStreamers = numberOfStreamers + 1;
-                  });
-                  _controller.reset();
-                  _controller.forward();
-                  debugPrint(
-                      'THE USERNAME OF THE USER IS ${state.userJoined.user?.username}');
-                  // FIX #3: Only reconnect if socket is actually disconnected
-                  if ((state.userJoined.user?.pid ==
-                              widget.comboInfo.host?.profile ||
-                          state.userJoined.user?.pid ==
-                              widget.comboInfo.challenger?.profile) &&
-                      socket?.disconnected == true) {
-                    socket?.dispose();
-                    connect();
-                  }
-                }
-                if (state is UserLeaveCombo) {
-                  if (state.user.user?.pid == profileModelG?.pid) {
-                    debugPrint("HOST OR CHALLENGER LEAVING---");
-                    context.pop();
-                    context.pop();
-                  } else {
-                    _addComment({
-                      'state': state.user,
-                      'stateName': 'userLeaves',
-                    });
-                    setState(() {
-                      numberOfStreamers = numberOfStreamers - 1;
-                    });
-                  }
-                }
-                if (state is GiftingState) {
-                  setState(() {
-                    totalGiftingPot = totalGiftingPot +
-                        num.parse(state.gifts.giftdata?.amount ?? '0');
-                    if (state.gifts.giftdata?.receiver ==
-                        widget.comboInfo.host?.profile) {
-                      hostCoin = hostCoin +
-                          num.parse(state.gifts.giftdata?.amount ?? '0');
-                    } else if (isComboOngoingNow == true &&
-                        (state.gifts.giftdata?.receiver ==
-                                liveChallenger?.pid ||
-                            state.gifts.giftdata?.receiver ==
-                                widget.comboInfo.onGoingCombo?.challenger
-                                    ?.profile)) {
-                      challengerCoin = challengerCoin +
-                          num.parse(state.gifts.giftdata?.amount ?? '0');
-                    } else if (state.gifts.giftdata?.receiver ==
-                        widget.comboInfo.challenger?.profile) {
-                      challengerCoin = challengerCoin +
-                          num.parse(state.gifts.giftdata?.amount ?? '0');
-                    }
-                  });
-                  _controller.reset();
-                  _controller.forward();
-                }
-                if (state is ComboGroundInLive) {
-                  debugPrint(
-                      "THE INNER COMBO IS ACTIVATED AND LIVE---****&&&&");
-                  setState(() {
-                    isComboOngoingNow = true;
-                    liveChallenger = state.comboData.challenger;
-                    liveChallengerData = state.comboData;
-                    countdownTimer(
-                        startTime: state.comboData.comboGround?.start ??
-                            widget.comboInfo.metaData?.start_time,
-                        durationTime: state.comboData.comboGround?.duration);
-                  });
-                }
-                if (state is LiveBragInCombo) {
-                  debugPrint("Testing the liveBrag updating");
-                  if (state.challenge.action == 'add') {
-                    setState(() {
-                      numberOfChallenger = numberOfChallenger + 1;
-                    });
-                  } else if (state.challenge.action == 'remove') {
-                    numberOfChallenger =
-                        numberOfChallenger - 1 < 1 ? 0 : numberOfChallenger - 1;
-                  }
+            BlocListener<RecordingBloc, RecordingState>(
+              listener: (context, recordingState) {
+                if (recordingState is RecordingStarted) {
+                  // Show recording started notification
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => RecordStartedNotification(
+                      onDismiss: () => Navigator.pop(context),
+                    ),
+                  );
+                } else if (recordingState is RecordingStopped) {
+                  // Show download dialog
+                  showDialog(
+                    context: context,
+                    builder: (context) => DownloadFileContainer(
+                      recordingId: recordingState.recording.recordingId,
+                      downloadUrl: recordingState.recording.downloadUrl ?? '',
+                      duration: recordingState.recording.duration,
+                      onClose: () => Navigator.pop(context),
+                      onDownloadComplete: (filePath) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text('Recording saved to: \$filePath')),
+                        );
+                      },
+                    ),
+                  );
+                } else if (recordingState is RecordingError) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content:
+                          Text('Recording error: ${recordingState.message}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
                 }
               },
-              builder: (context, state) {
-                return timerCountdown == "00:00:00" &&
-                        isComboOngoingNow == false
-                    ? Center(
-                        child: Container(
-                          margin: EdgeInsets.symmetric(horizontal: 65.w),
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 10.w, vertical: 8.h),
-                          decoration: BoxDecoration(
-                              color: getFigmaColor("121212"),
-                              borderRadius: BorderRadius.circular(20.0)),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: Colors.blue[700],
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.check,
-                                  color: Colors.white,
-                                  size: 36,
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              const Text(
-                                'Stream has ended',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 32),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: () => context.pop(),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue[700],
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    textStyle: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+              child: BlocConsumer<ChatsAndSocialsBloc, ChatsAndSocialsState>(
+                listener: (context, state) {
+                  if (state is LiveCommentState) {
+                    _addComment({
+                      'state': state.commentData,
+                      'stateName': 'commentLive',
+                    });
+                  }
+                  if (state is ClappLiveState) {
+                    _controller.reset();
+                    _controller.forward();
+                  }
+                  if (state is ComboEnded) {
+                    debugPrint(
+                        "Combo has ended ${state.comboDetails.toString()}");
+                    if (isComboOngoingNow == true) {
+                      setState(() {
+                        isComboOngoingNow = false;
+                        countdownTimer(
+                            startTime: widget.comboInfo.metaData?.start_time,
+                            durationTime: widget.comboInfo.duration);
+                      });
+                    } else {
+                      debugPrint("An host has left the livestream------------");
+                      setState(() {
+                        timerCountdown = "00:00:00";
+                      });
+                      _timer?.cancel();
+                    }
+                  }
+                  if (state is PotAmount) {
+                    setState(() {
+                      totalGiftingPot = state.totalAmount;
+                    });
+                  }
+                  if (state is UserJoined) {
+                    setState(() {
+                      numberOfStreamers = numberOfStreamers + 1;
+                    });
+                    _controller.reset();
+                    _controller.forward();
+                    debugPrint(
+                        'THE USERNAME OF THE USER IS ${state.userJoined.user?.username}');
+                    // FIX #3: Only reconnect if socket is actually disconnected
+                    if ((state.userJoined.user?.pid ==
+                                widget.comboInfo.host?.profile ||
+                            state.userJoined.user?.pid ==
+                                widget.comboInfo.challenger?.profile) &&
+                        socket?.disconnected == true) {
+                      socket?.dispose();
+                      connect();
+                    }
+                  }
+                  if (state is UserLeaveCombo) {
+                    if (state.user.user?.pid == profileModelG?.pid) {
+                      debugPrint("HOST OR CHALLENGER LEAVING---");
+                      context.pop();
+                      context.pop();
+                    } else {
+                      _addComment({
+                        'state': state.user,
+                        'stateName': 'userLeaves',
+                      });
+                      setState(() {
+                        numberOfStreamers = numberOfStreamers - 1;
+                      });
+                    }
+                  }
+                  if (state is GiftingState) {
+                    setState(() {
+                      totalGiftingPot = totalGiftingPot +
+                          num.parse(state.gifts.giftdata?.amount ?? '0');
+                      if (state.gifts.giftdata?.receiver ==
+                          widget.comboInfo.host?.profile) {
+                        hostCoin = hostCoin +
+                            num.parse(state.gifts.giftdata?.amount ?? '0');
+                      } else if (isComboOngoingNow == true &&
+                          (state.gifts.giftdata?.receiver ==
+                                  liveChallenger?.pid ||
+                              state.gifts.giftdata?.receiver ==
+                                  widget.comboInfo.onGoingCombo?.challenger
+                                      ?.profile)) {
+                        challengerCoin = challengerCoin +
+                            num.parse(state.gifts.giftdata?.amount ?? '0');
+                      } else if (state.gifts.giftdata?.receiver ==
+                          widget.comboInfo.challenger?.profile) {
+                        challengerCoin = challengerCoin +
+                            num.parse(state.gifts.giftdata?.amount ?? '0');
+                      }
+                    });
+                    _controller.reset();
+                    _controller.forward();
+                  }
+                  if (state is ComboGroundInLive) {
+                    debugPrint(
+                        "THE INNER COMBO IS ACTIVATED AND LIVE---****&&&&");
+                    setState(() {
+                      isComboOngoingNow = true;
+                      liveChallenger = state.comboData.challenger;
+                      liveChallengerData = state.comboData;
+                      countdownTimer(
+                          startTime: state.comboData.comboGround?.start ??
+                              widget.comboInfo.metaData?.start_time,
+                          durationTime: state.comboData.comboGround?.duration);
+                    });
+                  }
+                  if (state is LiveBragInCombo) {
+                    debugPrint("Testing the liveBrag updating");
+                    if (state.challenge.action == 'add') {
+                      setState(() {
+                        numberOfChallenger = numberOfChallenger + 1;
+                      });
+                    } else if (state.challenge.action == 'remove') {
+                      numberOfChallenger = numberOfChallenger - 1 < 1
+                          ? 0
+                          : numberOfChallenger - 1;
+                    }
+                  }
+                },
+                builder: (context, state) {
+                  return timerCountdown == "00:00:00" &&
+                          isComboOngoingNow == false
+                      ? Center(
+                          child: Container(
+                            margin: EdgeInsets.symmetric(horizontal: 65.w),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 10.w, vertical: 8.h),
+                            decoration: BoxDecoration(
+                                color: getFigmaColor("121212"),
+                                borderRadius: BorderRadius.circular(20.0)),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue[700],
+                                    shape: BoxShape.circle,
                                   ),
-                                  child: const Text('close'),
+                                  child: const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 36,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                const Text(
+                                  'Stream has ended',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 32),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: () => context.pop(),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blue[700],
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 16),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      textStyle: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    child: const Text('close'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : _isLoading
+                          ? Container(
+                              decoration: BoxDecoration(
+                                  color: Colors.grey.withAlpha(10)),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.blueAccent,
+                                ),
+                              ))
+                          : Stack(children: <Widget>[
+                              Container(
+                                margin:
+                                    EdgeInsets.only(top: 120.h, bottom: 20.h),
+                                child: SizedBox(
+                                  child: isComboOngoingNow == false
+                                      ? widget.comboInfo.type == 'single'
+                                          ? widget.comboInfo.host?.profile ==
+                                                  profileModelG?.pid
+                                              ? screenshareRender?.srcObject !=
+                                                      null
+                                                  ? ScreenShareView(
+                                                      isHostLocalUser: widget
+                                                              .comboInfo
+                                                              .host
+                                                              ?.profile ==
+                                                          profileModelG?.pid,
+                                                      role: 'host',
+                                                      isMobile: isMobile,
+                                                      mobilePlatForm:
+                                                          mobilePlatForm,
+                                                      imageUrl: widget.comboInfo
+                                                          .host?.avatar,
+                                                      imageAvatar: widget
+                                                          .comboInfo
+                                                          .host
+                                                          ?.avatarConvert,
+                                                      cameraRenderer: renderer,
+                                                      isFullScreen:
+                                                          isFullScreen,
+                                                      action: () {
+                                                        stopScreenShare();
+                                                      },
+                                                      screenshareRender:
+                                                          screenshareRender,
+                                                    )
+                                                  : SingleVideoView(
+                                                      aspectRatio: 0.8,
+                                                      isMobile: isMobile,
+                                                      mobilePlatForm:
+                                                          mobilePlatForm,
+                                                      imageUrl: widget.comboInfo
+                                                              .host?.avatar ??
+                                                          '',
+                                                      imageAvatar: widget
+                                                          .comboInfo
+                                                          .host
+                                                          ?.avatarConvert,
+                                                      renderer: renderer!,
+                                                      profilePicMargin:
+                                                          EdgeInsets.only(
+                                                              top: 230.h,
+                                                              left: 120.w),
+                                                      profilePicHeight: 100.w,
+                                                      profilePicWidth: 100.w,
+                                                      shouldShowVideo:
+                                                          renderer?.srcObject !=
+                                                              null)
+                                              : hostScreenShareRender?.srcObject !=
+                                                      null
+                                                  ? ScreenShareView(
+                                                      isHostLocalUser: widget
+                                                              .comboInfo
+                                                              .host
+                                                              ?.profile ==
+                                                          profileModelG?.pid,
+                                                      isMobile: isMobile,
+                                                      mobilePlatForm:
+                                                          mobilePlatForm,
+                                                      role: 'host',
+                                                      imageUrl: widget.comboInfo
+                                                          .host?.avatar,
+                                                      imageAvatar: widget
+                                                          .comboInfo
+                                                          .host
+                                                          ?.avatarConvert,
+                                                      cameraRenderer:
+                                                          hostRender,
+                                                      isFullScreen:
+                                                          isFullScreen,
+                                                      action: () {},
+                                                      screenshareRender:
+                                                          hostScreenShareRender,
+                                                    )
+                                                  : SingleVideoView(
+                                                      aspectRatio: 0.8,
+                                                      isMobile: isMobile,
+                                                      mobilePlatForm:
+                                                          mobilePlatForm,
+                                                      remoteRole: 'host',
+                                                      imageUrl: widget.comboInfo
+                                                              .host?.avatar ??
+                                                          '',
+                                                      imageAvatar: widget
+                                                          .comboInfo
+                                                          .host
+                                                          ?.avatarConvert,
+                                                      renderer: hostRender!,
+                                                      profilePicMargin:
+                                                          EdgeInsets.only(top: 210.h, left: 120.w),
+                                                      profilePicHeight: 100.w,
+                                                      profilePicWidth: 100.w,
+                                                      shouldShowVideo: hostRender?.srcObject != null)
+                                          : MultipleLiveStreamScreen(isMobile: isMobile, mobilePlatForm: mobilePlatForm, hostScreenShareRender: hostScreenShareRender, challengerScreenShareRender: challengerScreenShareRender, hostRender: hostRender, widget: widget, isFullScreen: isFullScreen, challengerRender: challengerRender, screenshareRender: screenshareRender, renderer: renderer, hasOngoingCombo: isComboOngoingNow == true, role: role)
+                                      : MultipleLiveStreamScreen(isMobile: isMobile, mobilePlatForm: mobilePlatForm, hostScreenShareRender: hostScreenShareRender, challengerScreenShareRender: challengerScreenShareRender, hostRender: hostRender, widget: widget, isFullScreen: isFullScreen, challengerRender: challengerRender, screenshareRender: screenshareRender, renderer: renderer, hasOngoingCombo: isComboOngoingNow == true, role: role),
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : _isLoading
-                        ? Container(
-                            decoration:
-                                BoxDecoration(color: Colors.grey.withAlpha(10)),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.blueAccent,
+                              LivestreamHeader(
+                                comboInfo: widget.comboInfo,
+                                comboId: widget.comboId,
+                                totalGiftingPot: totalGiftingPot,
+                                timerCountdown: timerCountdown,
+                                bragID: widget.bragID,
+                                streamersCount: numberOfStreamers,
+                                numOfChallengers: numberOfChallenger,
+                                liveChallenger: liveChallengerData,
+                                isLiveGoingNow: isComboOngoingNow == true,
+                                onLeaveComboEvent: (value) {
+                                  if (value) {
+                                    showModalBottomSheet(
+                                        context: context,
+                                        builder: (context) {
+                                          return EndliveStream(
+                                            comboId: widget.comboId,
+                                          );
+                                        });
+                                  }
+                                },
                               ),
-                            ))
-                        : Stack(children: <Widget>[
-                            Container(
-                              margin: EdgeInsets.only(top: 120.h, bottom: 20.h),
-                              child: SizedBox(
-                                child: isComboOngoingNow == false
-                                    ? widget.comboInfo.type == 'single'
-                                        ? widget.comboInfo.host?.profile ==
-                                                profileModelG?.pid
-                                            ? screenshareRender?.srcObject !=
-                                                    null
-                                                ? ScreenShareView(
-                                                    isHostLocalUser: widget
-                                                            .comboInfo
-                                                            .host
-                                                            ?.profile ==
-                                                        profileModelG?.pid,
-                                                    role: 'host',
-                                                    isMobile: isMobile,
-                                                    mobilePlatForm:
-                                                        mobilePlatForm,
-                                                    imageUrl: widget
-                                                        .comboInfo.host?.avatar,
-                                                    imageAvatar: widget
-                                                        .comboInfo
-                                                        .host
-                                                        ?.avatarConvert,
-                                                    cameraRenderer: renderer,
-                                                    isFullScreen: isFullScreen,
-                                                    action: () {
-                                                      stopScreenShare();
-                                                    },
-                                                    screenshareRender:
-                                                        screenshareRender,
-                                                  )
-                                                : SingleVideoView(
-                                                    aspectRatio: 0.8,
-                                                    isMobile: isMobile,
-                                                    mobilePlatForm:
-                                                        mobilePlatForm,
-                                                    imageUrl: widget.comboInfo.host?.avatar ??
-                                                        '',
-                                                    imageAvatar: widget
-                                                        .comboInfo
-                                                        .host
-                                                        ?.avatarConvert,
-                                                    renderer: renderer!,
-                                                    profilePicMargin: EdgeInsets.only(
-                                                        top: 230.h,
-                                                        left: 120.w),
-                                                    profilePicHeight: 100.w,
-                                                    profilePicWidth: 100.w,
-                                                    shouldShowVideo:
-                                                        renderer?.srcObject !=
-                                                            null)
-                                            : hostScreenShareRender?.srcObject !=
-                                                    null
-                                                ? ScreenShareView(
-                                                    isHostLocalUser: widget
-                                                            .comboInfo
-                                                            .host
-                                                            ?.profile ==
-                                                        profileModelG?.pid,
-                                                    isMobile: isMobile,
-                                                    mobilePlatForm:
-                                                        mobilePlatForm,
-                                                    role: 'host',
-                                                    imageUrl: widget
-                                                        .comboInfo.host?.avatar,
-                                                    imageAvatar: widget
-                                                        .comboInfo
-                                                        .host
-                                                        ?.avatarConvert,
-                                                    cameraRenderer: hostRender,
-                                                    isFullScreen: isFullScreen,
-                                                    action: () {},
-                                                    screenshareRender:
-                                                        hostScreenShareRender,
-                                                  )
-                                                : SingleVideoView(
-                                                    aspectRatio: 0.8,
-                                                    isMobile: isMobile,
-                                                    mobilePlatForm:
-                                                        mobilePlatForm,
-                                                    remoteRole: 'host',
-                                                    imageUrl: widget.comboInfo.host?.avatar ??
-                                                        '',
-                                                    imageAvatar: widget
-                                                        .comboInfo
-                                                        .host
-                                                        ?.avatarConvert,
-                                                    renderer: hostRender!,
-                                                    profilePicMargin: EdgeInsets.only(
-                                                        top: 210.h,
-                                                        left: 120.w),
-                                                    profilePicHeight: 100.w,
-                                                    profilePicWidth: 100.w,
-                                                    shouldShowVideo:
-                                                        hostRender?.srcObject !=
-                                                            null)
-                                        : MultipleLiveStreamScreen(
-                                            isMobile: isMobile,
-                                            mobilePlatForm: mobilePlatForm,
-                                            hostScreenShareRender: hostScreenShareRender,
-                                            challengerScreenShareRender: challengerScreenShareRender,
-                                            hostRender: hostRender,
-                                            widget: widget,
-                                            isFullScreen: isFullScreen,
-                                            challengerRender: challengerRender,
-                                            screenshareRender: screenshareRender,
-                                            renderer: renderer,
-                                            hasOngoingCombo: isComboOngoingNow == true,
-                                            role: role)
-                                    : MultipleLiveStreamScreen(isMobile: isMobile, mobilePlatForm: mobilePlatForm, hostScreenShareRender: hostScreenShareRender, challengerScreenShareRender: challengerScreenShareRender, hostRender: hostRender, widget: widget, isFullScreen: isFullScreen, challengerRender: challengerRender, screenshareRender: screenshareRender, renderer: renderer, hasOngoingCombo: isComboOngoingNow == true, role: role),
-                              ),
-                            ),
-                            LivestreamHeader(
-                              comboInfo: widget.comboInfo,
-                              comboId: widget.comboId,
-                              totalGiftingPot: totalGiftingPot,
-                              timerCountdown: timerCountdown,
-                              bragID: widget.bragID,
-                              streamersCount: numberOfStreamers,
-                              numOfChallengers: numberOfChallenger,
-                              liveChallenger: liveChallengerData,
-                              isLiveGoingNow: isComboOngoingNow == true,
-                              onLeaveComboEvent: (value) {
-                                if (value) {
-                                  showModalBottomSheet(
-                                      context: context,
-                                      builder: (context) {
-                                        return EndliveStream(
-                                          comboId: widget.comboId,
-                                        );
-                                      });
-                                }
-                              },
-                            ),
-                            // Timer positioned outside LivestreamHeader
-                            Positioned(
-                              top: 150.h,
-                              left: 0,
-                              right: 0,
-                              child: Center(
-                                child: buildTimerCapsule(timerCountdown ?? ''),
-                              ),
-                            ),
-                            if (widget.comboInfo.type == "multiple" ||
-                                isComboOngoingNow == true)
+                              // Timer positioned outside LivestreamHeader
                               Positioned(
-                                  top: 180.h,
-                                  left: 8,
-                                  child: SizedBox(
-                                    child: ProgressBars(
-                                      hostCoinAmount: hostCoin,
-                                      challengerCoinAmount: challengerCoin,
-                                      progress: totalGiftingPot > 0
-                                          ? hostCoin / totalGiftingPot
-                                          : 0.0,
-                                    ),
-                                  )),
-                            if (state is UserJoined)
-                              LiveNotification(
-                                controller: _controller,
-                                positionAnimation: _positionAnimation,
-                                opacityAnimation: _opacityAnimation,
-                                child: userJoin(
-                                    imageUrl:
-                                        state.userJoined.user?.image ?? '',
-                                    message: state.userJoined.message,
-                                    userName:
-                                        state.userJoined.user?.username ?? ''),
+                                top: 150.h,
+                                left: 0,
+                                right: 0,
+                                child: Center(
+                                  child:
+                                      buildTimerCapsule(timerCountdown ?? ''),
+                                ),
                               ),
-                            if (state is GiftingState)
-                              LiveNotification(
-                                controller: _controller,
-                                positionAnimation: _positionAnimation,
-                                opacityAnimation: _opacityAnimation,
-                                child: giftWidget(
-                                    imageUrl:
-                                        state.gifts.giftdata?.sender?.avatar ??
-                                            '',
-                                    message: state.gifts.message,
-                                    userName: state
-                                            .gifts.giftdata?.sender?.username ??
-                                        '',
-                                    amount: state.gifts.giftdata?.amount ?? ''),
-                              ),
-                            if (state is ClappLiveState)
-                              LiveNotification(
-                                controller: _controller,
-                                positionAnimation: _positionAnimation,
-                                opacityAnimation: _opacityAnimation,
-                                child: clapLiveWidget(
-                                    imageUrl: state.clapData.user?.avatar,
-                                    message: state.clapData.message,
-                                    userName: state.clapData.user?.username,
-                                    myavatar:
-                                        state.clapData.user?.avatarConvert),
-                              ),
-                            if (userClappEvent)
-                              LiveNotification(
-                                controller: _controller,
-                                positionAnimation: _positionAnimation,
-                                opacityAnimation: _opacityAnimation,
-                                child: clapLiveWidget(
-                                    imageUrl: profileModelG?.image ?? '',
-                                    message: 'You sent a like \u2764\uFE0F',
-                                    userName: profileModelG?.username ?? '',
-                                    myavatar: profileModelG?.myAvatar),
-                              ),
+                              if (widget.comboInfo.type == "multiple" ||
+                                  isComboOngoingNow == true)
+                                Positioned(
+                                    top: 180.h,
+                                    left: 8,
+                                    child: SizedBox(
+                                      child: ProgressBars(
+                                        hostCoinAmount: hostCoin,
+                                        challengerCoinAmount: challengerCoin,
+                                        progress: totalGiftingPot > 0
+                                            ? hostCoin / totalGiftingPot
+                                            : 0.0,
+                                      ),
+                                    )),
+                              if (state is UserJoined)
+                                LiveNotification(
+                                  controller: _controller,
+                                  positionAnimation: _positionAnimation,
+                                  opacityAnimation: _opacityAnimation,
+                                  child: userJoin(
+                                      imageUrl:
+                                          state.userJoined.user?.image ?? '',
+                                      message: state.userJoined.message,
+                                      userName:
+                                          state.userJoined.user?.username ??
+                                              ''),
+                                ),
+                              if (state is GiftingState)
+                                LiveNotification(
+                                  controller: _controller,
+                                  positionAnimation: _positionAnimation,
+                                  opacityAnimation: _opacityAnimation,
+                                  child: giftWidget(
+                                      imageUrl: state
+                                              .gifts.giftdata?.sender?.avatar ??
+                                          '',
+                                      message: state.gifts.message,
+                                      userName: state.gifts.giftdata?.sender
+                                              ?.username ??
+                                          '',
+                                      amount:
+                                          state.gifts.giftdata?.amount ?? ''),
+                                ),
+                              if (state is ClappLiveState)
+                                LiveNotification(
+                                  controller: _controller,
+                                  positionAnimation: _positionAnimation,
+                                  opacityAnimation: _opacityAnimation,
+                                  child: clapLiveWidget(
+                                      imageUrl: state.clapData.user?.avatar,
+                                      message: state.clapData.message,
+                                      userName: state.clapData.user?.username,
+                                      myavatar:
+                                          state.clapData.user?.avatarConvert),
+                                ),
+                              if (userClappEvent)
+                                LiveNotification(
+                                  controller: _controller,
+                                  positionAnimation: _positionAnimation,
+                                  opacityAnimation: _opacityAnimation,
+                                  child: clapLiveWidget(
+                                      imageUrl: profileModelG?.image ?? '',
+                                      message: 'You sent a like \u2764\uFE0F',
+                                      userName: profileModelG?.username ?? '',
+                                      myavatar: profileModelG?.myAvatar),
+                                ),
 
-                            if (!isthereInternet)
-                              Positioned.fill(
-                                child: AbsorbPointer(
-                                  absorbing: true,
-                                  child: Container(
-                                    decoration: const BoxDecoration(),
-                                    child: Align(
-                                      alignment: const Alignment(0, -.7),
-                                      child: Container(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 10.w, vertical: 2.h),
-                                        decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                            border: Border.all(),
-                                            color: Colors.black.withAlpha(200)),
-                                        child: Text(
-                                          "Stream quality reduced due to unstable internet connection",
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10.sp,
-                                              fontWeight: FontWeight.w600,
-                                              fontFamily: 'Poppins'),
+                              if (!isthereInternet)
+                                Positioned.fill(
+                                  child: AbsorbPointer(
+                                    absorbing: true,
+                                    child: Container(
+                                      decoration: const BoxDecoration(),
+                                      child: Align(
+                                        alignment: const Alignment(0, -.7),
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: 10.w, vertical: 2.h),
+                                          decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                              border: Border.all(),
+                                              color:
+                                                  Colors.black.withAlpha(200)),
+                                          child: Text(
+                                            "Stream quality reduced due to unstable internet connection",
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10.sp,
+                                                fontWeight: FontWeight.w600,
+                                                fontFamily: 'Poppins'),
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            // BOTTOM SECTION WITH COMMENTS AND BUTTONS
-                            Positioned(
-                              bottom: MediaQuery.of(context).viewInsets.bottom,
-                              child: SizedBox(
-                                width: MediaQuery.of(context).size.width,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    IgnorePointer(
-                                        ignoring: true,
-                                        child: Container(
-                                          height: visibleCount * commentHeight,
-                                          margin: EdgeInsets.only(bottom: 8.h),
-                                          child: ListView.builder(
-                                            shrinkWrap: true,
-                                            controller: _scrollController,
-                                            itemExtent: commentHeight,
-                                            itemCount: _comments.length,
-                                            itemBuilder: (context, index) =>
-                                                _buildAnimatedComment(index),
-                                          ),
-                                        )),
-                                    // BOTTOM BUTTON SESSION OF THE LIVESTREAM SCREEN
-                                    LiveStreamBottomSession(
-                                      comboId: widget.comboId,
-                                      comboInfo: widget.comboInfo,
-                                      bragID: widget.bragID,
-                                      isLiveOngoing: isComboOngoingNow == true,
-                                      liveChallenger: liveChallenger,
-                                      sendComment: (comment) {
-                                        _addComment({
-                                          'state': comment,
-                                          'stateName': 'commentLive',
-                                        });
-                                      },
-                                      onUserClappEvent: (value) {
-                                        if (value) {
-                                          setState(() {
-                                            _controller.reset();
-                                            _controller.forward();
-                                            userClappEvent = value;
+                              // BOTTOM SECTION WITH COMMENTS AND BUTTONS
+                              Positioned(
+                                bottom:
+                                    MediaQuery.of(context).viewInsets.bottom,
+                                child: SizedBox(
+                                  width: MediaQuery.of(context).size.width,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      IgnorePointer(
+                                          ignoring: true,
+                                          child: Container(
+                                            height:
+                                                visibleCount * commentHeight,
+                                            margin:
+                                                EdgeInsets.only(bottom: 8.h),
+                                            child: ListView.builder(
+                                              shrinkWrap: true,
+                                              controller: _scrollController,
+                                              itemExtent: commentHeight,
+                                              itemCount: _comments.length,
+                                              itemBuilder: (context, index) =>
+                                                  _buildAnimatedComment(index),
+                                            ),
+                                          )),
+                                      // BOTTOM BUTTON SESSION OF THE LIVESTREAM SCREEN
+                                      LiveStreamBottomSession(
+                                        comboId: widget.comboId,
+                                        comboInfo: widget.comboInfo,
+                                        bragID: widget.bragID,
+                                        isLiveOngoing:
+                                            isComboOngoingNow == true,
+                                        liveChallenger: liveChallenger,
+                                        sendComment: (comment) {
+                                          _addComment({
+                                            'state': comment,
+                                            'stateName': 'commentLive',
                                           });
-                                        }
-                                      },
-                                      onLiveMicPressed: (value) {
-                                        value ? enableMic() : disableMic();
-                                      },
-                                      isMicEnabled: isAudioOn,
-                                      onLiveCameraPressed: (value) {
-                                        value
-                                            ? enableCamera(false)
-                                            : disableCamera();
-                                      },
-                                      isCameraEnable: isVideoOn,
-                                      isLiveRecording: isFrontCameraSelected,
-                                      onLiveRecordingPressed: (value) {
-                                        if (value) {
-                                          setState(() {
-                                            isFrontCameraSelected = true;
-                                          });
-                                          enableCamera(true);
-                                        }
-                                      },
-                                      isScreenShared:
-                                          screenshareRender?.srcObject != null,
-                                      onShareScreenPressed: (value) {
-                                        value
-                                            ? showModalBottomSheet(
+                                        },
+                                        onUserClappEvent: (value) {
+                                          if (value) {
+                                            setState(() {
+                                              _controller.reset();
+                                              _controller.forward();
+                                              userClappEvent = value;
+                                            });
+                                          }
+                                        },
+                                        onLiveMicPressed: (value) {
+                                          value ? enableMic() : disableMic();
+                                        },
+                                        isMicEnabled: isAudioOn,
+                                        onLiveCameraPressed: (value) {
+                                          value
+                                              ? enableCamera(false)
+                                              : disableCamera();
+                                        },
+                                        isCameraEnable: isVideoOn,
+                                        isLiveRecording: isFrontCameraSelected,
+                                        onLiveRecordingPressed: (value) {
+                                          if (value) {
+                                            setState(() {
+                                              isFrontCameraSelected = true;
+                                            });
+                                            enableCamera(true);
+                                          }
+                                        },
+                                        isScreenShared:
+                                            screenshareRender?.srcObject !=
+                                                null,
+                                        onShareScreenPressed: (value) {
+                                          value
+                                              ? showModalBottomSheet(
+                                                  context: context,
+                                                  builder: (context) {
+                                                    return ScreenSharingIcon(
+                                                      onPress: () {
+                                                        enableShareScreen();
+                                                      },
+                                                    );
+                                                  },
+                                                )
+                                              : stopScreenShare();
+                                        },
+                                        onEnlargeScreenPressed: (value) {},
+                                        isScreenEnlarged: false,
+                                        onExitPressed: (value) {
+                                          if (value) {
+                                            showModalBottomSheet(
                                                 context: context,
                                                 builder: (context) {
-                                                  return ScreenSharingIcon(
-                                                    onPress: () {
-                                                      enableShareScreen();
-                                                    },
+                                                  return EndliveStream(
+                                                    comboId: widget.comboId,
                                                   );
-                                                },
-                                              )
-                                            : stopScreenShare();
-                                      },
-                                      onEnlargeScreenPressed: (value) {},
-                                      isScreenEnlarged: false,
-                                      onExitPressed: (value) {
-                                        if (value) {
-                                          showModalBottomSheet(
-                                              context: context,
-                                              builder: (context) {
-                                                return EndliveStream(
-                                                  comboId: widget.comboId,
-                                                );
-                                              });
-                                        }
-                                      },
-                                      onTurnedOffPressed: (value) {
-                                        if (value) {
-                                          showModalBottomSheet(
-                                              context: context,
-                                              builder: (context) {
-                                                return EndliveStream(
-                                                  comboId: widget.comboId,
-                                                );
-                                              });
-                                        }
-                                      },
-                                    ),
-                                  ],
+                                                });
+                                          }
+                                        },
+                                        onTurnedOffPressed: (value) {
+                                          if (value) {
+                                            showModalBottomSheet(
+                                                context: context,
+                                                builder: (context) {
+                                                  return EndliveStream(
+                                                    comboId: widget.comboId,
+                                                  );
+                                                });
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ]);
-              },
+                            ]);
+                },
+              ),
             ),
             // if (localShareScreenTrack != null)
             // SizedBox.square(

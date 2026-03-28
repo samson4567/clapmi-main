@@ -1,28 +1,22 @@
-/// Example: How to integrate the recording feature into your livestream screen
-/// 
-/// This file demonstrates both ways to implement recording:
-/// 1. PopRecord widget (automatic prompt after creating livestream)
-/// 2. RecordingControlsSheet (manual control via hamburger button)
-///
-/// Follow the steps below to integrate into your existing livestream screen.
-
 import 'package:flutter/material.dart';
-import 'package:socket_io_client/socket_io_client.dart' as io;
-import 'package:clapmi/features/recording/services/recording_service.dart';
-import 'package:clapmi/features/recording/widgets/index.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:clapmi/features/livestream/presentation/blocs/recording/recording_bloc.dart';
+import 'package:clapmi/features/livestream/presentation/widgets/recording_controls_sheet.dart';
+import 'package:clapmi/features/livestream/presentation/widgets/pop_record.dart';
+import 'package:clapmi/features/livestream/presentation/widgets/confirm_variant.dart';
+import 'package:clapmi/features/livestream/presentation/widgets/record_started_notification.dart';
+import 'package:clapmi/features/livestream/presentation/widgets/download_file_container.dart';
+import 'package:clapmi/features/livestream/presentation/widgets/recording_indicator.dart';
+import 'package:clapmi/features/livestream/data/models/recording_model.dart';
 
-/// This is an example widget showing how to integrate recording features.
-/// Do NOT use this directly in your app - instead, follow the integration
-/// steps at the bottom of this file to add recording to your existing
-/// SingleLiveStreaming screen.
+/// Example integration showing how to use the recording feature
+/// This demonstrates both recording flows described in the documentation
 class ExampleLivestreamIntegration extends StatefulWidget {
   final String roomId;
-  final io.Socket socket;
 
   const ExampleLivestreamIntegration({
     super.key,
     required this.roomId,
-    required this.socket,
   });
 
   @override
@@ -32,105 +26,92 @@ class ExampleLivestreamIntegration extends StatefulWidget {
 
 class _ExampleLivestreamIntegrationState
     extends State<ExampleLivestreamIntegration> {
-  late RecordingService _recordingService;
-  bool _isRecording = false;
-  bool _showRecordStartedNotification = false;
-  String? _recordingId;
-  String? _downloadUrl;
-  int _recordingDuration = 0;
+  String? _currentRecordingId;
+  RecordingStatus _recordingStatus = RecordingStatus.idle;
 
   @override
-  void initState() {
-    super.initState();
-    _initializeRecording();
-  }
+  Widget build(BuildContext context) {
+    return BlocListener<RecordingBloc, RecordingState>(
+      listener: (context, state) {
+        if (state is RecordingStarted) {
+          setState(() {
+            _currentRecordingId = state.recording.recordingId;
+            _recordingStatus = RecordingStatus.recording;
+          });
+          // Show record started notification
+          _showRecordStartedNotification();
+        } else if (state is RecordingStopped) {
+          setState(() {
+            _recordingStatus = RecordingStatus.stopped;
+          });
+          // Show download file container
+          _showDownloadContainer(
+            state.recording.recordingId,
+            state.recording.downloadUrl ?? '',
+            state.recording.duration,
+          );
+        } else if (state is RecordingError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Recording error: ${state.message}')),
+          );
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Livestream with Recording'),
+          actions: [
+            // Recording indicator in app bar
+            RecordingIndicator(
+              isRecording: _recordingStatus == RecordingStatus.recording,
+              onTap: _showRecordingControlsSheet,
+            ),
+            // Hamburger menu for recording controls
+            IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: _showRecordingControlsSheet,
+            ),
+          ],
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Room ID: ${widget.roomId}'),
+              const SizedBox(height: 20),
+              Text('Recording Status: ${_recordingStatus.name}'),
+              const SizedBox(height: 20),
 
-  void _initializeRecording() {
-    // Initialize recording service with socket connection
-    _recordingService = RecordingService();
-    _recordingService.initialize(widget.socket, widget.roomId);
+              // Flow 1: PopRecord on livestream creation
+              ElevatedButton(
+                onPressed: _showPopRecordDialog,
+                child: const Text('Start Livestream (Flow 1)'),
+              ),
 
-    // Listen to recording state changes
-    _recordingService.recordingStateStream.listen((state) {
-      if (mounted) {
-        setState(() {
-          _isRecording = state == RecordingState.recording;
-        });
-      }
-    });
+              const SizedBox(height: 20),
 
-    // Listen to recording started events
-    _recordingService.recordingStartedStream.listen((event) {
-      if (mounted) {
-        setState(() {
-          _recordingId = event.recordingId;
-          _showRecordStartedNotification = true;
-        });
-
-        // Hide notification after 2 seconds
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            setState(() {
-              _showRecordStartedNotification = false;
-            });
-          }
-        });
-      }
-    });
-
-    // Listen to recording stopped events
-    _recordingService.recordingStoppedStream.listen((event) {
-      if (mounted) {
-        setState(() {
-          _recordingId = event.recordingId;
-          _downloadUrl = event.downloadUrl;
-          _recordingDuration = event.duration;
-        });
-
-        // Show download dialog when livestream ends
-        _showDownloadDialog();
-      }
-    });
-
-    // Listen to recording errors
-    _recordingService.recordingErrorStream.listen((error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Recording error: $error'),
-            backgroundColor: Colors.red,
+              // Flow 2: Direct recording controls via hamburger
+              ElevatedButton(
+                onPressed: _showRecordingControlsSheet,
+                child: const Text('Recording Controls (Flow 2)'),
+              ),
+            ],
           ),
-        );
-      }
-    });
+        ),
+      ),
+    );
   }
 
-  @override
-  void dispose() {
-    _recordingService.dispose();
-    super.dispose();
-  }
-
-  // =========================================================================
-  // WAY 1: PopRecord Widget (Automatic prompt after creating livestream)
-  // =========================================================================
+  /// Flow 1: PopRecord -> ConfirmVariant -> RecordStartedNotification -> DownloadFileContainer
   void _showPopRecordDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false,
       builder: (context) => PopRecord(
         onYes: () {
           Navigator.pop(context);
           _showConfirmVariantDialog();
         },
-        onNo: () {
-          Navigator.pop(context);
-          // User chose not to record
-        },
-        onLater: () {
-          Navigator.pop(context);
-          // User chose to decide later
-        },
+        onNo: () => Navigator.pop(context),
+        onLater: () => Navigator.pop(context),
       ),
     );
   }
@@ -138,226 +119,79 @@ class _ExampleLivestreamIntegrationState
   void _showConfirmVariantDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false,
       builder: (context) => ConfirmVariant(
-        onConfirm: () async {
+        onConfirm: () {
           Navigator.pop(context);
-          await _startRecording();
+          _startRecording();
         },
-        onCancel: () {
-          Navigator.pop(context);
-        },
+        onCancel: () => Navigator.pop(context),
       ),
     );
   }
 
-  // =========================================================================
-  // WAY 2: RecordingControlsSheet (Manual control via hamburger button)
-  // =========================================================================
+  void _showRecordStartedNotification() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => RecordStartedNotification(
+        onDismiss: () => Navigator.pop(context),
+      ),
+    );
+
+    // Auto-dismiss after 2 seconds
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+    });
+  }
+
+  void _showDownloadContainer(
+      String recordingId, String downloadUrl, int? duration) {
+    showDialog(
+      context: context,
+      builder: (context) => DownloadFileContainer(
+        recordingId: recordingId,
+        downloadUrl: downloadUrl,
+        duration: duration,
+        onClose: () => Navigator.pop(context),
+      ),
+    );
+  }
+
+  /// Flow 2: Hamburger menu -> RecordingControlsSheet
   void _showRecordingControlsSheet() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => RecordingControlsSheet(
-        initialRecordingState: _isRecording,
-        onRecordingStateChanged: (isRecording) async {
-          if (isRecording) {
-            await _startRecording();
-          } else {
-            await _stopRecording();
-          }
-        },
-      ),
-    );
-  }
-
-  // =========================================================================
-  // Recording Actions
-  // =========================================================================
-  Future<void> _startRecording() async {
-    final result = await _recordingService.startRecording();
-    
-    if (!result.success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.errorMessage ?? 'Failed to start recording'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _stopRecording() async {
-    final result = await _recordingService.stopRecording();
-    
-    if (!result.success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.errorMessage ?? 'Failed to stop recording'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  void _showDownloadDialog() {
-    if (_downloadUrl == null) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => DownloadFileContainer(
-        downloadUrl: _downloadUrl!,
-        recordingId: _recordingId ?? '',
-        duration: _recordingDuration,
-        onClose: () {
+        recordingStatus: _recordingStatus,
+        recordingId: _currentRecordingId,
+        onStartRecording: () {
           Navigator.pop(context);
+          _startRecording();
         },
+        onStopRecording: () {
+          Navigator.pop(context);
+          _stopRecording();
+        },
+        onClose: () => Navigator.pop(context),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Livestream'),
-        actions: [
-          // Recording indicator in header
-          if (_isRecording)
-            const Padding(
-              padding: EdgeInsets.only(right: 16),
-              child: StaticRecordingIndicator(isRecording: true),
-            ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          // Your livestream content here
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  _isRecording ? 'Recording...' : 'Not Recording',
-                  style: TextStyle(
-                    fontSize: 24,
-                    color: _isRecording ? Colors.red : Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                
-                // Button to show PopRecord dialog (Way 1)
-                ElevatedButton(
-                  onPressed: _showPopRecordDialog,
-                  child: const Text('Show PopRecord Dialog'),
-                ),
-                const SizedBox(height: 10),
-                
-                // Button to show RecordingControlsSheet (Way 2)
-                ElevatedButton(
-                  onPressed: _showRecordingControlsSheet,
-                  child: const Text('Show Recording Controls'),
-                ),
-              ],
-            ),
-          ),
+  void _startRecording() {
+    context.read<RecordingBloc>().add(
+          StartRecording(roomId: widget.roomId),
+        );
+  }
 
-          // Record started notification overlay
-          if (_showRecordStartedNotification)
-            RecordStartedNotification(
-              onComplete: () {
-                setState(() {
-                  _showRecordStartedNotification = false;
-                });
-              },
-            ),
-        ],
-      ),
-    );
+  void _stopRecording() {
+    if (_currentRecordingId != null) {
+      context.read<RecordingBloc>().add(
+            StopRecording(recordingId: _currentRecordingId!),
+          );
+    }
   }
 }
-
-/// Integration Steps for your existing SingleLiveStreaming screen:
-/// 
-/// 1. Add recording service to your state:
-///    ```dart
-///    late RecordingService _recordingService;
-///    bool _isRecording = false;
-///    bool _showRecordStartedNotification = false;
-///    String? _recordingId;
-///    String? _downloadUrl;
-///    int _recordingDuration = 0;
-///    ```
-/// 
-/// 2. Initialize recording service in initState():
-///    ```dart
-///    @override
-///    void initState() {
-///      super.initState();
-///      _recordingService = RecordingService();
-///      _recordingService.initialize(socket, roomId);
-///      
-///      // Listen to streams
-///      _recordingService.recordingStateStream.listen((state) {
-///        setState(() => _isRecording = state == RecordingState.recording);
-///      });
-///      
-///      _recordingService.recordingStartedStream.listen((event) {
-///        setState(() {
-///          _recordingId = event.recordingId;
-///          _showRecordStartedNotification = true;
-///        });
-///        Future.delayed(const Duration(seconds: 2), () {
-///          setState(() => _showRecordStartedNotification = false);
-///        });
-///      });
-///      
-///      _recordingService.recordingStoppedStream.listen((event) {
-///        setState(() {
-///          _recordingId = event.recordingId;
-///          _downloadUrl = event.downloadUrl;
-///          _recordingDuration = event.duration;
-///        });
-///        _showDownloadDialog();
-///      });
-///    }
-///    ```
-/// 
-/// 3. Add recording indicator to your header:
-///    ```dart
-///    // In your header Row, add:
-///    if (_isRecording) const StaticRecordingIndicator(isRecording: true),
-///    ```
-/// 
-/// 4. Update LiveStreamBottomSession to pass recording state:
-///    ```dart
-///    LiveStreamBottomSession(
-///      // ... existing parameters
-///      isLiveRecording: _isRecording,
-///      onLiveRecordingPressed: (isRecording) async {
-///        if (isRecording) {
-///          await _startRecording();
-///        } else {
-///          await _stopRecording();
-///        }
-///      },
-///    )
-///    ```
-/// 
-/// 5. Add notification overlay to your Stack:
-///    ```dart
-///    Stack(
-///      children: [
-///        // ... your existing content
-///        if (_showRecordStartedNotification)
-///          RecordStartedNotification(
-///            onComplete: () => setState(() => _showRecordStartedNotification = false),
-///          ),
-///      ],
-///    )
-///    ```
-/// 
-/// 6. Call _showPopRecordDialog() after creating a livestream (Way 1)
-///    or let users use the hamburger button (Way 2)

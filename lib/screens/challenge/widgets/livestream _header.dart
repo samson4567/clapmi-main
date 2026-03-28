@@ -12,6 +12,10 @@ import 'package:clapmi/features/post/data/models/create_post_model.dart';
 import 'package:clapmi/features/post/presentation/blocs/user_bloc/post_bloc.dart';
 import 'package:clapmi/features/post/presentation/blocs/user_bloc/post_event.dart';
 import 'package:clapmi/global_object_folder_jacket/global_widgets/global_widgets.dart';
+import 'package:clapmi/features/livestream/presentation/widgets/recording_indicator.dart';
+import 'package:clapmi/features/livestream/presentation/blocs/recording/recording_bloc.dart';
+import 'package:clapmi/features/livestream/presentation/widgets/recording_controls_sheet.dart';
+import 'package:clapmi/features/livestream/data/models/recording_model.dart';
 import 'package:clapmi/screens/challenge/others/Single_livestream.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -170,7 +174,64 @@ class LivestreamHeader extends StatelessWidget {
                 ),
 
                 const Spacer(),
-                SvgPicture.asset('assets/images/livrec.svg'),
+                // Recording indicator
+                BlocBuilder<RecordingBloc, RecordingState>(
+                  builder: (context, recordingState) {
+                    final isRecording = recordingState is RecordingStarted;
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isRecording) ...[
+                          SvgPicture.asset('assets/images/livrec.svg'),
+                          SizedBox(
+                            width: 5.h,
+                          ),
+                        ],
+                        RecordingIndicator(
+                          isRecording: isRecording,
+                          onTap: () {
+                            // Show recording controls sheet
+                            showModalBottomSheet(
+                              context: context,
+                              backgroundColor: Colors.transparent,
+                              isScrollControlled: true,
+                              builder: (_) => RecordingControlsSheet(
+                                recordingStatus: isRecording
+                                    ? RecordingStatus.recording
+                                    : RecordingStatus.idle,
+                                recordingId: isRecording
+                                    ? (recordingState as RecordingStarted)
+                                        .recording
+                                        .recordingId
+                                    : null,
+                                onStartRecording: () {
+                                  context.read<RecordingBloc>().add(
+                                        StartRecording(roomId: comboId),
+                                      );
+                                  Navigator.pop(context);
+                                },
+                                onStopRecording: () {
+                                  if (isRecording) {
+                                    context.read<RecordingBloc>().add(
+                                          StopRecording(
+                                            recordingId: (recordingState
+                                                    as RecordingStarted)
+                                                .recording
+                                                .recordingId,
+                                          ),
+                                        );
+                                  }
+                                  Navigator.pop(context);
+                                },
+                                onClose: () => Navigator.pop(context),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                ),
                 SizedBox(
                   width: 5.h,
                 ),
@@ -235,6 +296,7 @@ class LivestreamHeader extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
                 const SizedBox(width: 8),
                 if (!isLiveGoingNow)
                   GestureDetector(

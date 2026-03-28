@@ -6,6 +6,9 @@ import 'package:clapmi/global_object_folder_jacket/global_classes/custom_asset.d
 import 'package:clapmi/global_object_folder_jacket/global_object.dart';
 import 'package:clapmi/screens/challenge/widgets/gift_live_coin.dart';
 import 'package:clapmi/screens/challenge/widgets/livestream_widget.dart';
+import 'package:clapmi/features/livestream/presentation/blocs/recording/recording_bloc.dart';
+import 'package:clapmi/features/livestream/presentation/widgets/recording_controls_sheet.dart';
+import 'package:clapmi/features/livestream/data/models/recording_model.dart';
 import 'package:clapmi/screens/challenge/widgets/send_request_modal.dart';
 import 'package:clapmi/screens/walletSystem/buy_points/buy_points.dart';
 import 'package:flutter/material.dart';
@@ -159,37 +162,67 @@ class LiveInteractionButton extends StatelessWidget {
         //     isEnabled: widget.isScreenEnlarged),
         buttonWidget(Appassets.liveExit, widget.onExitPressed),
         //  buttonWidget(Appassets.liveTurnedOff, widget.onTurnedOffPressed)
-        // Hamburger button for RecordingControlsSheet
-        GestureDetector(
-          onTap: () {
-            showModalBottomSheet(
-              context: context,
-              backgroundColor: Colors.transparent,
-              isScrollControlled: true,
-              builder: (_) => RecordingControlsSheet(
-                initialRecordingState: widget.isLiveRecording,
-                onRecordingStateChanged: (isRecording) {
-                  widget.onLiveRecordingPressed(isRecording);
-                },
+        // Hamburger menu for recording controls
+        BlocBuilder<RecordingBloc, RecordingState>(
+          builder: (context, recordingState) {
+            final isRecording = recordingState is RecordingStarted;
+            return GestureDetector(
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  isScrollControlled: true,
+                  builder: (_) => RecordingControlsSheet(
+                    recordingStatus: isRecording
+                        ? RecordingStatus.recording
+                        : RecordingStatus.idle,
+                    recordingId: isRecording
+                        ? (recordingState as RecordingStarted)
+                            .recording
+                            .recordingId
+                        : null,
+                    onStartRecording: () {
+                      context.read<RecordingBloc>().add(
+                            StartRecording(roomId: widget.comboId),
+                          );
+                      Navigator.pop(context);
+                    },
+                    onStopRecording: () {
+                      if (isRecording) {
+                        context.read<RecordingBloc>().add(
+                              StopRecording(
+                                recordingId:
+                                    (recordingState as RecordingStarted)
+                                        .recording
+                                        .recordingId,
+                              ),
+                            );
+                      }
+                      Navigator.pop(context);
+                    },
+                    onClose: () => Navigator.pop(context),
+                  ),
+                );
+              },
+              child: Container(
+                height: 35.w,
+                width: 35.w,
+                decoration: BoxDecoration(
+                  color: getFigmaColor('3D3D3D'),
+                  borderRadius: BorderRadius.circular(25.w),
+                ),
+                child: Center(
+                  child: SvgPicture.asset(
+                    'assets/icons/hanbumger.svg',
+                    width: 10.w,
+                    height: 10.w,
+                    colorFilter:
+                        const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  ),
+                ),
               ),
             );
           },
-          child: Container(
-            margin: EdgeInsets.only(bottom: 4.h),
-            height: 35.w,
-            width: 35.w,
-            decoration: BoxDecoration(
-                color: getFigmaColor('3D3D3D'),
-                borderRadius: BorderRadius.circular(25.w)),
-            child: SvgPicture.asset(
-              height: 10.w,
-              width: 10.w,
-              color: Colors.white,
-              clipBehavior: Clip.hardEdge,
-              Appassets.hamburger,
-              fit: BoxFit.none,
-            ),
-          ),
         ),
       ],
     );
@@ -389,147 +422,6 @@ class BoostSuccessWidget extends StatelessWidget {
   }
 }
 
-class RecordingControlsSheet extends StatefulWidget {
-  final Function(bool)? onRecordingStateChanged;
-  final bool initialRecordingState;
-
-  const RecordingControlsSheet({
-    super.key,
-    this.onRecordingStateChanged,
-    this.initialRecordingState = false,
-  });
-
-  @override
-  State<RecordingControlsSheet> createState() => _RecordingControlsSheetState();
-}
-
-class _RecordingControlsSheetState extends State<RecordingControlsSheet> {
-  late bool _isRecording;
-
-  @override
-  void initState() {
-    super.initState();
-    _isRecording = widget.initialRecordingState;
-  }
-
-  void _toggleRecording() {
-    setState(() => _isRecording = !_isRecording);
-    widget.onRecordingStateChanged?.call(_isRecording);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF1C1C1E),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(bottom: 20),
-            decoration: BoxDecoration(
-              color: Colors.white24,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-
-          // Buttons row
-          Row(
-            children: [
-              // Screen share button
-              Expanded(
-                child: _ControlButton(
-                  svgAsset: 'assets/icons/screenshare.svg',
-                  label: 'Screen share',
-                  isActive: false,
-                  onTap: () {
-                    // handle screen share
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Record / Stop Recording button
-              Expanded(
-                child: _ControlButton(
-                  svgAsset: 'assets/icons/rec.svg',
-                  label: _isRecording ? 'Stop Recording' : 'Record',
-                  isActive: _isRecording,
-                  onTap: _toggleRecording,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ControlButton extends StatelessWidget {
-  final String svgAsset;
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _ControlButton({
-    required this.svgAsset,
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final Color bgColor =
-        isActive ? const Color(0xFFF0F0F0) : const Color(0xFF2C2C2E);
-    final Color contentColor = isActive ? Colors.black : Colors.white;
-    final Border? border = isActive
-        ? null
-        : Border.all(color: const Color(0xFF7B5EA7), width: 1.5);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeInOut,
-        height: 110,
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(20),
-          border: border,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SvgPicture.asset(
-              svgAsset,
-              width: 28,
-              height: 28,
-              colorFilter: ColorFilter.mode(contentColor, BlendMode.srcIn),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: TextStyle(
-                color: contentColor,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 enum PopRecordVariant { initial, confirm }
 
 class PopRecord extends StatelessWidget {
@@ -581,76 +473,100 @@ class _InitialVariant extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.topCenter,
-      children: [
-        SvgPicture.asset(
-          'assets/icons/large_background.svg',
-          fit: BoxFit.fill,
-          width: double.infinity,
-        ),
-
-        Positioned.fill(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 80, 20, 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 16),
-                const Text(
-                  'Record your livestream',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _PopButton(
-                        label: 'No',
-                        onTap: onNo,
-                        style: _PopButtonStyle.dark,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _PopButton(
-                        label: 'Later',
-                        onTap: onLater,
-                        style: _PopButtonStyle.dark,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _PopButton(
-                        label: 'Yes',
-                        onTap: onYes,
-                        style: _PopButtonStyle.blue,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+    return Container(
+      width: 365,
+      height: 271,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D0E0E),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
+        children: [
+          // Background
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D0E0E),
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
           ),
-        ),
 
-        // video.svg floating above card
-        Positioned(
-          top: -52,
-          child: SvgPicture.asset(
-            'assets/icons/video.svg',
-            width: 100,
-            height: 100,
+          // Content
+          Positioned.fill(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 80, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Record your livestream',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _PopButton(
+                          label: 'No',
+                          onTap: onNo,
+                          style: _PopButtonStyle.dark,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _PopButton(
+                          label: 'Later',
+                          onTap: onLater,
+                          style: _PopButtonStyle.dark,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _PopButton(
+                          label: 'Yes',
+                          onTap: onYes,
+                          style: _PopButtonStyle.blue,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ],
+
+          // video.svg floating above card
+          Positioned(
+            top: -48,
+            child: Container(
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: SvgPicture.asset(
+                'assets/icons/video.svg',
+                width: 96,
+                height: 96,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -669,70 +585,88 @@ class _ConfirmVariant extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.topCenter,
-      children: [
-        SvgPicture.asset(
-          'assets/icons/large_background.svg',
-          fit: BoxFit.fill,
-          width: double.infinity,
+    return Container(
+      width: 408,
+      height: 170,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D0E0E),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+          width: 0.5,
         ),
-        Positioned.fill(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Icon + title inline
-                Row(
-                  children: [
-                    SvgPicture.asset(
-                      'assets/icons/video.svg',
-                      width: 52,
-                      height: 52,
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Want to record your stream',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _PopButton(
-                        label: 'No',
-                        onTap: onNo,
-                        style: _PopButtonStyle.outlined,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _PopButton(
-                        label: 'Yes',
-                        onTap: onYes,
-                        style: _PopButtonStyle.blue,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
+        children: [
+          // Background
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D0E0E),
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
           ),
-        ),
-      ],
+
+          // Content
+          Positioned.fill(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Icon + title inline
+                  Row(
+                    children: [
+                      SvgPicture.asset(
+                        'assets/icons/video.svg',
+                        width: 52,
+                        height: 52,
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Want to record your stream',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _PopButton(
+                          label: 'No',
+                          onTap: onNo,
+                          style: _PopButtonStyle.outlined,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _PopButton(
+                          label: 'Yes',
+                          onTap: onYes,
+                          style: _PopButtonStyle.blue,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -777,150 +711,6 @@ class _PopButton extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
         ),
-      ),
-    );
-  }
-}
-
-// // In your PopRecord widget, update onYes:
-// PopRecord(
-//   onNo: () => Navigator.pop(context),
-//   onLater: () => Navigator.pop(context),
-//   onYes: () {
-//     Navigator.pop(context); // close PopRecord
-//     showDialog(
-//       context: context,
-//       barrierColor: Colors.black54,
-//       builder: (_) => PopRecordConfirm(
-//         onNo: () => Navigator.pop(context),
-//         onYes: () {
-//           Navigator.pop(context);
-//           // ✅ start actual recording here
-//         },
-//       ),
-//     );
-//   },
-// ),
-
-class DownloadFileContainer extends StatelessWidget {
-  final VoidCallback onOpen;
-  final VoidCallback onShare;
-
-  const DownloadFileContainer({
-    super.key,
-    required this.onOpen,
-    required this.onShare,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 408,
-      height: 164,
-      padding: const EdgeInsets.only(
-        top: 16,
-        right: 16,
-        bottom: 24,
-        left: 16,
-      ),
-      decoration: BoxDecoration(
-        color: const Color(0xFF181919),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ── Top info card ──
-          Container(
-            width: 376,
-            height: 68,
-            padding: const EdgeInsets.only(
-              top: 18,
-              right: 17,
-              bottom: 18,
-              left: 17,
-            ),
-            decoration: BoxDecoration(
-              color: const Color(0xFF3D3D3D),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                // download.png icon
-                Image.asset(
-                  'assets/icons/download.png',
-                  width: 24,
-                  height: 24,
-                ),
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: Text(
-                    'Video successfully saved to device',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // ── Buttons row ──
-          Row(
-            children: [
-              // Open button
-              Expanded(
-                child: GestureDetector(
-                  onTap: onOpen,
-                  child: Container(
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2A2A2A),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'Open',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Share button
-              Expanded(
-                child: GestureDetector(
-                  onTap: onShare,
-                  child: Container(
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2196F3),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'Share',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

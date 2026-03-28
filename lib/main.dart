@@ -16,6 +16,7 @@ import 'package:clapmi/features/onboarding/presentation/blocs/onboarding_bloc/on
 import 'package:clapmi/features/post/presentation/blocs/user_bloc/post_bloc.dart';
 import 'package:clapmi/features/post/presentation/blocs/video_bloc/video_bloc.dart';
 import 'package:clapmi/features/search/presentation/blocs/search_bloc.dart'; // Add SearchBloc import
+import 'package:clapmi/features/livestream/presentation/blocs/recording/recording_bloc.dart';
 import 'package:clapmi/features/user/presentation/blocs/user_bloc/user_bloc.dart';
 import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_bloc.dart';
 import 'package:clapmi/firebase_options.dart';
@@ -96,6 +97,9 @@ Future<void> main() async {
       BlocProvider(
         create: (_) => getItInstance<SearchBloc>(),
       ), // Add SearchBloc provider
+      BlocProvider(
+        create: (_) => getItInstance<RecordingBloc>(),
+      ), // Add RecordingBloc provider
       // BlocProvider(
       //   create: (_) =>getItInstance <VideoFeedProvider>(),
       // )
