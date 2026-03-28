@@ -224,6 +224,7 @@ class SingleLiveCreateModel extends SingleLiveCreateEntity {
     required super.contextType,
     required super.boostPoints,
     required super.stake,
+    super.startTime,
   });
 
   factory SingleLiveCreateModel.fromJson(Map<String, dynamic> json) {
@@ -234,6 +235,7 @@ class SingleLiveCreateModel extends SingleLiveCreateEntity {
       contextType: json["context_type"] ?? "",
       boostPoints: json["boost_points"] ?? "",
       stake: json["stake"] ?? "",
+      startTime: json["start-time"],
     );
   }
 
@@ -245,6 +247,7 @@ class SingleLiveCreateModel extends SingleLiveCreateEntity {
       "context_type": contextType,
       "boost_points": boostPoints,
       "stake": stake,
+      "start-time": startTime,
     };
   }
 

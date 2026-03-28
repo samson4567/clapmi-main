@@ -503,7 +503,7 @@ class _InitialVariant extends StatelessWidget {
                 children: [
                   const SizedBox(height: 24),
                   const Text(
-                    'Record your livestream',
+                    'Record your livestream ? ',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,
@@ -547,7 +547,6 @@ class _InitialVariant extends StatelessWidget {
 
           // video.svg floating above card
           Positioned(
-            top: -48,
             child: Container(
               decoration: BoxDecoration(
                 boxShadow: [
@@ -709,6 +708,141 @@ class _PopButton extends StatelessWidget {
             color: Colors.white,
             fontSize: 16,
             fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class SingleLiveScheduler extends StatelessWidget {
+  final VoidCallback onInstantLive;
+  final VoidCallback onScheduleLive;
+  final bool isDisabled;
+
+  const SingleLiveScheduler({
+    super.key,
+    required this.onInstantLive,
+    required this.onScheduleLive,
+    this.isDisabled = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      decoration: const BoxDecoration(
+        color: Colors.black,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle
+          Container(
+            width: 60,
+            height: 6,
+            decoration: BoxDecoration(
+              color: Colors.grey[700],
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+
+          const SizedBox(height: 30),
+
+          // Title
+          const Text(
+            "Select Option",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+
+          const SizedBox(height: 30),
+
+          // Instant Live
+          _OptionTile(
+            icon: 'assets/icons/vidi.svg',
+            label: 'Start instant live',
+            onTap: isDisabled ? () {} : onInstantLive,
+            isDisabled: isDisabled,
+          ),
+
+          const SizedBox(height: 20),
+
+          // Schedule Live (Highlighted)
+          _OptionTile(
+            icon: 'assets/icons/calender-add.svg', // change to your asset
+            label: 'Schedule live for later',
+            onTap: isDisabled ? () {} : onScheduleLive,
+            isHighlighted: true,
+            isDisabled: isDisabled,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────
+// Option Tile
+// ─────────────────────────────────────────
+class _OptionTile extends StatelessWidget {
+  final String icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isHighlighted;
+  final bool isDisabled;
+
+  const _OptionTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.isHighlighted = false,
+    this.isDisabled = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Opacity(
+        opacity: isDisabled ? 0.5 : 1.0,
+        child: Container(
+          height: 80,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: isHighlighted
+                ? const Color(0xFF3A3A3C)
+                : const Color(0xFF1C1C1E),
+            borderRadius: BorderRadius.circular(20),
+            border: isHighlighted
+                ? Border.all(
+                    color: const Color(0xFF2196F3),
+                    width: 2,
+                  )
+                : null,
+          ),
+          child: Row(
+            children: [
+              SvgPicture.asset(
+                icon,
+                width: 32,
+                height: 32,
+                colorFilter:
+                    const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              ),
+              const SizedBox(width: 16),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
       ),

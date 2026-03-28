@@ -15,6 +15,8 @@ import 'package:clapmi/global_object_folder_jacket/global_widgets/fancy_text.dar
 import 'package:clapmi/global_object_folder_jacket/global_widgets/global_widgets.dart';
 import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
 import 'package:clapmi/screens/challenge/widgets/Animated/animated.dart';
+import 'package:clapmi/screens/challenge/others/widgets/live_buy_point_button.dart';
+import 'package:clapmi/core/utils.dart';
 import 'package:clapmi/screens/challenge/widgets/buildImage2.dart';
 import 'package:clapmi/screens/challenge/widgets/challenge_box_rep.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -147,7 +149,8 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
           }
           if (state is StartComboErrorState) {
             print("This is start combo error state");
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.errorMessage)));
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(state.errorMessage)));
           }
         },
         builder: (context, state) {
@@ -259,12 +262,16 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
   }
 
   ComboEntity? theComboEntity;
+  bool _hasSelectedLiveType = false;
+  bool _isInstantLive = true;
 
   /// Bottom Sheet with reactive button color
   void _showGoLiveBottomSheet(
       BuildContext context, Function(String) onCreateComboCallback,
       {List<ComboEntity>? liveCombos}) {
     String? durationString;
+    DateTime? selectedStartTime;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -341,7 +348,8 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                 void updateState() => setModalState(() {});
                 _titleController.addListener(updateState);
                 bool isFilled = _titleController.text.isNotEmpty &&
-                    durationString?.isNotEmpty == true;
+                    durationString?.isNotEmpty == true &&
+                    (_isInstantLive || selectedStartTime != null);
                 return Padding(
                   padding: EdgeInsets.only(
                     left: 20.w,
@@ -372,6 +380,27 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                         ),
                       ),
                       SizedBox(height: 30.h),
+                      // SingleLiveScheduler - Choose instant or scheduled
+                      SingleLiveScheduler(
+                        onInstantLive: () {
+                          _isInstantLive = true;
+                          _hasSelectedLiveType = true;
+                          selectedStartTime = null;
+                          updateState();
+                        },
+                        onScheduleLive: () async {
+                          _isInstantLive = false;
+                          _hasSelectedLiveType = true;
+                          // Show date/time picker
+                          final pickedDateTime = await pickDateTime(context);
+                          if (pickedDateTime != null) {
+                            selectedStartTime = pickedDateTime;
+                            updateState();
+                          }
+                        },
+                        isDisabled: _hasSelectedLiveType,
+                      ),
+                      SizedBox(height: 20.h),
                       // Combo title label
                       Align(
                         alignment: Alignment.centerLeft,
@@ -401,6 +430,57 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                         ),
                       ),
                       SizedBox(height: 20.h),
+                      // Start time label (only show for scheduled)
+                      if (!_isInstantLive) ...[
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "Start Time",
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 8.h),
+                        GestureDetector(
+                          onTap: () async {
+                            final pickedDateTime = await pickDateTime(context);
+                            if (pickedDateTime != null) {
+                              selectedStartTime = pickedDateTime;
+                              updateState();
+                            }
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 16.w, vertical: 12.h),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF181818),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_today,
+                                  color: getFigmaColor("5C5D5D"),
+                                ),
+                                SizedBox(width: 10),
+                                FancyText(
+                                  selectedStartTime != null
+                                      ? "${selectedStartTime!.year}-${selectedStartTime!.month.toString().padLeft(2, '0')}-${selectedStartTime!.day.toString().padLeft(2, '0')} ${selectedStartTime!.hour.toString().padLeft(2, '0')}:${selectedStartTime!.minute.toString().padLeft(2, '0')}"
+                                      : "Select start time",
+                                  textColor: getFigmaColor("5C5D5D"),
+                                  size: 16,
+                                  weight: FontWeight.w600,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 20.h),
+                      ],
                       // Live duration label
                       Align(
                         alignment: Alignment.centerLeft,
@@ -475,6 +555,8 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                                     duration: durationString,
                                     type: 'single',
                                     contextType: 'standard',
+                                    startTime:
+                                        selectedStartTime?.toIso8601String(),
                                   );
 
                                   context.read<BragBloc>().add(

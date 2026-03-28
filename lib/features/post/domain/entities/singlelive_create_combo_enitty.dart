@@ -7,6 +7,7 @@ class SingleLiveCreateEntity extends Equatable {
   final String contextType;
   final String boostPoints;
   final String stake;
+  final String? startTime;
 
   const SingleLiveCreateEntity({
     required this.type,
@@ -15,9 +16,10 @@ class SingleLiveCreateEntity extends Equatable {
     required this.contextType,
     required this.boostPoints,
     required this.stake,
+    this.startTime,
   });
 
   @override
   List<Object?> get props =>
-      [type, duration, challenge, contextType, boostPoints, stake];
+      [type, duration, challenge, contextType, boostPoints, stake, startTime];
 }

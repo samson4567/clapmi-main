@@ -1,5 +1,5 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 enum PopRecordVariant { initial, confirm }
@@ -21,7 +21,7 @@ class PopRecord extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: const Color(0xFF1C1C1E),
+      backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24),
       child: variant == PopRecordVariant.initial
           ? _InitialVariant(
@@ -38,7 +38,7 @@ class PopRecord extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────
-// Initial variant  →  "Record your livestream"
+// Initial variant
 // ─────────────────────────────────────────
 class _InitialVariant extends StatelessWidget {
   final VoidCallback onNo;
@@ -57,23 +57,44 @@ class _InitialVariant extends StatelessWidget {
       width: 365,
       height: 271,
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1E),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.15),
+            blurRadius: 30,
+            spreadRadius: -10,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.topCenter,
         children: [
-          // Background
+          // Gradient + dark overlay
           Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Color.lerp(
-                  const Color(0XFFFF292D),
-                  const Color(0XFF2974FF),
-                  0.5,
-                ),
-                borderRadius: BorderRadius.circular(16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
+                children: [
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topRight,
+                        end: Alignment.bottomLeft,
+                        colors: [
+                          Color(0xFFFF2D2D),
+                          Color(0xFF0D0D0D),
+                          Color(0xFF2974FF),
+                        ],
+                        stops: [0.0, 0.5, 1.0],
+                      ),
+                    ),
+                  ),
+                  Container(
+                    color: Colors.black.withOpacity(0.65),
+                  ),
+                ],
               ),
             ),
           ),
@@ -83,9 +104,7 @@ class _InitialVariant extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 80, 20, 28),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const SizedBox(height: 16),
                   const Text(
                     'Record your livestream',
                     textAlign: TextAlign.center,
@@ -96,7 +115,7 @@ class _InitialVariant extends StatelessWidget {
                       letterSpacing: -0.3,
                     ),
                   ),
-                  const SizedBox(height: 50),
+                  const Spacer(),
                   Row(
                     children: [
                       Expanded(
@@ -129,13 +148,13 @@ class _InitialVariant extends StatelessWidget {
             ),
           ),
 
-          // video.svg floating above card
+          // Floating icon
           Positioned(
-            top: -52,
+            top: -45,
             child: SvgPicture.asset(
-              'assets/icons/video.svg',
-              width: 100,
-              height: 100,
+              'assets/icons/Record.svg',
+              width: 90,
+              height: 90,
             ),
           ),
         ],
@@ -145,7 +164,7 @@ class _InitialVariant extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────
-// Confirm variant  →  "Want to record your stream"
+// Confirm variant
 // ─────────────────────────────────────────
 class _ConfirmVariant extends StatelessWidget {
   final VoidCallback onNo;
@@ -162,90 +181,82 @@ class _ConfirmVariant extends StatelessWidget {
       width: 408,
       height: 141,
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1E),
         borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [
+            Color(0xFF1C1C1E),
+            Color(0xFF101114),
+          ],
+        ),
         border: Border.all(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withOpacity(0.08),
           width: 0.5,
         ),
-      ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.topCenter,
-        children: [
-          // Background
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1C1C1E),
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-
-          // Content
-          Positioned.fill(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Icon + title inline
-                  Row(
-                    children: [
-                      SvgPicture.asset(
-                        'assets/icons/video.svg',
-                        width: 52,
-                        height: 52,
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text(
-                          'Want to record your stream',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _PopButton(
-                          label: 'No',
-                          onTap: onNo,
-                          style: _PopButtonStyle.outlined,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _PopButton(
-                          label: 'Yes',
-                          onTap: onYes,
-                          style: _PopButtonStyle.blue,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.12),
+            blurRadius: 25,
+            spreadRadius: -8,
+            offset: const Offset(0, 10),
           ),
         ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                SvgPicture.asset(
+                  'assets/icons/Record.svg',
+                  width: 52,
+                  height: 52,
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Want to record your stream',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Row(
+              children: [
+                Expanded(
+                  child: _PopButton(
+                    label: 'No',
+                    onTap: onNo,
+                    style: _PopButtonStyle.outlined,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _PopButton(
+                    label: 'Yes',
+                    onTap: onYes,
+                    style: _PopButtonStyle.blue,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 // ─────────────────────────────────────────
-// Shared button
+// Button
 // ─────────────────────────────────────────
 enum _PopButtonStyle { dark, outlined, blue }
 
@@ -268,12 +279,14 @@ class _PopButton extends StatelessWidget {
         height: 52,
         decoration: BoxDecoration(
           color: style == _PopButtonStyle.blue
-              ? const Color(0xFF2196F3)
-              : const Color(0xFF1E1E22),
+              ? const Color(0xFF1877F2)
+              : const Color(0xFF2A2A2E),
           borderRadius: BorderRadius.circular(30),
           border: style == _PopButtonStyle.outlined
               ? Border.all(color: const Color(0xFF2196F3), width: 2)
-              : null,
+              : style == _PopButtonStyle.dark
+                  ? Border.all(color: Colors.white.withOpacity(0.08))
+                  : null,
         ),
         alignment: Alignment.center,
         child: Text(
