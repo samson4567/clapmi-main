@@ -753,9 +753,12 @@ class SingleLiveScheduler extends StatelessWidget {
           const Text(
             "Select Option",
             style: TextStyle(
+              fontFamily: 'Poppins',
               color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              height: 1.5, // line-height: 150%
+              letterSpacing: 0,
             ),
           ),
 
@@ -773,7 +776,7 @@ class SingleLiveScheduler extends StatelessWidget {
 
           // Schedule Live (Highlighted)
           _OptionTile(
-            icon: 'assets/icons/calender-add.svg', // change to your asset
+            icon: 'assets/icons/add.svg', // change to your asset
             label: 'Schedule live for later',
             onTap: isDisabled ? () {} : onScheduleLive,
             isHighlighted: true,

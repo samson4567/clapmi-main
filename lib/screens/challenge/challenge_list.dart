@@ -265,13 +265,82 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
   bool _hasSelectedLiveType = false;
   bool _isInstantLive = true;
 
+  /// Parse offset string to minutes
+  int _parseOffsetToMinutes(String offset) {
+    if (offset.contains('minutes')) {
+      return int.tryParse(offset.replaceAll(' minutes', '')) ?? 0;
+    } else if (offset.contains('hour')) {
+      final hours = int.tryParse(
+              offset.replaceAll(' hours', '').replaceAll(' hour', '')) ??
+          0;
+      return hours * 60;
+    }
+    return 0;
+  }
+
   /// Bottom Sheet with reactive button color
   void _showGoLiveBottomSheet(
       BuildContext context, Function(String) onCreateComboCallback,
       {List<ComboEntity>? liveCombos}) {
     String? durationString;
     DateTime? selectedStartTime;
+    String? selectedStartOffset;
 
+    // First show SingleLiveScheduler as a separate dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: SingleLiveScheduler(
+            onInstantLive: () {
+              _isInstantLive = true;
+              _hasSelectedLiveType = true;
+              selectedStartTime = null;
+              selectedStartOffset = null;
+              Navigator.pop(dialogContext); // Close the dialog
+              // Now show the Live Details bottom sheet
+              _showLiveDetailsBottomSheet(
+                context,
+                onCreateComboCallback,
+                liveCombos: liveCombos,
+                durationString: durationString,
+                selectedStartTime: selectedStartTime,
+                selectedStartOffset: selectedStartOffset,
+              );
+            },
+            onScheduleLive: () {
+              _isInstantLive = false;
+              _hasSelectedLiveType = true;
+              selectedStartOffset = null;
+              selectedStartTime = null;
+              Navigator.pop(dialogContext); // Close the dialog
+              // Now show the Live Details bottom sheet
+              _showLiveDetailsBottomSheet(
+                context,
+                onCreateComboCallback,
+                liveCombos: liveCombos,
+                durationString: durationString,
+                selectedStartTime: selectedStartTime,
+                selectedStartOffset: selectedStartOffset,
+              );
+            },
+            isDisabled: false,
+          ),
+        );
+      },
+    );
+  }
+
+  /// Live Details Bottom Sheet (shown after SingleLiveScheduler dialog)
+  void _showLiveDetailsBottomSheet(
+      BuildContext context, Function(String) onCreateComboCallback,
+      {List<ComboEntity>? liveCombos,
+      String? durationString,
+      DateTime? selectedStartTime,
+      String? selectedStartOffset}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -349,7 +418,7 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                 _titleController.addListener(updateState);
                 bool isFilled = _titleController.text.isNotEmpty &&
                     durationString?.isNotEmpty == true &&
-                    (_isInstantLive || selectedStartTime != null);
+                    (_isInstantLive || selectedStartOffset != null);
                 return Padding(
                   padding: EdgeInsets.only(
                     left: 20.w,
@@ -380,27 +449,6 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                         ),
                       ),
                       SizedBox(height: 30.h),
-                      // SingleLiveScheduler - Choose instant or scheduled
-                      SingleLiveScheduler(
-                        onInstantLive: () {
-                          _isInstantLive = true;
-                          _hasSelectedLiveType = true;
-                          selectedStartTime = null;
-                          updateState();
-                        },
-                        onScheduleLive: () async {
-                          _isInstantLive = false;
-                          _hasSelectedLiveType = true;
-                          // Show date/time picker
-                          final pickedDateTime = await pickDateTime(context);
-                          if (pickedDateTime != null) {
-                            selectedStartTime = pickedDateTime;
-                            updateState();
-                          }
-                        },
-                        isDisabled: _hasSelectedLiveType,
-                      ),
-                      SizedBox(height: 20.h),
                       // Combo title label
                       Align(
                         alignment: Alignment.centerLeft,
@@ -444,41 +492,61 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                           ),
                         ),
                         SizedBox(height: 8.h),
-                        GestureDetector(
-                          onTap: () async {
-                            final pickedDateTime = await pickDateTime(context);
-                            if (pickedDateTime != null) {
-                              selectedStartTime = pickedDateTime;
-                              updateState();
-                            }
-                          },
-                          child: Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 16.w, vertical: 12.h),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF181818),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.calendar_today,
-                                  color: getFigmaColor("5C5D5D"),
-                                ),
-                                SizedBox(width: 10),
-                                FancyText(
-                                  selectedStartTime != null
-                                      ? "${selectedStartTime!.year}-${selectedStartTime!.month.toString().padLeft(2, '0')}-${selectedStartTime!.day.toString().padLeft(2, '0')} ${selectedStartTime!.hour.toString().padLeft(2, '0')}:${selectedStartTime!.minute.toString().padLeft(2, '0')}"
-                                      : "Select start time",
-                                  textColor: getFigmaColor("5C5D5D"),
-                                  size: 16,
-                                  weight: FontWeight.w600,
-                                ),
-                              ],
+                        DropdownButtonHideUnderline(
+                            child: DropdownButton2(
+                          customButton: FancyContainer(
+                            height: 40.h,
+                            backgroundColor: getFigmaColor("121212"),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.schedule,
+                                    color: getFigmaColor("5C5D5D"),
+                                  ),
+                                  SizedBox(width: 10),
+                                  FancyText(
+                                    selectedStartOffset ?? "Select start time",
+                                    textColor: getFigmaColor("5C5D5D"),
+                                    size: 16,
+                                    weight: FontWeight.w600,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
+                          value: selectedStartOffset,
+                          items: [
+                            "10 minutes",
+                            "20 minutes",
+                            "30 minutes",
+                            "45 minutes",
+                            "1 hour",
+                            "2 hours",
+                            "3 hours",
+                            "6 hours",
+                            "12 hours",
+                            "24 hours",
+                          ]
+                              .map(
+                                (e) => DropdownMenuItem(
+                                  value: e,
+                                  child: Text(e),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            selectedStartOffset = value;
+                            // Calculate the actual start time based on offset
+                            final now = DateTime.now();
+                            final offsetMinutes =
+                                _parseOffsetToMinutes(value ?? '');
+                            selectedStartTime =
+                                now.add(Duration(minutes: offsetMinutes));
+                            updateState();
+                          },
+                        )),
                         SizedBox(height: 20.h),
                       ],
                       // Live duration label
@@ -549,14 +617,15 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                         child: GestureDetector(
                           onTap: isFilled
                               ? () {
+                                  // Send start-time as duration string (e.g., "2 hours")
+                                  // Backend expects duration offset, not timestamp
                                   CreateComboModel comboModel =
                                       CreateComboModel(
                                     title: _titleController.text.trim(),
                                     duration: durationString,
                                     type: 'single',
                                     contextType: 'standard',
-                                    startTime:
-                                        selectedStartTime?.toIso8601String(),
+                                    startTime: selectedStartOffset,
                                   );
 
                                   context.read<BragBloc>().add(
