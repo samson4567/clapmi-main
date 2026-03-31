@@ -1036,6 +1036,30 @@ class _FeedScreenState extends State<FeedScreen> {
                                   ),
                                 ),
                               ),
+                            if (liveLoading)
+                              Builder(
+                                builder: (context) {
+                                  WidgetsBinding.instance
+                                      .addPostFrameCallback((_) {
+                                    showDialog(
+                                      context: context,
+                                      barrierColor: Colors.black54,
+                                      barrierDismissible: false,
+                                      builder: (dialogContext) =>
+                                          ReturnToLivestreamDialog(
+                                        countdownSeconds: 59,
+                                        onGoBack: () {
+                                          Navigator.pop(dialogContext);
+                                          // navigate back to stream
+                                        },
+                                        onDismiss: () =>
+                                            Navigator.pop(dialogContext),
+                                      ),
+                                    );
+                                  });
+                                  return const SizedBox.shrink();
+                                },
+                              ),
                             Visibility(
                               visible: state is SavePostLoadingState ||
                                   state is SharePostLoadingState,

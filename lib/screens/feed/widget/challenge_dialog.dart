@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:clapmi/global_object_folder_jacket/global_object.dart';
 import 'package:flutter/material.dart';
 
@@ -172,4 +173,168 @@ void showDialogInforamtion(BuildContext context, {Function()? onPressed}) {
       );
     },
   );
+}
+
+class ReturnToLivestreamDialog extends StatefulWidget {
+  final int countdownSeconds;
+  final VoidCallback onGoBack;
+  final VoidCallback onDismiss;
+
+  const ReturnToLivestreamDialog({
+    super.key,
+    required this.countdownSeconds,
+    required this.onGoBack,
+    required this.onDismiss,
+  });
+
+  @override
+  State<ReturnToLivestreamDialog> createState() =>
+      _ReturnToLivestreamDialogState();
+}
+
+class _ReturnToLivestreamDialogState extends State<ReturnToLivestreamDialog> {
+  late int _remainingSeconds;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _remainingSeconds = widget.countdownSeconds;
+    _startCountdown();
+  }
+
+  void _startCountdown() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remainingSeconds > 0) {
+        setState(() => _remainingSeconds--);
+      } else {
+        _timer?.cancel();
+        widget.onDismiss();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String get formattedTime {
+    final minutes = (_remainingSeconds ~/ 60).toString().padLeft(1, '0');
+    final seconds = (_remainingSeconds % 60).toString().padLeft(2, '0');
+    return "$minutes:$seconds";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        padding: const EdgeInsets.all(1), // gradient border
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            colors: [Colors.red, Colors.blue],
+          ),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0B0B0B),
+            borderRadius: BorderRadius.circular(23),
+          ),
+          child: Stack(
+            children: [
+              /// CLOSE BUTTON
+              Positioned(
+                right: 0,
+                top: 0,
+                child: GestureDetector(
+                  onTap: widget.onDismiss,
+                  child: const Icon(
+                    Icons.close,
+                    color: Colors.white70,
+                    size: 24,
+                  ),
+                ),
+              ),
+
+              /// MAIN CONTENT
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 10),
+
+                  /// TITLE
+                  const Text(
+                    "Return to livestream in",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      height: 1.5,
+                      letterSpacing: 0,
+                      color: Colors.white70,
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  /// COUNTDOWN
+                  Text(
+                    formattedTime,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 48,
+                      fontWeight: FontWeight.w600,
+                      color:
+                          _remainingSeconds <= 10 ? Colors.red : Colors.white,
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  /// BUTTON
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(1),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(40),
+                      gradient: const LinearGradient(
+                        colors: [Colors.blue, Colors.blue],
+                      ),
+                    ),
+                    child: ElevatedButton(
+                      onPressed: widget.onGoBack,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue[700],
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(40),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        "Go back to stream",
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

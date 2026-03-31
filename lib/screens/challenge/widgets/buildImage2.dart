@@ -80,6 +80,7 @@ class _Buildimage2State extends State<Buildimage2> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
+            color: const Color(0xFF181919),
             border: Border.all(
                 color: const Color(0xFF464747)), // 🔹 Added this line
           ),
@@ -450,6 +451,7 @@ class _SingleLivestreamCardState extends State<SingleLivestreamCard> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFF181919),
         border: Border.all(color: const Color(0xFF464747)),
       ),
       child: Column(
@@ -525,27 +527,61 @@ class _SingleLivestreamCardState extends State<SingleLivestreamCard> {
           const SizedBox(height: 10),
           // Buttons based on host/spectator
           if (isHost)
-            // Host sees: Start now button
-            GestureDetector(
-              onTap: widget.onStartNow,
-              child: Container(
-                height: 40,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: getFigmaColor("006FCD"),
-                ),
-                alignment: Alignment.center,
-                child: const Text(
-                  "Start now",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Poppins',
+            // Host sees: Start now button and Brag info button side by side
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: widget.onStartNow,
+                  child: Container(
+                    height: 34,
+                    width: 100,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      color: getFigmaColor("006FCD"),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      "Start now",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 10),
+                Container(
+                  height: 34,
+                  width: 100,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        color: Colors.white70,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        "Brag info",
+                        style: TextStyle(
+                          color: Colors.white.withAlpha(180),
+                          fontSize: 13,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             )
           else
             // Spectators see: Join now and Vote buttons side by side
@@ -599,37 +635,156 @@ class _SingleLivestreamCardState extends State<SingleLivestreamCard> {
                 ),
               ],
             ),
-          const SizedBox(height: 10),
-          // Brag info button
-          Container(
-            height: 34,
-            width: 100,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: Colors.white24),
-            ),
-            alignment: Alignment.center,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.info_outline,
-                  color: Colors.white70,
-                  size: 16,
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  "Brag info",
-                  style: TextStyle(
-                    color: Colors.white.withAlpha(180),
-                    fontSize: 13,
-                    fontFamily: 'Poppins',
+        ],
+      ),
+    );
+  }
+}
+
+class ReturnToLivestreamDialog extends StatefulWidget {
+  final int countdownSeconds;
+  final VoidCallback onGoBack;
+  final VoidCallback onDismiss;
+
+  const ReturnToLivestreamDialog({
+    super.key,
+    this.countdownSeconds = 59,
+    required this.onGoBack,
+    required this.onDismiss,
+  });
+
+  @override
+  State<ReturnToLivestreamDialog> createState() =>
+      _ReturnToLivestreamDialogState();
+}
+
+class _ReturnToLivestreamDialogState extends State<ReturnToLivestreamDialog> {
+  late int _remaining;
+  Timer? _timer;
+
+  // Timer turns red when <= 10 seconds
+  bool get _isUrgent => _remaining <= 10;
+
+  @override
+  void initState() {
+    super.initState();
+    _remaining = widget.countdownSeconds;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_remaining > 0) {
+        setState(() => _remaining--);
+      } else {
+        _timer?.cancel();
+        widget.onDismiss();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String get _timerText => '0:${_remaining.toString().padLeft(2, '0')}';
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Container(
+        padding: const EdgeInsets.all(1.5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFE8303A), Color(0xFF1A6BFF)],
+          ),
+        ),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0D0E0E),
+            borderRadius: BorderRadius.circular(23),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ── Close button ──
+              Align(
+                alignment: Alignment.topRight,
+                child: GestureDetector(
+                  onTap: widget.onDismiss,
+                  child: const Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 24,
                   ),
                 ),
-              ],
-            ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── Label ──
+              const Text(
+                'Return to livestream in',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  height: 1.5,
+                  letterSpacing: 0,
+                  color: Colors.white,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // ── Countdown ──
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 300),
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 64,
+                  fontWeight: FontWeight.w700,
+                  height: 1.0,
+                  color: _isUrgent ? const Color(0xFFE8303A) : Colors.white,
+                ),
+                child: Text(_timerText),
+              ),
+
+              const SizedBox(height: 28),
+
+              // ── Go back button ──
+              GestureDetector(
+                onTap: widget.onGoBack,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A6BFF),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'Go back to stream',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      height: 1.5,
+                      letterSpacing: 0,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

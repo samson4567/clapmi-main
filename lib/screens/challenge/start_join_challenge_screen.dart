@@ -125,13 +125,21 @@ class _StartOrJoinChallengeScreenState
             });
           }
           if (state is StartComboErrorState) {
-            setState(() { isLoading = false; });
+            setState(() {
+              isLoading = false;
+            });
             popUpMessages(context, state.errorMessage);
           }
           if (state is JoinComboGroundLoadingState) {
             setState(() {
               isLoading = true;
             });
+          }
+          if (state is JoinComboGroundErrorState) {
+            setState(() {
+              isLoading = false;
+            });
+            popUpMessages(context, state.errorMessage);
           }
           if (state is StartComboSuccessState) {
             Future.delayed(Duration(seconds: 5), () {
@@ -231,7 +239,7 @@ class _StartOrJoinChallengeScreenState
                                 hostName: widget.model.host?.username,
                                 hostImageByte: widget.model.host?.avatarConvert,
                                 challengerImageByte:
-                                    widget.model.challenger!.avatarConvert,
+                                    widget.model.challenger?.avatarConvert,
                                 status: widget.model.status,
                                 stakeAmount: widget.model.stake ?? 0,
                                 timerCountdown: timerCountdown ?? '',

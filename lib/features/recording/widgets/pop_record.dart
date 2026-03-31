@@ -19,7 +19,15 @@ class PopRecord extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.transparent,
+      backgroundColor: SvgPicture.asset(
+        'assets/icons/.svg',
+        width: 32.w,
+        height: 32.w,
+        colorFilter: const ColorFilter.mode(
+          Colors.red,
+          BlendMode.srcIn,
+        ),
+      ),
       child: Container(
         width: 320.w,
         padding: EdgeInsets.all(24.w),
@@ -44,7 +52,7 @@ class PopRecord extends StatelessWidget {
               ),
               child: Center(
                 child: SvgPicture.asset(
-                  'assets/icons/Record.svg',
+                  'assets/icons/vidis.svg',
                   width: 32.w,
                   height: 32.w,
                   colorFilter: const ColorFilter.mode(

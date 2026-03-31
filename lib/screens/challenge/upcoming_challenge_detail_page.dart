@@ -8,12 +8,15 @@ import 'package:clapmi/features/brag/data/models/brag_challengers.dart';
 import 'package:clapmi/features/brag/presentation/blocs/user_bloc/brag_bloc.dart';
 import 'package:clapmi/features/brag/presentation/blocs/user_bloc/brag_event.dart';
 import 'package:clapmi/features/brag/presentation/blocs/user_bloc/brag_state.dart';
+import 'package:clapmi/features/combo/domain/entities/combo_entity.dart';
 import 'package:clapmi/features/combo/presentation/blocs/combo_bloc/combo_bloc.dart';
 import 'package:clapmi/features/combo/presentation/blocs/combo_bloc/combo_event.dart';
 import 'package:clapmi/features/combo/presentation/blocs/combo_bloc/combo_state.dart';
 import 'package:clapmi/global_object_folder_jacket/global_object.dart';
 import 'package:clapmi/global_object_folder_jacket/global_widgets/fancy_text.dart';
+import 'package:clapmi/screens/challenge/widgets/buildImage2.dart';
 import 'package:clapmi/screens/challenge/widgets/challenge_buttons.dart';
+import 'package:clapmi/screens/challenge/widgets/gift_live_coin.dart';
 import 'package:clapmi/screens/feed/widget/challenge_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -91,6 +94,11 @@ class _UpcomingChallengeDetailPageState
 
   @override
   Widget build(BuildContext context) {
+    // Check if this is a single type combo (no challenger)
+    final isSingleCombo = widget.challenge?.challenger == null ||
+        widget.challenge?.challenger.username == null ||
+        widget.challenge?.challenger.username?.isEmpty == true;
+
     return Scaffold(
         appBar: AppBar(
             backgroundColor: getFigmaColor('0D0E0E'),
@@ -177,6 +185,90 @@ class _UpcomingChallengeDetailPageState
               }
             },
             builder: (context, state) {
+              // Use SingleLivestreamCard for single type combos
+              if (isSingleCombo) {
+                // Create a ComboEntity from BragChallengersModel data
+                final comboEntity = ComboEntity(
+                  combo: widget.challenge?.combo,
+                  about: widget.challenge?.title,
+                  type: 'single',
+                  brag: widget.postId,
+                  duration: widget.challenge?.duration,
+                  start: widget.challenge?.start,
+                  status: widget.challenge?.status,
+                  stake: widget.challenge?.stake?.toInt(),
+                  host: LiveUser(
+                    profile: widget.host?.pid,
+                    avatar: widget.host?.image,
+                    username: widget.host?.username,
+                    avatarConvert: widget.host?.myAvatar,
+                  ),
+                  challenger: null,
+                );
+
+                return SafeArea(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
+                        SingleLivestreamCard(
+                          comboModel: comboEntity,
+                          onStartNow: () {
+                            context.read<ComboBloc>().add(GetComboDetailEvent(
+                                widget.challenge?.combo ?? ''));
+                          },
+                          onJoinNow: () {
+                            context.read<ComboBloc>().add(GetComboDetailEvent(
+                                widget.challenge?.combo ?? ''));
+                          },
+                          onVote: () {
+                            showModalBottomSheet(
+                                context: context,
+                                backgroundColor: Colors.black,
+                                isScrollControlled: true,
+                                builder: (context) {
+                                  return GiftLiveCoin(
+                                    host: comboEntity.host,
+                                    challenger: null,
+                                    comboId: comboEntity.combo ?? '',
+                                    contextType: 'standard',
+                                    onGoingComboId: '',
+                                    isLiveOngoing: false,
+                                  );
+                                });
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        //THE BRAG CHALLENGE DETAILS OR THE COMBO DETAILS DEPENDING ON THE STATE OF THE APP
+                        _buildMiddleSection(context),
+                        const SizedBox(height: 20),
+                        //BUTTONS FOR WHEN THE USER WANTS TO ACCEPT OR DECLINE THE CHALLENGE
+                        AcceptButtonWidget(
+                          isLoading: isLoading,
+                          declineLoading: declineLoading,
+                          onchanged: (duration) {
+                            if (duration != null) {
+                              showScheduleDialog(context, duration);
+                            }
+                          },
+                          declineFunction: () {
+                            context.read<BragBloc>().add(DeclineChallengeEvent(
+                                widget.challenge?.challenge ?? ''));
+                          },
+                          onTap: () {
+                            context.read<BragBloc>().add(AcceptChallengeEvent(
+                                widget.challenge?.challenge ?? ''));
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              // Default layout for multi-participant combos
               return SafeArea(
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 12),
@@ -191,7 +283,7 @@ class _UpcomingChallengeDetailPageState
                             borderRadius: BorderRadius.circular(20),
                             color: getFigmaColor("181919"),
                             border: Border.all(
-                              color: getFigmaColor("181919"),
+                              color: getFigmaColor("464747"),
                             ),
                           ),
                           child: Column(
