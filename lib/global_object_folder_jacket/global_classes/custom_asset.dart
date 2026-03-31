@@ -13,4 +13,5 @@ class Appassets {
   static const liveMicOff = "${newAsset}mic_off.svg";
   static const liveVideoOff = "${newAsset}video_off.svg";
   static const hamburger = "${newAsset}hanbumger.svg";
+  static const toggle = "${newAsset}tog.svg";
 }

@@ -48,12 +48,20 @@ class ComboRepositoryImpl implements ComboRepository {
     try {
       var result = await comboRemoteDatasource.getUpcomingCombos();
       for (var combo in result) {
-        if (combo.challenger!.avatar!.contains(".svg")) {
-          combo.challenger!.avatarConvert =
-              await fetchSvg(combo.challenger!.avatar!);
+        //**Check if combo challenger is not null */
+        //-------------------------------------------
+        if (combo.challenger != null) {
+          if (combo.challenger!.avatar!.contains(".svg")) {
+            combo.challenger?.avatarConvert =
+                await fetchSvg(combo.challenger!.avatar!);
+          }
         }
-        if (combo.host!.avatar!.contains(".svg")) {
-          combo.host!.avatarConvert = await fetchSvg(combo.host!.avatar!);
+        //**Check if combo host is not null */
+        //---------------------------------------
+        if (combo.host != null) {
+          if (combo.host!.avatar!.contains(".svg")) {
+            combo.host?.avatarConvert = await fetchSvg(combo.host!.avatar!);
+          }
         }
       }
       return right(result);

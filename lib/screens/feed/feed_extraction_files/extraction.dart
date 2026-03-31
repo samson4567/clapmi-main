@@ -302,6 +302,7 @@ class DrawerList extends StatelessWidget {
               context.pushNamed(MyAppRouteConstant.settings);
             },
           ),
+
           ListTile(
             leading: Image.asset(
               "assets/icons/more.png",

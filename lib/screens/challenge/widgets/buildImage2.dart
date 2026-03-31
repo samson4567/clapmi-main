@@ -387,3 +387,250 @@ class _Buildimage2State extends State<Buildimage2> {
     );
   }
 }
+
+class SingleLivestreamCard extends StatefulWidget {
+  const SingleLivestreamCard({
+    super.key,
+    required this.comboModel,
+    this.onStartNow,
+    this.onJoinNow,
+    this.onVote,
+  });
+
+  final ComboEntity comboModel;
+  final VoidCallback? onStartNow;
+  final VoidCallback? onJoinNow;
+  final VoidCallback? onVote;
+
+  @override
+  State<SingleLivestreamCard> createState() => _SingleLivestreamCardState();
+}
+
+class _SingleLivestreamCardState extends State<SingleLivestreamCard> {
+  String? countDown = "00hr: 00mins : 00secs";
+  Timer? _timer;
+
+  @override
+  void initState() {
+    _timer = Timer.periodic((Duration(seconds: 1)), (timer) {
+      final now = DateTime.now();
+      final remainingTime = DateFormat("yyyy-MM-dd HH:mm:ss")
+          .parse(widget.comboModel.start ?? '', true)
+          .toLocal()
+          .difference(now);
+      if (mounted) {
+        if (remainingTime.isNegative || remainingTime.inSeconds == 0) {
+          setState(() {
+            countDown = "00hr : 00mins : 00secs";
+          });
+          timer.cancel();
+        } else {
+          setState(() {
+            countDown =
+                "${remainingTime.inHours}hr: ${remainingTime.inMinutes % 60}mins : ${remainingTime.inSeconds % 60}secs";
+          });
+        }
+      }
+    });
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isHost = profileModelG?.pid == widget.comboModel.host?.profile;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF464747)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              ThemeButton(
+                height: 24,
+                width: 74,
+                radius: 8,
+                color: getFigmaColor("E77D00", 50),
+                child: Text(
+                  widget.comboModel.status ?? "",
+                  style: TextStyle(
+                    color: getFigmaColor("FFB500"),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                "Starts in:",
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 10,
+                  color: Colors.white.withAlpha(200),
+                  fontFamily: 'Geist',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                countDown ?? "",
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Geist',
+                ),
+              ),
+            ],
+          ),
+          SizedBox(
+            height: 150,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  widget.comboModel.host?.avatarConvert != null
+                      ? Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                            image: DecorationImage(
+                              image: MemoryImage(
+                                  widget.comboModel.host!.avatarConvert!),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        )
+                      : CustomImageView(
+                          imagePath: widget.comboModel.host?.avatar,
+                          height: 45,
+                          width: 45,
+                        ),
+                  const SizedBox(height: 5),
+                  Text(widget.comboModel.host?.username ?? ''),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Buttons based on host/spectator
+          if (isHost)
+            // Host sees: Start now button
+            GestureDetector(
+              onTap: widget.onStartNow,
+              child: Container(
+                height: 40,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  color: getFigmaColor("006FCD"),
+                ),
+                alignment: Alignment.center,
+                child: const Text(
+                  "Start now",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+              ),
+            )
+          else
+            // Spectators see: Join now and Vote buttons side by side
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: widget.onJoinNow,
+                    child: Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        color: getFigmaColor("006FCD"),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text(
+                        "Join now",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: widget.onVote,
+                    child: Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        color: getFigmaColor("4F6B25"),
+                        border: Border.all(color: getFigmaColor('BCFF59')),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text(
+                        "Vote",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          const SizedBox(height: 10),
+          // Brag info button
+          Container(
+            height: 34,
+            width: 100,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: Colors.white24),
+            ),
+            alignment: Alignment.center,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.info_outline,
+                  color: Colors.white70,
+                  size: 16,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  "Brag info",
+                  style: TextStyle(
+                    color: Colors.white.withAlpha(180),
+                    fontSize: 13,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

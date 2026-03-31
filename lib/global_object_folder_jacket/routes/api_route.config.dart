@@ -46,6 +46,7 @@ class MyAppRouteConstant {
       '/liveComboAboutToRecieveScreen';
   static const String liveComboScreen = '/liveComboScreen';
   static const String liveComboThreeImageScreen = '/liveComboThreeImageScreen';
+
   static const String singleLiveStream = '/singleLiveStream';
   static const String liveComboTwoImageScreen = '/liveComboTwoImageScreen';
   static const String userChoiceScreen = '/userChoiceScreen';
@@ -82,6 +83,8 @@ class MyAppRouteConstant {
   static const String liveChallengeDetailPage = '/liveChallengeDetailPage';
   static const String upcomingChallengeDetailPage =
       '/upcomingChallengeDetailPage';
+  static const String singleLivestreamDetailPage =
+      '/singleLivestreamDetailPage';
 
   // upcomingChallengeDetailPage
   static const String giftCoin = '/walletGiftCoin';

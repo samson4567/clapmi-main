@@ -18,6 +18,8 @@ import 'package:clapmi/screens/challenge/widgets/Animated/animated.dart';
 import 'package:clapmi/screens/challenge/others/widgets/live_buy_point_button.dart';
 import 'package:clapmi/core/utils.dart';
 import 'package:clapmi/screens/challenge/widgets/buildImage2.dart';
+import 'package:intl/intl.dart';
+import 'package:clapmi/screens/challenge/widgets/gift_live_coin.dart';
 import 'package:clapmi/screens/challenge/widgets/challenge_box_rep.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
@@ -186,12 +188,56 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                                 .map(
                                   (comboModel) => GestureDetector(
                                     onTap: () {
-                                      context.pushNamed(
-                                        MyAppRouteConstant.startOrjoin,
-                                        extra: comboModel,
-                                      );
+                                      if (comboModel.type == 'single') {
+                                        context.pushNamed(
+                                          MyAppRouteConstant
+                                              .singleLivestreamDetailPage,
+                                          extra: comboModel,
+                                        );
+                                      } else {
+                                        context.pushNamed(
+                                          MyAppRouteConstant.startOrjoin,
+                                          extra: comboModel,
+                                        );
+                                      }
                                     },
-                                    child: Buildimage2(comboModel: comboModel),
+                                    child: comboModel.challenger == null
+                                        ? SingleLivestreamCard(
+                                            comboModel: comboModel,
+                                            onStartNow: () {
+                                              context.pushNamed(
+                                                MyAppRouteConstant
+                                                    .singleLivestreamDetailPage,
+                                                extra: comboModel,
+                                              );
+                                            },
+                                            onJoinNow: () {
+                                              context.pushNamed(
+                                                MyAppRouteConstant
+                                                    .singleLivestreamDetailPage,
+                                                extra: comboModel,
+                                              );
+                                            },
+                                            onVote: () {
+                                              showModalBottomSheet(
+                                                  context: context,
+                                                  backgroundColor: Colors.black,
+                                                  isScrollControlled: true,
+                                                  builder: (context) {
+                                                    return GiftLiveCoin(
+                                                      host: comboModel.host,
+                                                      challenger: null,
+                                                      comboId:
+                                                          comboModel.combo ??
+                                                              '',
+                                                      contextType: 'standard',
+                                                      onGoingComboId: '',
+                                                      isLiveOngoing: false,
+                                                    );
+                                                  });
+                                            },
+                                          )
+                                        : Buildimage2(comboModel: comboModel),
                                   ),
                                 )
                                 .toList(),
@@ -263,6 +309,21 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
 
   ComboEntity? theComboEntity;
   bool _hasSelectedLiveType = false;
+
+  /// Parse start time string to Duration
+  Duration _parseStartToDuration(String start) {
+    try {
+      // Parse as UTC and convert to local (same as Buildimage2)
+      final startTime =
+          DateFormat("yyyy-MM-dd HH:mm:ss").parse(start, true).toLocal();
+      final now = DateTime.now();
+      final difference = startTime.difference(now);
+      return difference.isNegative ? Duration.zero : difference;
+    } catch (e) {
+      return Duration.zero;
+    }
+  }
+
   bool _isInstantLive = true;
 
   /// Parse offset string to minutes

@@ -37,6 +37,7 @@ import 'package:clapmi/screens/challenge/others/Live_combo_about_to_recieve.dart
 import 'package:clapmi/screens/challenge/others/Live_combo_three_image_present.dart';
 import 'package:clapmi/screens/challenge/start_join_challenge_screen.dart';
 import 'package:clapmi/screens/challenge/upcoming_challenge_detail_page.dart';
+import 'package:clapmi/screens/challenge/single_livestream_detail_page.dart';
 import 'package:clapmi/screens/chatsection/chat_page.dart';
 import 'package:clapmi/screens/chatsection/chat_page_for_group.dart';
 import 'package:clapmi/screens/chatsection/chats_list_page.dart';
@@ -161,6 +162,14 @@ final GoRouter router = GoRouter(
             host: params["host"] as ProfileModel,
             challenge: params["challenge"] as BragChallengersModel,
             postId: params["postId"] as String,
+          );
+        }),
+    GoRoute(
+        name: MyAppRouteConstant.singleLivestreamDetailPage,
+        path: MyAppRouteConstant.singleLivestreamDetailPage,
+        builder: (context, state) {
+          return SingleLivestreamDetailPage(
+            comboEntity: state.extra as ComboEntity,
           );
         }),
 // UpcomingChallengeDetailPage
