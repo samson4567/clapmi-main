@@ -76,9 +76,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await result.fold(
       (error) {
         print('dfghjkl${error.moreInformation}');
+        final errorMap = error.moreInformation is Map<String, dynamic>
+            ? error.moreInformation as Map<String, dynamic>
+            : <String, dynamic>{"theMessage": error.message};
         emit(UserLoginErrorState(
-            errorMessage:
-                error.moreInformation ?? {"theMessage": error.message}));
+            errorMessage: errorMap));
       },
       (data) async {
         appBloc.add(
@@ -283,8 +285,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final result = await authenticationRepository.signUpwithGoogle();
     await authenticationRepository.setInitialLoginStatus(false);
     result.fold(
-      (error) =>
-          emit(UserLoginErrorState(errorMessage: error.moreInformation ?? {})),
+      (error) {
+        final errorMap = error.moreInformation is Map<String, dynamic>
+            ? error.moreInformation as Map<String, dynamic>
+            : <String, dynamic>{"theMessage": error.message};
+        emit(UserLoginErrorState(errorMessage: errorMap));
+      },
       (data) async {
         isLoggedIn = true;
         appBloc.add(

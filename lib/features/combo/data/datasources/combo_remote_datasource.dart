@@ -161,7 +161,6 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
       options: requestOptions,
       data: {
         'combo': comboID,
-        'device_id': deviceId,
       },
     );
     
@@ -183,7 +182,6 @@ class ComboRemoteDatasourceImpl implements ComboRemoteDatasource {
       options: requestOptions,
       data: {
         'combo': comboID,
-        'device_id': deviceId,
       },
     );
     

@@ -3,7 +3,7 @@ abstract class AppException implements Exception {
       {required this.message, this.description, this.moreInformation});
   final String message;
   final String? description;
-  final Map<String, dynamic>? moreInformation;
+  final Object? moreInformation;
 }
 
 class NetworkException extends AppException {

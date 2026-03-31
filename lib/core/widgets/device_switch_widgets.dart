@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:clapmi/features/combo/presentation/blocs/combo_bloc/combo_bloc.dart';
 import 'package:clapmi/features/combo/presentation/blocs/combo_bloc/combo_state.dart';
-import 'package:flutter/foundation.dart';
 
 /// Widget to display device switch and companion mode options
 /// This can be added to the livestream screen's settings menu or overlay
@@ -47,7 +47,9 @@ class DeviceSwitchMenu extends StatelessWidget {
               const Icon(Icons.swap_horiz, size: 20),
               const SizedBox(width: 12),
               Text(
-                isStreaming ? 'Switch to Another Device' : 'Start Streaming on This Device',
+                isStreaming
+                    ? 'Switch to Another Device'
+                    : 'Start Streaming on This Device',
                 style: const TextStyle(fontSize: 14),
               ),
             ],
@@ -194,7 +196,7 @@ class CompanionModeIndicator extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.8),
+        color: Colors.blue.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(20),
       ),
       child: const Row(
@@ -234,7 +236,7 @@ class PrimaryDeviceIndicator extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.8),
+        color: Colors.green.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -323,6 +325,114 @@ void showDeviceSwitchSuccess(BuildContext context, String message) {
     SnackBar(
       content: Text(message),
       backgroundColor: Colors.green,
+    ),
+  );
+}
+
+/// Widget to display device switch error with SVG image
+class DeviceSwitchErrorWidget extends StatelessWidget {
+  final String errorMessage;
+  final VoidCallback? onRetry;
+  final VoidCallback? onDismiss;
+
+  const DeviceSwitchErrorWidget({
+    super.key,
+    required this.errorMessage,
+    this.onRetry,
+    this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Error SVG image
+          SvgPicture.asset(
+            'assets/images/devices_switch_error.svg',
+            width: 120,
+            height: 120,
+          ),
+          const SizedBox(height: 16),
+          // Error title
+          const Text(
+            'Device Switch Failed',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Error message
+          Text(
+            errorMessage,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Action buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              if (onDismiss != null)
+                TextButton(
+                  onPressed: onDismiss,
+                  child: const Text('Dismiss'),
+                ),
+              if (onRetry != null)
+                ElevatedButton(
+                  onPressed: onRetry,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Retry'),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Helper function to show device switch error dialog with SVG
+void showDeviceSwitchErrorDialog(
+  BuildContext context, {
+  required String errorMessage,
+  VoidCallback? onRetry,
+  VoidCallback? onDismiss,
+}) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: DeviceSwitchErrorWidget(
+        errorMessage: errorMessage,
+        onRetry: onRetry,
+        onDismiss: onDismiss ?? () => Navigator.pop(context),
+      ),
     ),
   );
 }

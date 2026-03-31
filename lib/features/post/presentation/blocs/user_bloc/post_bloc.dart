@@ -167,11 +167,17 @@ class PostBloc extends Bloc<PostEvent, PostState> {
         singlecomboModel: event.singlecomboModel);
 
     result.fold((error) {
-      print(
-          "This is the error message coming ${error.moreInformation?["duration"][0]}");
+      final moreInfo = error.moreInformation;
+      final errorMap =
+          moreInfo is Map<String, dynamic> ? moreInfo : <String, dynamic>{};
+      final durationErrors = errorMap['duration'];
+      final errorMessage = durationErrors is List && durationErrors.isNotEmpty
+          ? durationErrors.first.toString()
+          : error.message;
+      print("This is the error message coming $errorMessage");
 
       emit(SingleCreateComboErrorState(
-          errorMessage: error.moreInformation?['duration'][0]));
+          errorMessage: errorMessage));
     }, (message) {
       emit(
         SingleCreateComboSuccessState(message: message),

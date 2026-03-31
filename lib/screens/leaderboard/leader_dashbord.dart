@@ -184,7 +184,84 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCreatorLeaderboard();
+    final hydratedFromBloc = _hydrateFromCurrentBlocState();
+    if (!hydratedFromBloc) {
+      _loadCreatorLeaderboard();
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  bool _hydrateFromCurrentBlocState() {
+    final currentState = context.read<UserBloc>().state;
+
+    if (currentState is GetCreatorLeaderboardLoadingState &&
+        _matchesLeaderboardRequest(
+          levelName: currentState.levelName,
+          page: currentState.page,
+          timeFilter: currentState.timeFilter,
+          creator: currentState.creator,
+        )) {
+      _isLoading = true;
+      _error = null;
+      return true;
+    }
+
+    if (currentState is GetCreatorLeaderboardSuccessState &&
+        _matchesLeaderboardRequest(
+          levelName: currentState.levelName,
+          page: currentState.page,
+          timeFilter: currentState.timeFilter,
+          creator: currentState.creator,
+        )) {
+      _applyLeaderboardResponse(currentState.response);
+      return true;
+    }
+
+    if (currentState is GetCreatorLeaderboardErrorState &&
+        _matchesLeaderboardRequest(
+          levelName: currentState.levelName,
+          page: currentState.page,
+          timeFilter: currentState.timeFilter,
+          creator: currentState.creator,
+        )) {
+      _error = currentState.errorMessage;
+      _isLoading = false;
+      return true;
+    }
+
+    return false;
+  }
+
+  bool _matchesLeaderboardRequest({
+    required String? levelName,
+    required int page,
+    required String timeFilter,
+    required String? creator,
+  }) {
+    return creator == null &&
+        levelName == _getApiLevelName(_selectedLevel) &&
+        page == _currentPage &&
+        timeFilter == _selectedTimeFilter;
+  }
+
+  void _applyLeaderboardResponse(CreatorLeaderboardResponse response) {
+    final rankings = response.data.rankings;
+    final currentUserPid = profileModelG?.pid;
+    final currentUserIndex = currentUserPid == null
+        ? -1
+        : rankings.indexWhere((ranking) => ranking.creatorPid == currentUserPid);
+
+    _creatorRankings = rankings;
+    _totalPages = response.data.pagination.lastPage;
+    _currentUserRanking =
+        currentUserIndex >= 0 ? rankings[currentUserIndex] : null;
+    _error = null;
+    _isLoading = false;
   }
 
   void _loadCreatorLeaderboard() {
@@ -213,9 +290,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           print(
               'Success state received with ${state.response.data.rankings.length} rankings');
           setState(() {
-            _creatorRankings = state.response.data.rankings;
-            _totalPages = state.response.data.pagination.lastPage;
-            _isLoading = false;
+            _applyLeaderboardResponse(state.response);
           });
         } else if (state is GetCreatorLeaderboardErrorState) {
           print('Error state received: ${state.errorMessage}');

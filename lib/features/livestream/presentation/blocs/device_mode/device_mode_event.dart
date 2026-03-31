@@ -61,15 +61,17 @@ class DeviceSwitchReadyReceived extends DeviceModeEvent {
   final String roomId;
   final List<dynamic> producers;
   final Map<String, dynamic> routerRtpCapabilities;
+  final String creatorDevice;
 
   const DeviceSwitchReadyReceived({
     required this.roomId,
     required this.producers,
     required this.routerRtpCapabilities,
+    required this.creatorDevice,
   });
 
   @override
-  List<Object?> get props => [roomId, producers, routerRtpCapabilities];
+  List<Object?> get props => [roomId, producers, routerRtpCapabilities, creatorDevice];
 }
 
 /// Device switch requested received (OLD device)
@@ -91,15 +93,17 @@ class CompanionJoinedReceived extends DeviceModeEvent {
   final String roomId;
   final List<dynamic> producers;
   final Map<String, dynamic> routerRtpCapabilities;
+  final String creatorDevice;
 
   const CompanionJoinedReceived({
     required this.roomId,
     required this.producers,
     required this.routerRtpCapabilities,
+    required this.creatorDevice,
   });
 
   @override
-  List<Object?> get props => [roomId, producers, routerRtpCapabilities];
+  List<Object?> get props => [roomId, producers, routerRtpCapabilities, creatorDevice];
 }
 
 /// Reset device mode state

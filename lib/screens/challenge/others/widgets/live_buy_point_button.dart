@@ -484,13 +484,20 @@ class _InitialVariant extends StatelessWidget {
         clipBehavior: Clip.none,
         alignment: Alignment.topCenter,
         children: [
+          // SVG Background
+          Positioned.fill(
+            child: SvgPicture.asset(
+              'assets/icons/dee.svg',
+              width: 365,
+              height: 271,
+            ),
+          ),
           // Background
           Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF0D0E0E),
-                borderRadius: BorderRadius.circular(16),
-              ),
+            child: SvgPicture.asset(
+              'assets/icons/dee.svg',
+              width: 365,
+              height: 271,
             ),
           ),
 
@@ -558,7 +565,7 @@ class _InitialVariant extends StatelessWidget {
                 ],
               ),
               child: SvgPicture.asset(
-                'assets/icons/video.svg',
+                'assets/icons/vidis.svg',
                 width: 96,
                 height: 96,
               ),
@@ -601,10 +608,20 @@ class _ConfirmVariant extends StatelessWidget {
         children: [
           // Background
           Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF0D0E0E),
-                borderRadius: BorderRadius.circular(16),
+            child: Positioned.fill(
+              child: SvgPicture.asset(
+                'assets/icons/dee.svg',
+                width: 365,
+                height: 271,
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Positioned.fill(
+              child: SvgPicture.asset(
+                'assets/icons/dee.svg',
+                width: 365,
+                height: 271,
               ),
             ),
           ),
@@ -620,7 +637,7 @@ class _ConfirmVariant extends StatelessWidget {
                   Row(
                     children: [
                       SvgPicture.asset(
-                        'assets/icons/video.svg',
+                        'assets/icons/vidis.svg',
                         width: 52,
                         height: 52,
                       ),

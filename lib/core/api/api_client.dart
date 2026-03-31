@@ -338,16 +338,20 @@ abstract class ApiClient<T> {
           print("This is the response data format ${response.data}");
 
           if (responseData is Map<String, dynamic>) {
-            //  if (responseData['error'] is Map<String, dynamic>) {
-            //   errorMapMessage['error'] = responseData['error']['password'];
-            // }
-            errorMessage = responseData['message'] ?? errorMessage;
-            try {
-              errorMessage =
-                  (responseData['errors'] as Map?)?.values.join('\n') as String;
+            errorMessage = responseData['message']?.toString() ?? errorMessage;
+
+            final errors = responseData['errors'];
+            if (errors is Map && errors.isNotEmpty) {
+              errorMessage = errors.values
+                  .map((value) => value.toString())
+                  .join('\n');
               print(
                   "This is the error form sent to the frontend ----$errorMessage");
-            } catch (e) {}
+            } else if (errors is List && errors.isNotEmpty) {
+              errorMessage = errors.map((value) => value.toString()).join('\n');
+              print(
+                  "This is the error form sent to the frontend ----$errorMessage");
+            }
           }
 
           if (statusCode != null) {
@@ -361,7 +365,11 @@ abstract class ApiClient<T> {
                     moreInformation: responseData['errors']);
               case 404:
               case 400:
-                if (responseData['errors'].isEmpty) {
+                final errors = responseData['errors'];
+                final hasNoErrors = errors == null ||
+                    (errors is List && errors.isEmpty) ||
+                    (errors is Map && errors.isEmpty);
+                if (hasNoErrors) {
                   errorMessage = responseData['message'];
                 }
                 throw BadRequestException(message: errorMessage);

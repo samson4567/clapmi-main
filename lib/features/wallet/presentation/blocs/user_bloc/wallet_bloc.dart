@@ -188,8 +188,16 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
     );
 
     result.fold(
-      (error) =>
-          emit(GiftUserErrorState(error.moreInformation?['password'][0] ?? '')),
+      (error) {
+        final moreInfo = error.moreInformation;
+        final errorMap =
+            moreInfo is Map<String, dynamic> ? moreInfo : <String, dynamic>{};
+        final passwordErrors = errorMap['password'];
+        final message = passwordErrors is List && passwordErrors.isNotEmpty
+            ? passwordErrors.first.toString()
+            : error.message;
+        emit(GiftUserErrorState(message));
+      },
       // Also fix this state name
       (message) => emit(GiftUserSuccessState(message)),
     );

@@ -10,11 +10,28 @@ import 'package:clapmi/features/livestream/presentation/blocs/recording/recordin
 import 'package:clapmi/features/livestream/presentation/widgets/record_started_notification.dart';
 import 'package:clapmi/features/livestream/presentation/widgets/download_file_container.dart';
 import 'package:clapmi/features/livestream/presentation/widgets/confirm_variant.dart';
-import 'package:clapmi/screens/challenge/others/widgets/live_buy_point_button.dart' show ClapLiveStreamButton, BuyPointButton, GiftLiveButton, LiveInteractionButton, SpectatorsInteractionButton, buttonWidget, BoostSuccessWidget, PopRecord, PopRecordVariant, SingleLiveScheduler;
+import 'package:clapmi/screens/challenge/others/widgets/live_buy_point_button.dart'
+    show
+        ClapLiveStreamButton,
+        BuyPointButton,
+        GiftLiveButton,
+        LiveInteractionButton,
+        SpectatorsInteractionButton,
+        buttonWidget,
+        BoostSuccessWidget,
+        PopRecord,
+        PopRecordVariant,
+        SingleLiveScheduler;
+import 'package:clapmi/core/services/device_service.dart';
+import 'package:clapmi/core/utils/device_switch_helper.dart';
+import 'package:clapmi/core/widgets/device_switch_widgets.dart';
 import 'package:clapmi/features/chats_and_socials/domain/entities/live_reactions_entities.dart';
 import 'package:clapmi/features/chats_and_socials/presentation/blocs/user_bloc/chats_and_socials_bloc.dart';
 import 'package:clapmi/features/chats_and_socials/presentation/blocs/user_bloc/chats_and_socials_event.dart';
 import 'package:clapmi/features/chats_and_socials/presentation/blocs/user_bloc/chats_and_socials_state.dart';
+import 'package:clapmi/features/combo/presentation/blocs/combo_bloc/combo_bloc.dart';
+import 'package:clapmi/features/combo/presentation/blocs/combo_bloc/combo_event.dart';
+import 'package:clapmi/features/combo/presentation/blocs/combo_bloc/combo_state.dart';
 import 'package:clapmi/features/combo/domain/entities/combo_entity.dart';
 import 'package:clapmi/global_object_folder_jacket/global_functions/global_functions.dart';
 import 'package:clapmi/screens/challenge/others/Single_livestream.dart';
@@ -115,6 +132,20 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
   StreamSubscription? internetSubscription;
   bool isMobile = false;
   String mobilePlatForm = '';
+  final DeviceSwitchHelper _deviceSwitchHelper = DeviceSwitchHelper();
+  final DeviceService _deviceService = DeviceService();
+  DeviceRole _deviceRole = DeviceRole.primary;
+  String? _currentDeviceId;
+  String? _pendingSwitchMessage;
+  String? _pendingSwitchDevice;
+  bool _isDeviceActionInProgress = false;
+
+  bool get _isCreatorDevice =>
+      role == 'host' || role == 'challenger';
+  bool get _canBroadcastFromThisDevice =>
+      _isCreatorDevice &&
+      _deviceRole != DeviceRole.companion &&
+      _deviceRole != DeviceRole.spectator;
 
   // ─────────────────────────────────────────────
   // SOCKET CONNECTION
@@ -134,7 +165,7 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
       debugPrint("✅ Connected to SFU Server");
       socket?.off('new-producer');
 
-      if (role == 'host' || role == 'challenger') {
+      if (_canBroadcastFromThisDevice) {
         socket?.emitWithAck(
           'check-room',
           {'roomId': roomId},
@@ -171,7 +202,7 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
       final producers = transport['producers'];
       await loadDevice(routerCapabilities);
 
-      if (role == 'host' || role == 'challenger') {
+      if (_canBroadcastFromThisDevice) {
         debugPrint("creating send transport------------- $role");
         await createSendTransport(roomId, role);
       }
@@ -183,7 +214,7 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
         });
 
         // Show PopRecord dialog for host/challenger to prompt recording
-        if (role == 'host' || role == 'challenger') {
+        if (_canBroadcastFromThisDevice) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             showDialog(
               context: context,
@@ -327,6 +358,238 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
     roomId = widget.comboInfo.combo ?? widget.comboId;
   }
 
+  Future<void> _initializeDeviceSwitch() async {
+    _deviceSwitchHelper.initialize(
+      onDeviceSwitchRequested: (data) {
+        if (data.oldDeviceId.isNotEmpty &&
+            _currentDeviceId != null &&
+            data.oldDeviceId != _currentDeviceId) {
+          return;
+        }
+        if (!mounted) return;
+        setState(() {
+          _pendingSwitchMessage = data.message;
+          _pendingSwitchDevice = data.newDevice;
+        });
+      },
+      onDeviceSwitchReady: (data) async {
+        await _enterPrimaryMode(showFeedback: false);
+        if (mounted) {
+          showDeviceSwitchSuccess(
+            context,
+            'This device is ready to continue the livestream.',
+          );
+        }
+      },
+      onCompanionJoined: (data) {
+        if (!mounted) return;
+        showDeviceSwitchSuccess(
+          context,
+          'Companion device connected successfully.',
+        );
+      },
+      onConnectionChanged: (connected) {
+        if (!mounted || connected) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Device sync disconnected. Reopen the menu to retry.'),
+          ),
+        );
+      },
+    );
+
+    _currentDeviceId = await _deviceService.getDeviceId();
+    final savedRole = await _deviceService.getDeviceRole();
+    if (mounted) {
+      setState(() {
+        _deviceRole = savedRole;
+      });
+    }
+
+    final currentUserId = profileModelG?.pid;
+    if (currentUserId != null && roomId.isNotEmpty) {
+      await _deviceSwitchHelper.connect(roomId, currentUserId);
+    }
+  }
+
+  Future<void> _ensureDeviceSwitchConnection() async {
+    final currentUserId = profileModelG?.pid;
+    if (currentUserId == null || roomId.isEmpty) {
+      throw Exception('Missing livestream room or user information.');
+    }
+    await _deviceSwitchHelper.connect(roomId, currentUserId);
+  }
+
+  Future<void> _enterPrimaryMode({bool showFeedback = true}) async {
+    await _deviceService.setDeviceRole(DeviceRole.primary);
+    if (_sendTransport == null &&
+        socket?.connected == true &&
+        device != null &&
+        _isCreatorDevice) {
+      await createSendTransport(roomId, role);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _deviceRole = DeviceRole.primary;
+    });
+
+    if (showFeedback) {
+      showDeviceSwitchSuccess(context, 'This device is now your streaming device.');
+    }
+  }
+
+  Future<void> _enterCompanionMode() async {
+    await _deviceService.setDeviceRole(DeviceRole.companion);
+    _stopBroadcastingOnCurrentDevice();
+
+    if (!mounted) return;
+    setState(() {
+      _deviceRole = DeviceRole.companion;
+    });
+
+    showDeviceSwitchSuccess(
+      context,
+      'Companion mode enabled. This device is now receive-only.',
+    );
+  }
+
+  Future<void> _enterSpectatorModeAfterSwitch() async {
+    await _deviceService.setDeviceRole(DeviceRole.spectator);
+    _stopBroadcastingOnCurrentDevice();
+
+    if (!mounted) return;
+    setState(() {
+      _deviceRole = DeviceRole.spectator;
+      _pendingSwitchMessage = null;
+      _pendingSwitchDevice = null;
+    });
+
+    showDeviceSwitchSuccess(
+      context,
+      'Livestream controls moved to your other device.',
+    );
+  }
+
+  void _stopBroadcastingOnCurrentDevice() {
+    if (isLocalUserScreenShared || screenshareRender?.srcObject != null) {
+      stopScreenShare();
+    }
+    if (isVideoOn) {
+      disableCamera();
+    }
+    if (isAudioOn) {
+      disableMic();
+    }
+    _sendTransport?.close();
+    _sendTransport = null;
+  }
+
+  Future<void> _requestDeviceSwitch() async {
+    if (_isDeviceActionInProgress) return;
+    try {
+      setState(() {
+        _isDeviceActionInProgress = true;
+      });
+      context.read<ComboBloc>().add(
+            SwitchDeviceEvent(
+              comboID: widget.comboId,
+              deviceId: _currentDeviceId ?? await _deviceService.getDeviceId(),
+            ),
+          );
+    } catch (e) {
+      if (!mounted) return;
+      showDeviceSwitchError(context, 'Unable to request device switch: $e');
+      setState(() {
+        _isDeviceActionInProgress = false;
+      });
+    }
+  }
+
+  Future<void> _requestCompanionMode() async {
+    if (_isDeviceActionInProgress) return;
+    try {
+      setState(() {
+        _isDeviceActionInProgress = true;
+      });
+      context.read<ComboBloc>().add(
+            JoinCompanionEvent(
+              comboID: widget.comboId,
+              deviceId: _currentDeviceId ?? await _deviceService.getDeviceId(),
+            ),
+          );
+    } catch (e) {
+      if (!mounted) return;
+      showDeviceSwitchError(context, 'Unable to start companion mode: $e');
+      setState(() {
+        _isDeviceActionInProgress = false;
+      });
+    }
+  }
+
+  Future<void> _handleSwitchDeviceSuccess(SwitchDeviceSuccessState state) async {
+    try {
+      await _ensureDeviceSwitchConnection();
+      await _deviceSwitchHelper.initiateDeviceSwitch();
+      await _enterPrimaryMode(showFeedback: false);
+
+      if (!mounted) return;
+      setState(() {
+        _isDeviceActionInProgress = false;
+      });
+
+      showDeviceSwitchSuccess(
+        context,
+        state.result.message ?? 'Device switch request sent.',
+      );
+    } catch (e) {
+      _handleDeviceActionError('Unable to complete device switch: $e');
+    }
+  }
+
+  Future<void> _handleCompanionSuccess(JoinCompanionSuccessState state) async {
+    try {
+      await _ensureDeviceSwitchConnection();
+      await _deviceSwitchHelper.joinAsCompanion();
+      await _enterCompanionMode();
+
+      if (!mounted) return;
+      setState(() {
+        _isDeviceActionInProgress = false;
+      });
+
+      showDeviceSwitchSuccess(
+        context,
+        state.result.message ?? 'Companion mode request sent.',
+      );
+    } catch (e) {
+      _handleDeviceActionError('Unable to enable companion mode: $e');
+    }
+  }
+
+  void _handleDeviceActionError(String message) {
+    if (!mounted) return;
+    setState(() {
+      _isDeviceActionInProgress = false;
+    });
+
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    scaffoldMessenger.hideCurrentSnackBar();
+    scaffoldMessenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'OK',
+          textColor: Colors.white,
+          onPressed: scaffoldMessenger.hideCurrentSnackBar,
+        ),
+      ),
+    );
+  }
+
   // ─────────────────────────────────────────────
   // COUNTDOWN TIMER
   // ─────────────────────────────────────────────
@@ -402,7 +665,8 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
       });
     }
 
-    initRenderers().then((_) {
+    initRenderers().then((_) async {
+      await _initializeDeviceSwitch();
       connect();
     });
 
@@ -435,6 +699,7 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
     socket?.dispose();
     _scrollController.dispose();
     _newCommentTimer?.cancel();
+    _deviceSwitchHelper.dispose();
     _sendTransport?.close();
     _recvTransport?.close();
     renderer?.dispose();
@@ -456,7 +721,24 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
   // ─────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return DeviceSwitchBlocListener(
+      onSwitchDeviceSuccess: (state) {
+        _handleSwitchDeviceSuccess(state as SwitchDeviceSuccessState);
+      },
+      onSwitchDeviceError: (state) {
+        _handleDeviceActionError(
+          (state as SwitchDeviceErrorState).errorMessage,
+        );
+      },
+      onCompanionSuccess: (state) {
+        _handleCompanionSuccess(state as JoinCompanionSuccessState);
+      },
+      onCompanionError: (state) {
+        _handleDeviceActionError(
+          (state as JoinCompanionErrorState).errorMessage,
+        );
+      },
+      child: Scaffold(
       resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Stack(
@@ -827,6 +1109,45 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                                       buildTimerCapsule(timerCountdown ?? ''),
                                 ),
                               ),
+                              if (_isCreatorDevice)
+                                Positioned(
+                                  top: 100.h,
+                                  right: 16.w,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      if (_deviceRole == DeviceRole.primary)
+                                        PrimaryDeviceIndicator(
+                                          deviceType: 'mobile',
+                                        ),
+                                      if (_deviceRole == DeviceRole.companion)
+                                        const CompanionModeIndicator(),
+                                      const SizedBox(height: 8),
+                                      DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.55),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                        ),
+                                        child: IgnorePointer(
+                                          ignoring: _isDeviceActionInProgress,
+                                          child: DeviceSwitchMenu(
+                                            comboId: widget.comboId,
+                                            userId: profileModelG?.pid ?? '',
+                                            isStreaming:
+                                                _canBroadcastFromThisDevice,
+                                            onSwitchDevice: () {
+                                              _requestDeviceSwitch();
+                                            },
+                                            onJoinAsCompanion: () {
+                                              _requestCompanionMode();
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               if (widget.comboInfo.type == "multiple" ||
                                   isComboOngoingNow == true)
                                 Positioned(
@@ -923,6 +1244,25 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                                         ),
                                       ),
                                     ),
+                                  ),
+                                ),
+                              if (_pendingSwitchMessage != null)
+                                Positioned(
+                                  top: 210.h,
+                                  left: 16.w,
+                                  right: 16.w,
+                                  child: DeviceSwitchNotification(
+                                    newDevice: _pendingSwitchDevice ?? '',
+                                    message: _pendingSwitchMessage!,
+                                    onAccept: () {
+                                      _enterSpectatorModeAfterSwitch();
+                                    },
+                                    onReject: () {
+                                      setState(() {
+                                        _pendingSwitchMessage = null;
+                                        _pendingSwitchDevice = null;
+                                      });
+                                    },
                                   ),
                                 ),
                               // BOTTOM SECTION WITH COMMENTS AND BUTTONS
@@ -1036,6 +1376,8 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                                                 });
                                           }
                                         },
+                                        forceSpectatorControls:
+                                            !_canBroadcastFromThisDevice,
                                       ),
                                     ],
                                   ),
@@ -1052,7 +1394,7 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
           ],
         ),
       ),
-    );
+    ));
   }
 
   // ─────────────────────────────────────────────

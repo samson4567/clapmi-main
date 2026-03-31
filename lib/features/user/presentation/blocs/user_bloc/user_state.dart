@@ -8,7 +8,7 @@ sealed class UserState extends Equatable {
   const UserState();
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 final class UserInitial extends UserState {
@@ -132,25 +132,64 @@ final class GetUserDetailsErrorState extends UserState {
 
 // Creator Leaderboard States
 final class GetCreatorLeaderboardLoadingState extends UserState {
-  const GetCreatorLeaderboardLoadingState();
+  final String? levelName;
+  final int page;
+  final String timeFilter;
+  final String? creator;
+
+  const GetCreatorLeaderboardLoadingState({
+    this.levelName,
+    this.page = 1,
+    this.timeFilter = 'all',
+    this.creator,
+  });
+
+  @override
+  List<Object?> get props => [levelName, page, timeFilter, creator];
 }
 
 final class GetCreatorLeaderboardSuccessState extends UserState {
   final CreatorLeaderboardResponse response;
+  final String? levelName;
+  final int page;
+  final String timeFilter;
+  final String? creator;
 
-  const GetCreatorLeaderboardSuccessState({required this.response});
+  const GetCreatorLeaderboardSuccessState({
+    required this.response,
+    this.levelName,
+    this.page = 1,
+    this.timeFilter = 'all',
+    this.creator,
+  });
 
   @override
-  List<Object> get props => [response];
+  List<Object?> get props => [response, levelName, page, timeFilter, creator];
 }
 
 final class GetCreatorLeaderboardErrorState extends UserState {
   final String errorMessage;
+  final String? levelName;
+  final int page;
+  final String timeFilter;
+  final String? creator;
 
-  const GetCreatorLeaderboardErrorState({required this.errorMessage});
+  const GetCreatorLeaderboardErrorState({
+    required this.errorMessage,
+    this.levelName,
+    this.page = 1,
+    this.timeFilter = 'all',
+    this.creator,
+  });
 
   @override
-  List<Object> get props => [errorMessage];
+  List<Object?> get props => [
+        errorMessage,
+        levelName,
+        page,
+        timeFilter,
+        creator,
+      ];
 }
 
 // Creator Levels States

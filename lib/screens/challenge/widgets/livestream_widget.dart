@@ -35,6 +35,7 @@ class LiveStreamBottomSession extends StatefulWidget {
     required this.onUserClappEvent,
     required this.isLiveOngoing,
     required this.liveChallenger,
+    this.forceSpectatorControls = false,
   });
 
   final Function(LiveGroundComment) sendComment;
@@ -56,6 +57,7 @@ class LiveStreamBottomSession extends StatefulWidget {
   final String bragID;
   final bool isLiveOngoing;
   final LiveGifter? liveChallenger;
+  final bool forceSpectatorControls;
 
   @override
   State<LiveStreamBottomSession> createState() =>
@@ -198,7 +200,8 @@ class _LiveStreamBottomSessionState extends State<LiveStreamBottomSession> {
           ),
           SizedBox(height: 10.h),
           //TODO: to implement isLiveOngoing
-          (widget.isLiveOngoing &&
+          (!widget.forceSpectatorControls &&
+                  widget.isLiveOngoing &&
                   (widget.comboInfo.host?.profile == profileModelG?.pid ||
                       widget.comboInfo.onGoingCombo?.challenger?.profile ==
                           profileModelG?.pid ||
@@ -208,7 +211,8 @@ class _LiveStreamBottomSessionState extends State<LiveStreamBottomSession> {
               //  : SpectatorsInteractionButton(widget: widget),
 
               ///THIS CONDITION IN THE ROW IS TO CHECK IF THE USER IS A HOST OR A CHALLENGER
-              (!widget.isLiveOngoing &&
+              (!widget.forceSpectatorControls &&
+                      !widget.isLiveOngoing &&
                       (widget.comboInfo.host?.profile == profileModelG?.pid ||
                           widget.comboInfo.challenger?.profile ==
                               profileModelG?.pid))

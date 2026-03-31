@@ -86,10 +86,15 @@ class DeviceSwitchHelper {
       return;
     }
     
-    _deviceSwitchService.emitSwitchDevice(
-      roomId: _currentRoomId!,
-      userId: _currentUserId!,
-    );
+    try {
+      _deviceSwitchService.emitSwitchDevice(
+        roomId: _currentRoomId!,
+        userId: _currentUserId!,
+      );
+    } catch (e) {
+      debugPrint('DeviceSwitchHelper: Error initiating device switch: $e');
+      rethrow;
+    }
   }
   
   /// Join as companion device
@@ -99,10 +104,15 @@ class DeviceSwitchHelper {
       return;
     }
     
-    _deviceSwitchService.emitJoinCompanion(
-      roomId: _currentRoomId!,
-      userId: _currentUserId!,
-    );
+    try {
+      _deviceSwitchService.emitJoinCompanion(
+        roomId: _currentRoomId!,
+        userId: _currentUserId!,
+      );
+    } catch (e) {
+      debugPrint('DeviceSwitchHelper: Error joining as companion: $e');
+      rethrow;
+    }
   }
   
   /// Handle device switch requested (call this on OLD device)
@@ -114,14 +124,19 @@ class DeviceSwitchHelper {
   }) async {
     debugPrint('DeviceSwitchHelper: Handling device switch request');
     
-    // Stop all local media tracks
-    stopMedia();
-    
-    // Close transports
-    closeTransports();
-    
-    // Disconnect from Socket.IO
-    disconnect();
+    try {
+      // Stop all local media tracks
+      stopMedia();
+      
+      // Close transports
+      closeTransports();
+      
+      // Disconnect from Socket.IO
+      disconnect();
+    } catch (e) {
+      debugPrint('DeviceSwitchHelper: Error handling device switch request: $e');
+      rethrow;
+    }
   }
   
   /// Handle device switch ready (call this on NEW device after receiving event)
@@ -137,18 +152,23 @@ class DeviceSwitchHelper {
   }) async {
     debugPrint('DeviceSwitchHelper: Handling device switch ready');
     
-    // 1. Load mediasoup device with router capabilities
-    await loadDevice(data.routerRtpCapabilities);
-    
-    // 2. Create transports
-    await createSendTransport();
-    await createRecvTransport();
-    
-    // 3. Produce media (get user media and produce)
-    await produceMedia();
-    
-    // 4. Consume existing producers
-    await consumeExistingProducers(data.producers);
+    try {
+      // 1. Load mediasoup device with router capabilities
+      await loadDevice(data.routerRtpCapabilities);
+      
+      // 2. Create transports
+      await createSendTransport();
+      await createRecvTransport();
+      
+      // 3. Produce media (get user media and produce)
+      await produceMedia();
+      
+      // 4. Consume existing producers
+      await consumeExistingProducers(data.producers);
+    } catch (e) {
+      debugPrint('DeviceSwitchHelper: Error handling device switch ready: $e');
+      rethrow;
+    }
   }
   
   /// Handle companion joined (call this on companion device)
@@ -160,14 +180,19 @@ class DeviceSwitchHelper {
   }) async {
     debugPrint('DeviceSwitchHelper: Handling companion joined');
     
-    // 1. Load mediasoup device
-    await loadDevice(data.routerRtpCapabilities);
-    
-    // 2. Create only receive transport (companions cannot produce)
-    await createRecvTransport();
-    
-    // 3. Consume existing producers
-    await consumeExistingProducers(data.producers);
+    try {
+      // 1. Load mediasoup device
+      await loadDevice(data.routerRtpCapabilities);
+      
+      // 2. Create only receive transport (companions cannot produce)
+      await createRecvTransport();
+      
+      // 3. Consume existing producers
+      await consumeExistingProducers(data.producers);
+    } catch (e) {
+      debugPrint('DeviceSwitchHelper: Error handling companion joined: $e');
+      rethrow;
+    }
   }
   
   /// Call REST API to switch device
@@ -175,12 +200,17 @@ class DeviceSwitchHelper {
     required ComboBloc comboBloc,
     required String comboId,
   }) async {
-    final deviceId = await _deviceService.getDeviceId();
-    
-    comboBloc.add(SwitchDeviceEvent(
-      comboID: comboId,
-      deviceId: deviceId,
-    ));
+    try {
+      final deviceId = await _deviceService.getDeviceId();
+      
+      comboBloc.add(SwitchDeviceEvent(
+        comboID: comboId,
+        deviceId: deviceId,
+      ));
+    } catch (e) {
+      debugPrint('DeviceSwitchHelper: Error calling switch device API: $e');
+      rethrow;
+    }
   }
   
   /// Call REST API to join as companion
@@ -188,12 +218,17 @@ class DeviceSwitchHelper {
     required ComboBloc comboBloc,
     required String comboId,
   }) async {
-    final deviceId = await _deviceService.getDeviceId();
-    
-    comboBloc.add(JoinCompanionEvent(
-      comboID: comboId,
-      deviceId: deviceId,
-    ));
+    try {
+      final deviceId = await _deviceService.getDeviceId();
+      
+      comboBloc.add(JoinCompanionEvent(
+        comboID: comboId,
+        deviceId: deviceId,
+      ));
+    } catch (e) {
+      debugPrint('DeviceSwitchHelper: Error calling join companion API: $e');
+      rethrow;
+    }
   }
   
   /// Get current device ID

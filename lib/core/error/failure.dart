@@ -3,7 +3,7 @@ import 'package:equatable/equatable.dart';
 abstract class Failure extends Equatable {
   final String message;
   final String? description;
-  final Map<String, dynamic>? moreInformation;
+  final Object? moreInformation;
 
   const Failure(
       {required this.message, this.description, this.moreInformation});

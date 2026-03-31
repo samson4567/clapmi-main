@@ -81,8 +81,15 @@ class BragBloc extends Bloc<BragEvent, BragState> {
         await bragRepository.singlechallengeLiveStream(bradID: event.bragID);
 
     result.fold((error) {
+      final moreInfo = error.moreInformation;
+      final errorMap =
+          moreInfo is Map<String, dynamic> ? moreInfo : <String, dynamic>{};
+      final bragErrors = errorMap['brag'];
+      final message = bragErrors is List && bragErrors.isNotEmpty
+          ? bragErrors.first.toString()
+          : error.message;
       emit(SingleLiveStreamChallengeErrorState(
-          errorMessage: error.moreInformation?['brag'][0]));
+          errorMessage: message));
     }, (challengeId) {
       emit(
         SingleLiveStreamChallengeSuccessState(challengeId: challengeId),
@@ -98,7 +105,10 @@ class BragBloc extends Bloc<BragEvent, BragState> {
         isSingleLiveStream: event.isSingleLiveStream);
     result.fold((error) {
       print("${error.toString()}-----");
-      emit(CreateComboErrorState(errorMessage: error.moreInformation ?? {}));
+      final errorMap = error.moreInformation is Map<String, dynamic>
+          ? error.moreInformation as Map<String, dynamic>
+          : <String, dynamic>{"theMessage": error.message};
+      emit(CreateComboErrorState(errorMessage: errorMap));
     }, (message) {
       emit(
         CreateComboSuccessState(message: message),
@@ -192,7 +202,13 @@ class BragBloc extends Bloc<BragEvent, BragState> {
         await bragRepository.acceptChallenge(challengeId: event.challengeId);
     result.fold(
       (failure) {
-        var message = failure.moreInformation?['host'][0];
+        final moreInfo = failure.moreInformation;
+        final errorMap =
+            moreInfo is Map<String, dynamic> ? moreInfo : <String, dynamic>{};
+        final hostErrors = errorMap['host'];
+        final message = hostErrors is List && hostErrors.isNotEmpty
+            ? hostErrors.first.toString()
+            : failure.message;
         emit(AcceptChallengeErrorState(errorMessage: message));
       },
       (success) {
@@ -207,7 +223,13 @@ class BragBloc extends Bloc<BragEvent, BragState> {
     final result =
         await bragRepository.declineChallenge(challengeId: event.challengeId);
     result.fold((failure) {
-      var message = failure.moreInformation?['host'][0];
+      final moreInfo = failure.moreInformation;
+      final errorMap =
+          moreInfo is Map<String, dynamic> ? moreInfo : <String, dynamic>{};
+      final hostErrors = errorMap['host'];
+      final message = hostErrors is List && hostErrors.isNotEmpty
+          ? hostErrors.first.toString()
+          : failure.message;
       emit(AcceptChallengeErrorState(errorMessage: message));
     }, (success) => emit(ChallengeDeclined(message: success)));
   }
@@ -219,11 +241,18 @@ class BragBloc extends Bloc<BragEvent, BragState> {
         challenge: event.challenge);
     result.fold(
       (failure) {
+        final moreInfo = failure.moreInformation;
+        final errorMap =
+            moreInfo is Map<String, dynamic> ? moreInfo : <String, dynamic>{};
         String message = "";
-        if (failure.moreInformation!.containsKey("host")) {
-          message = failure.moreInformation?['host'][0];
-        } else if (failure.moreInformation!.containsKey("amount")) {
-          message = failure.moreInformation?["amount"][0];
+        final hostErrors = errorMap['host'];
+        final amountErrors = errorMap['amount'];
+        if (hostErrors is List && hostErrors.isNotEmpty) {
+          message = hostErrors.first.toString();
+        } else if (amountErrors is List && amountErrors.isNotEmpty) {
+          message = amountErrors.first.toString();
+        } else {
+          message = failure.message;
         }
         emit(SingleLiveAcceptChallengeErrorState(errorMessage: message));
       },
@@ -239,7 +268,13 @@ class BragBloc extends Bloc<BragEvent, BragState> {
     final result = await bragRepository.singleLivedeclineChallenge(
         challenge: event.challenge);
     result.fold((failure) {
-      var message = failure.moreInformation?['host'][0];
+      final moreInfo = failure.moreInformation;
+      final errorMap =
+          moreInfo is Map<String, dynamic> ? moreInfo : <String, dynamic>{};
+      final hostErrors = errorMap['host'];
+      final message = hostErrors is List && hostErrors.isNotEmpty
+          ? hostErrors.first.toString()
+          : failure.message;
       emit(SingleLiveAcceptChallengeErrorState(errorMessage: message));
     }, (success) => emit(SingeLiveChallengeDeclined(message: success)));
   }

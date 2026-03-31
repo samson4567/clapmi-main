@@ -210,7 +210,7 @@ class _ConfirmVariant extends StatelessWidget {
             Row(
               children: [
                 SvgPicture.asset(
-                  'assets/icons/Record.svg',
+                  'assets/icons/vidis.svg',
                   width: 52,
                   height: 52,
                 ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:clapmi/features/livestream/presentation/blocs/recording/recording_bloc.dart';
 import 'package:clapmi/features/livestream/presentation/widgets/recording_controls_sheet.dart';
-import 'package:clapmi/features/livestream/presentation/widgets/pop_record.dart';
+//import 'package:clapmi/features/livestream/presentation/widgets/pop_record.dart';
 import 'package:clapmi/features/livestream/presentation/widgets/confirm_variant.dart';
 import 'package:clapmi/features/livestream/presentation/widgets/record_started_notification.dart';
 import 'package:clapmi/features/livestream/presentation/widgets/download_file_container.dart';
