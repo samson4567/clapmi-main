@@ -19,6 +19,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
 
 class PostEmpty extends StatefulWidget {
   const PostEmpty({super.key});
@@ -33,6 +34,10 @@ class _PostEmptyState extends State<PostEmpty> {
   FocusNode textFieldNode = FocusNode();
   TextEditingController contentController = TextEditingController();
 
+  // Quill editor controller for rich text editing
+  late quill.QuillController _quillController;
+  final FocusNode _quillFocusNode = FocusNode();
+
   // Tagging variables
   List<UserSearch> taggedUsers = [];
   OverlayEntry? _overlayEntry;
@@ -42,6 +47,13 @@ class _PostEmptyState extends State<PostEmpty> {
   void initState() {
     super.initState();
     contentController.addListener(_onTextChanged);
+
+    // Initialize Quill controller with empty document
+    final doc = quill.Document();
+    _quillController = quill.QuillController(
+      document: doc,
+      selection: const TextSelection.collapsed(offset: 0),
+    );
   }
 
   @override
@@ -49,6 +61,8 @@ class _PostEmptyState extends State<PostEmpty> {
     contentController.removeListener(_onTextChanged);
     contentController.dispose();
     textFieldNode.dispose();
+    _quillController.dispose();
+    _quillFocusNode.dispose();
     _removeOverlay();
     super.dispose();
   }
@@ -220,6 +234,16 @@ class _PostEmptyState extends State<PostEmpty> {
     _overlayEntry = null;
   }
 
+  // Get plain text from Quill document for posting
+  String _getPlainText() {
+    return _quillController.document.toPlainText();
+  }
+
+  // Get Delta JSON for rich text storage
+  List<Map<String, dynamic>> _getDeltaJson() {
+    return _quillController.document.toDelta().toJson();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -301,12 +325,14 @@ class _PostEmptyState extends State<PostEmpty> {
                                   print("dhgfdsfjdsygfjdshgf${imageFiles.map(
                                     (e) => e.path,
                                   )}");
-                                  if (contentController.text.isNotEmpty ||
+                                  // Get content from Quill editor
+                                  final plainText = _getPlainText().trim();
+                                  if (plainText.isNotEmpty ||
                                       imageFiles.isNotEmpty) {
                                     CreatePostModel createPostModel =
                                         CreatePostModel(
                                       uuid: const Uuid().v4(),
-                                      content: contentController.text,
+                                      content: plainText,
                                       whoCanSeePost:
                                           selectedOption.toLowerCase(),
                                       tagUsers: taggedUsers.isNotEmpty
@@ -456,7 +482,7 @@ class _PostEmptyState extends State<PostEmpty> {
                       ? Expanded(
                           child: GestureDetector(
                             onTap: () {
-                              textFieldNode.requestFocus();
+                              _quillFocusNode.requestFocus();
                             },
                           ),
                         )
@@ -474,69 +500,120 @@ class _PostEmptyState extends State<PostEmpty> {
                           ),
                         ),
 
-                  Divider(
-                    color: const Color.fromARGB(255, 8, 6, 6),
-                    thickness: 1.h,
-                  ),
-                  SizedBox(height: 10.h),
-
-                  // Row with keyboard input and icons
-                  CompositedTransformTarget(
-                    link: _layerLink,
-                    child: Row(
+                  // Quill editor section with integrated toolbar
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade900,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.grey.shade800,
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: TextField(
-                            controller: contentController,
-                            focusNode: textFieldNode,
-                            maxLines: null,
-                            keyboardType: TextInputType.text,
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                              hintText: "Post Something ",
-                              hintStyle: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 14.sp,
-                              ),
+                        // Toolbar
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                              vertical: 6.h, horizontal: 4.w),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade800,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(12),
+                              topRight: Radius.circular(12),
+                            ),
+                          ),
+                          child: quill.QuillSimpleToolbar(
+                            controller: _quillController,
+                            config: const quill.QuillSimpleToolbarConfig(
+                              showFontFamily: true,
+                              showFontSize: true,
+                              showBoldButton: true,
+                              showItalicButton: true,
+                              showUnderLineButton: true,
+                              showStrikeThrough: true,
+                              showColorButton: true,
+                              showBackgroundColorButton: true,
+                              showListNumbers: true,
+                              showListBullets: true,
+                              showCodeBlock: true,
+                              showQuote: true,
+                              showIndent: true,
+                              showLink: true,
+                              showSearchButton: true,
+                              showAlignmentButtons: true,
+                              showDirection: true,
+                              showHeaderStyle: true,
                             ),
                           ),
                         ),
-                        SizedBox(width: 10.w),
-                        Row(
-                          children: [
-                            BlocBuilder<PostBloc, PostState>(
-                                builder: (context, state) {
-                              return FancyContainer(
-                                height: 40,
-                                width: 40,
-                                isAsync: true,
-                                action: () async {
-                                  ImageSource? imageSource =
-                                      await ImagePickerFunctionalities
-                                          .showOptions(context);
-                                  if (imageSource != null) {
-                                    context.read<PostBloc>().add(
-                                          SelectImageEvent(
-                                            imageSource: imageSource,
-                                          ),
-                                        );
-                                  }
-                                },
-                                child: (state is SelectPostImageLoadingState)
-                                    ? AspectRatio(
-                                        aspectRatio: 1,
-                                        child:
-                                            CircularProgressIndicator.adaptive(
-                                          backgroundColor:
-                                              AppColors.backgroundColor,
-                                        ),
-                                      )
-                                    : Image.asset(
-                                        "assets/icons/mdi_image-add-outline.png",
+                        // Editor
+                        CompositedTransformTarget(
+                          link: _layerLink,
+                          child: Container(
+                            constraints: BoxConstraints(
+                              minHeight: 150.h,
+                              maxHeight: 300.h,
+                            ),
+                            padding: EdgeInsets.all(12.w),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: quill.QuillEditor(
+                                    controller: _quillController,
+                                    focusNode: _quillFocusNode,
+                                    scrollController: ScrollController(),
+                                    config: const quill.QuillEditorConfig(
+                                      placeholder: 'Enter your post for users...',
+                                      padding: EdgeInsets.zero,
+                                      autoFocus: false,
+                                      expands: false,
+                                      scrollable: true,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 8.w),
+                                BlocBuilder<PostBloc, PostState>(
+                                    builder: (context, state) {
+                                  return Column(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      FancyContainer(
+                                        height: 40,
+                                        width: 40,
+                                        isAsync: true,
+                                        action: () async {
+                                          ImageSource? imageSource =
+                                              await ImagePickerFunctionalities
+                                                  .showOptions(context);
+                                          if (imageSource != null) {
+                                            context.read<PostBloc>().add(
+                                                  SelectImageEvent(
+                                                    imageSource: imageSource,
+                                                  ),
+                                                );
+                                          }
+                                        },
+                                        child: (state
+                                                is SelectPostImageLoadingState)
+                                            ? AspectRatio(
+                                                aspectRatio: 1,
+                                                child: CircularProgressIndicator
+                                                    .adaptive(
+                                                  backgroundColor:
+                                                      AppColors.backgroundColor,
+                                                ),
+                                              )
+                                            : Image.asset(
+                                                "assets/icons/mdi_image-add-outline.png",
+                                              ),
                                       ),
-                              );
-                            }),
-                          ],
+                                    ],
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),

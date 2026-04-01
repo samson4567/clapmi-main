@@ -89,8 +89,10 @@ class _SingleLivestreamDetailPageState
 
     try {
       final now = DateTime.now();
-      final remaining =
-          DateFormat("yyyy-MM-dd HH:mm:ss").parse(start, true).toLocal().difference(now);
+      final remaining = DateFormat("yyyy-MM-dd HH:mm:ss")
+          .parse(start, true)
+          .toLocal()
+          .difference(now);
 
       if (!mounted) {
         return;
@@ -169,8 +171,27 @@ class _SingleLivestreamDetailPageState
               isLoading = false;
               _navigateOnFetch = false;
             });
+            // Handle server error gracefully - show user-friendly message
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.errorMessage)),
+              SnackBar(
+                content:
+                    Text('Unable to load combo details. Please try again.'),
+                action: SnackBarAction(
+                  label: 'Retry',
+                  onPressed: () {
+                    if (_targetComboId.isNotEmpty) {
+                      setState(() {
+                        isLoading = true;
+                        _navigateOnFetch = true;
+                      });
+                      context
+                          .read<ComboBloc>()
+                          .add(GetComboDetailEvent(_targetComboId));
+                    }
+                  },
+                ),
+                duration: Duration(seconds: 5),
+              ),
             );
           }
 

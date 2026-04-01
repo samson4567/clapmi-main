@@ -256,4 +256,12 @@ class KycUploadEvent extends WalletEvent {
   List<Object> get props => [params];
 }
 
+class StripeCheckoutEvent extends WalletEvent {
+  final String amount;
+  const StripeCheckoutEvent({required this.amount});
+
+  @override
+  List<Object> get props => [amount];
+}
+
 // getUserKYCStatus

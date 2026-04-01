@@ -27,6 +27,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -191,6 +192,9 @@ class _MyAppState extends State<MyApp> {
         theme: customAppTheme.darkTheme,
         themeMode: ThemeMode.dark,
         routerConfig: router,
+        localizationsDelegates: const [
+          quill.FlutterQuillLocalizations.delegate,
+        ],
       ),
     );
   }

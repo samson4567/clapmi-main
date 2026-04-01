@@ -74,6 +74,8 @@ abstract class WalletRemoteDatasource {
   Future<String> verifyOrder({required String orderId});
   Future<String> verifyOtpForgotPin({required String otp});
   Future<String> generateOtpForForgetPin();
+
+  Future<Map<String, dynamic>> createStripeCheckout({required String amount});
 }
 
 class WalletRemoteDatasourceImpl implements WalletRemoteDatasource {
@@ -495,6 +497,18 @@ class WalletRemoteDatasourceImpl implements WalletRemoteDatasource {
 // Abstract
 
 // Implementation
+  @override
+  Future<Map<String, dynamic>> createStripeCheckout({required String amount}) async {
+    final response = await networkClient.post(
+      endpoint: EndpointConstant.stripeCheckout,
+      isAuthHeaderRequired: true,
+      data: {
+        'amount': amount,
+      },
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
   @override
   Future<KycVerificationModel> kycInitiate() async {
     final response = await networkClient.post(

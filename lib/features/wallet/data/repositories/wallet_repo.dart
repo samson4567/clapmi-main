@@ -392,4 +392,16 @@ class WalletRepositoryImpl implements WalletRepository {
       return left(mapExceptionToFailure(e));
     }
   }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> createStripeCheckout(
+      {required String amount}) async {
+    try {
+      final result = await walletRemoteDatasource.createStripeCheckout(
+          amount: amount);
+      return right(result);
+    } catch (e) {
+      return left(mapExceptionToFailure(e));
+    }
+  }
 }

@@ -12,6 +12,7 @@ class PaymentGradeModel {
   final bool isPreviousLevel;
   final bool isNextLevel;
   final bool isSubscribed;
+  final DateTime? subscriptionEndsAt;
 
   PaymentGradeModel({
     required this.uuid,
@@ -26,6 +27,7 @@ class PaymentGradeModel {
     required this.isPreviousLevel,
     required this.isNextLevel,
     required this.isSubscribed,
+    this.subscriptionEndsAt,
   });
 
   factory PaymentGradeModel.fromJson(Map<String, dynamic> json) {
@@ -65,6 +67,9 @@ class PaymentGradeModel {
       isPreviousLevel: json['is_previous_level'] ?? false,
       isNextLevel: json['is_next_level'] ?? false,
       isSubscribed: json['is_subscribed'] ?? false,
+      subscriptionEndsAt: json['subscription_ends_at'] != null
+          ? DateTime.tryParse(json['subscription_ends_at'].toString())
+          : null,
     );
   }
 }

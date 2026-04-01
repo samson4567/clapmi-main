@@ -432,6 +432,7 @@ class _BuyPointsState extends State<BuyPoints> {
                                         "Bank Transfer",
                                         "USDC Aseets Balance",
                                         "USDT Aseets Balance ",
+                                        "Stripe",
                                       ].map(
                                         (e) {
                                           final isDisabled = e == "Debit Card";
@@ -467,6 +468,12 @@ class _BuyPointsState extends State<BuyPoints> {
                                                       'assets/icons/usdt.svg',
                                                       height: 24,
                                                       width: 24,
+                                                    )
+                                                  else if (e == 'Stripe')
+                                                    Icon(
+                                                      Icons.payment,
+                                                      size: 24,
+                                                      color: Colors.white,
                                                     ),
                                                   const Gap(4),
                                                   Text(
@@ -500,6 +507,8 @@ class _BuyPointsState extends State<BuyPoints> {
                                                 } else if (val ==
                                                     'USDT Aseets Balance ') {
                                                   sendPaymentMethod = 'usdt';
+                                                } else if (val == 'Stripe') {
+                                                  sendPaymentMethod = 'stripe';
                                                 }
                                               });
                                             },

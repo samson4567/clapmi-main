@@ -1217,7 +1217,7 @@ class EndliveStream extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: showGiftSummary ? 340.h : 240.h,
+      height: showGiftSummary ? 400.h : 280.h,
       decoration: BoxDecoration(
         color: const Color(0xFF0D0D0F),
         borderRadius: BorderRadius.only(
@@ -1227,6 +1227,7 @@ class EndliveStream extends StatelessWidget {
       ),
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Top drag handle

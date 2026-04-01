@@ -89,4 +89,7 @@ abstract class WalletRepository {
   // Abstract
   Future<Either<Failure, KycUploadEntity>> kycUpload(
       {required KycUploadParams params});
+
+  Future<Either<Failure, Map<String, dynamic>>> createStripeCheckout(
+      {required String amount});
 }

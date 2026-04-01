@@ -106,6 +106,25 @@ class _StartOrJoinChallengeScreenState
             setState(() {
               isLoading = false;
             });
+            // Handle server error gracefully - show message and allow user to retry or go back
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content:
+                    Text('Unable to load combo details. Please try again.'),
+                action: SnackBarAction(
+                  label: 'Retry',
+                  onPressed: () {
+                    setState(() {
+                      isLoading = true;
+                    });
+                    context
+                        .read<ComboBloc>()
+                        .add(GetComboDetailEvent(widget.model.combo ?? ''));
+                  },
+                ),
+                duration: Duration(seconds: 5),
+              ),
+            );
           }
           if (state is GetComboDetailSuccessState) {
             context
@@ -142,6 +161,14 @@ class _StartOrJoinChallengeScreenState
             popUpMessages(context, state.errorMessage);
           }
           if (state is StartComboSuccessState) {
+            // Show success message
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Combo started successfully!'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+            // Try to fetch combo details after a delay
             Future.delayed(Duration(seconds: 5), () {
               print(
                   "This is the comboId ${widget.model.combo}-----------------");

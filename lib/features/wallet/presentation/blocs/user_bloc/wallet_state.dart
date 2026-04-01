@@ -401,4 +401,12 @@ class KycUploadSuccess extends WalletState {
   @override
   List<Object> get props => [data];
 }
+
+class StripeCheckoutSuccess extends WalletState {
+  final Map<String, dynamic> checkoutData;
+  const StripeCheckoutSuccess({required this.checkoutData});
+  @override
+  List<Object> get props => [checkoutData];
+}
+
 // GetUserKYCStatus

@@ -209,32 +209,13 @@ class DrawerList extends StatelessWidget {
 
           ListTile(
             leading: Image.asset(
-              "assets/icons/Vector-27.png",
+              "assets/icons/like.png",
               width: 30,
               height: 30,
               color: Colors.white.withValues(alpha: 3.0),
             ),
             title: const Text(
-              'Network',
-              style: TextStyle(
-                  color: Color(0XFFFFFFFF),
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 20), // Set text color to white
-            ),
-            onTap: () {
-              context.pushNamed(MyAppRouteConstant.networkConnect);
-            },
-          ),
-          ListTile(
-            leading: Image.asset(
-              "assets/icons/marketeq_reward.png",
-              width: 30,
-              height: 30,
-              color: Colors.white.withValues(alpha: 3.0),
-            ),
-            title: const Text(
-              'Reward',
+              'clapmi+',
               style: TextStyle(
                   color: Color(0XFFFFFFFF),
                   fontFamily: 'Poppins',
@@ -242,9 +223,10 @@ class DrawerList extends StatelessWidget {
                   fontSize: 20),
             ),
             onTap: () {
-              context.pushNamed(MyAppRouteConstant.clapReward);
+              context.pushNamed(MyAppRouteConstant.clapmiplus);
             },
           ),
+
           ListTile(
             leading: Image.asset(
               "assets/icons/ranking.png",
@@ -266,13 +248,13 @@ class DrawerList extends StatelessWidget {
           ),
           ListTile(
             leading: Image.asset(
-              "assets/icons/like.png",
+              "assets/icons/marketeq_reward.png",
               width: 30,
               height: 30,
               color: Colors.white.withValues(alpha: 3.0),
             ),
             title: const Text(
-              'clapmi+',
+              'Reward',
               style: TextStyle(
                   color: Color(0XFFFFFFFF),
                   fontFamily: 'Poppins',
@@ -280,9 +262,30 @@ class DrawerList extends StatelessWidget {
                   fontSize: 20),
             ),
             onTap: () {
-              context.pushNamed(MyAppRouteConstant.clapmiplus);
+              context.pushNamed(MyAppRouteConstant.clapReward);
             },
           ),
+
+          ListTile(
+            leading: Image.asset(
+              "assets/icons/Vector-27.png",
+              width: 30,
+              height: 30,
+              color: Colors.white.withValues(alpha: 3.0),
+            ),
+            title: const Text(
+              'Network',
+              style: TextStyle(
+                  color: Color(0XFFFFFFFF),
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20), // Set text color to white
+            ),
+            onTap: () {
+              context.pushNamed(MyAppRouteConstant.networkConnect);
+            },
+          ),
+
           ListTile(
             leading: Image.asset(
               "assets/icons/solar_settings-outline.png",
@@ -1029,11 +1032,27 @@ class PostWidget extends StatelessWidget {
     // );
   }
 
+  // Helper method to strip HTML tags from content
+  String _stripHtmlTags(String htmlString) {
+    // Remove HTML tags like <p>, </p>, <br>, etc.
+    final RegExp htmlTags = RegExp(r'<[^>]*>');
+    String result = htmlString.replaceAll(htmlTags, '');
+    // Decode HTML entities if any
+    result = result.replaceAll('&nbsp;', ' ');
+    result = result.replaceAll('&amp;', '&');
+    result = result.replaceAll('&lt;', '<');
+    result = result.replaceAll('&gt;', '>');
+    result = result.replaceAll('&quot;', '"');
+    return result.trim();
+  }
+
   // Helper method to build text with clickable blue @ mentions
   Widget _buildContentWithBlueMentions(BuildContext context, String content) {
+    // Strip HTML tags from content first
+    final String cleanContent = _stripHtmlTags(content);
     final List<InlineSpan> spans = [];
     final RegExp pattern = RegExp(r'(@\w+)'); // Only match @mentions
-    final matches = pattern.allMatches(content);
+    final matches = pattern.allMatches(cleanContent);
 
     int lastMatchEnd = 0;
 
@@ -1533,6 +1552,20 @@ class FeedItemWidget extends StatelessWidget {
       this.isDummy = false,
       required this.livePostIdCallback});
 
+  // Helper method to strip HTML tags from content
+  String _stripHtmlTags(String htmlString) {
+    // Remove HTML tags like <p>, </p>, <br>, etc.
+    final RegExp htmlTags = RegExp(r'<[^>]*>');
+    String result = htmlString.replaceAll(htmlTags, '');
+    // Decode HTML entities if any
+    result = result.replaceAll('&nbsp;', ' ');
+    result = result.replaceAll('&amp;', '&');
+    result = result.replaceAll('&lt;', '<');
+    result = result.replaceAll('&gt;', '>');
+    result = result.replaceAll('&quot;', '"');
+    return result.trim();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -1594,7 +1627,7 @@ class FeedItemWidget extends StatelessWidget {
             Visibility(
                 visible: postModel.content.isNotEmpty,
                 child: Text(
-                  postModel.content,
+                  _stripHtmlTags(postModel.content),
                   style: const TextStyle(color: Colors.white, fontSize: 16),
                 )),
             SizedBox(height: imageUrl.isNotEmpty ? 10 : 0),
@@ -1627,7 +1660,7 @@ class FeedItemWidget extends StatelessWidget {
         );
       case PostType.text:
         return Text(
-          postModel.content,
+          _stripHtmlTags(postModel.content),
           style: const TextStyle(color: Colors.white, fontSize: 16),
         );
       case PostType.video:

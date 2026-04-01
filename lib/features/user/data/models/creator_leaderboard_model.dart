@@ -316,6 +316,7 @@ class CreatorLevelModel {
   final int subscriptionAmount;
   final String? badge;
   final int livestreamShare;
+  final DateTime? subscriptionEndsAt;
 
   CreatorLevelModel({
     required this.uuid,
@@ -338,6 +339,7 @@ class CreatorLevelModel {
     required this.subscriptionAmount,
     this.badge,
     required this.livestreamShare,
+    this.subscriptionEndsAt,
   });
 
   factory CreatorLevelModel.fromJson(Map<String, dynamic> json) {
@@ -362,6 +364,9 @@ class CreatorLevelModel {
       subscriptionAmount: json['subscription_amount'] ?? 0,
       badge: json['badge'],
       livestreamShare: json['livestream_share'] ?? 0,
+      subscriptionEndsAt: json['subscription_ends_at'] != null
+          ? DateTime.tryParse(json['subscription_ends_at'].toString())
+          : null,
     );
   }
 }

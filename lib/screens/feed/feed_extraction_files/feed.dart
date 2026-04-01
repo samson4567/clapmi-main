@@ -44,6 +44,8 @@ import 'package:clapmi/screens/chatsection/chats_list_page.dart';
 import 'package:clapmi/screens/feed/feed_extraction_files/showcase_widget.dart';
 import 'package:clapmi/screens/feed/feed_extraction_files/tutorials_status_flows_lists.dart';
 import 'package:clapmi/screens/feed/widget/challenge_dialog.dart';
+import 'package:clapmi/screens/challenge/widgets/return_to_livestream_dialog.dart'
+    as countdown_dialog;
 import 'package:clapmi/screens/walletSystem/gifting/gifting_successful.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -1028,11 +1030,31 @@ class _FeedScreenState extends State<FeedScreen> {
                                     decoration: BoxDecoration(
                                         color: Colors.black.withAlpha(200)),
                                     child: Center(
-                                      child: Text("Loading...",
-                                          style: TextStyle(
-                                              fontFamily: 'Poppins',
-                                              fontWeight: FontWeight.w900,
-                                              fontSize: 20.sp)),
+                                      child: countdown_dialog
+                                          .ReturnToLivestreamDialog(
+                                        countdownSeconds: 59,
+                                        onGoBack: () {
+                                          setState(() {
+                                            liveLoading = false;
+                                          });
+                                          if (selectedComboId.isNotEmpty) {
+                                            context.pushNamed(
+                                              MyAppRouteConstant
+                                                  .liveComboThreeImageScreen,
+                                              extra: {
+                                                'comboId': selectedComboId,
+                                                'liveCombo': null,
+                                                'brag': selectedComboBragId
+                                              },
+                                            );
+                                          }
+                                        },
+                                        onDismiss: () {
+                                          setState(() {
+                                            liveLoading = false;
+                                          });
+                                        },
+                                      ),
                                     ),
                                   ),
                                 ),

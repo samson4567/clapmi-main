@@ -3,6 +3,8 @@ import 'package:clapmi/core/app_variables.dart';
 import 'package:clapmi/core/db/app_preference_service.dart';
 import 'package:clapmi/core/di/injector.dart';
 import 'package:clapmi/features/user/data/models/creator_leaderboard_model.dart';
+import 'package:clapmi/features/user/data/models/payment_grade_model.dart';
+import 'package:clapmi/features/user/data/datasources/user_remote_datasource.dart';
 import 'package:clapmi/features/user/presentation/blocs/user_bloc/user_bloc.dart';
 import 'package:clapmi/features/user/presentation/blocs/user_bloc/user_event.dart';
 import 'package:clapmi/features/user/presentation/blocs/user_bloc/user_state.dart';
@@ -1460,6 +1462,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isBenefitsExpanded = false;
   List<CreatorLevelModel> _creatorLevels = [];
   bool _isLevelsLoading = true;
+  List<PaymentGradeModel> _paymentGrades = [];
+  bool _isPaymentGradesLoading = true;
   // Store current user's ranking data for stats
   CreatorRankingModel? _currentUserRanking;
   bool _isRankingLoading = true;
@@ -1479,6 +1483,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     context.read<UserBloc>().add(const GetCreatorLevelsEvent());
     // Fetch creator leaderboard to get current user's stats
     _loadUserRanking();
+    // Fetch payment grades to get subscription_ends_at
+    _loadPaymentGrades();
   }
 
   void _loadUserRanking() {
@@ -1515,6 +1521,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       }
     });
+  }
+
+  Future<void> _loadPaymentGrades({int retryCount = 0}) async {
+    const maxRetries = 3;
+    const baseDelay = Duration(seconds: 2);
+    
+    try {
+      final datasource = getItInstance<UserRemoteDatasource>();
+      final response = await datasource.getPaymentGrades();
+      
+      if (mounted) {
+        setState(() {
+          _paymentGrades = response.data.data;
+          _isPaymentGradesLoading = false;
+        });
+        print('ProfileScreen: Loaded ${_paymentGrades.length} payment grades');
+        for (final grade in _paymentGrades) {
+          print('ProfileScreen: Grade ${grade.name} - subscriptionEndsAt: ${grade.subscriptionEndsAt}');
+        }
+      }
+    } catch (e) {
+      print('ProfileScreen: Error loading payment grades (attempt ${retryCount + 1}/$maxRetries) - $e');
+      
+      // Retry with exponential backoff
+      if (retryCount < maxRetries && mounted) {
+        final delay = baseDelay * (retryCount + 1);
+        print('ProfileScreen: Retrying in ${delay.inSeconds} seconds...');
+        await Future.delayed(delay);
+        if (mounted) {
+          return _loadPaymentGrades(retryCount: retryCount + 1);
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _isPaymentGradesLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -1845,6 +1890,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
       List<CreatorLevelModel> creatorLevels, CreatorRankingModel? userRanking) {
     final currentLevelName = _currentUserRanking?.level.name ?? 'Prime';
     final currentLevel = _getCurrentLevelModel(creatorLevels, userRanking);
+    
+    // Find current level from payment grades to get subscription_ends_at
+    PaymentGradeModel? currentPaymentGrade;
+    if (_paymentGrades.isNotEmpty) {
+      try {
+        currentPaymentGrade = _paymentGrades.firstWhere(
+          (grade) => grade.name.toLowerCase() == currentLevelName.toLowerCase(),
+        );
+      } catch (e) {
+        // If not found, use the first payment grade
+        currentPaymentGrade = _paymentGrades.first;
+      }
+    }
+    
+    // Calculate days remaining from subscription_ends_at
+    final subscriptionEndsAt = currentPaymentGrade?.subscriptionEndsAt;
+    int daysRemaining = 0;
+    double progressValue = 0.0;
+    
+    // Debug logging
+    print('Subscription Debug: currentLevelName = $currentLevelName');
+    print('Subscription Debug: currentLevel = ${currentLevel?.name}');
+    print('Subscription Debug: currentPaymentGrade = ${currentPaymentGrade?.name}');
+    print('Subscription Debug: subscriptionEndsAt = $subscriptionEndsAt');
+    
+    if (subscriptionEndsAt != null) {
+      final now = DateTime.now();
+      final difference = subscriptionEndsAt.difference(now);
+      daysRemaining = difference.inDays;
+      
+      // Calculate progress (assuming 30-day subscription period)
+      // Progress shows how much of the subscription period has elapsed
+      final totalDays = 30;
+      final daysElapsed = totalDays - daysRemaining;
+      progressValue = (daysElapsed / totalDays).clamp(0.0, 1.0);
+    }
+    
     return Container(
       margin: const EdgeInsets.fromLTRB(0, 0, 0, 0),
       padding: const EdgeInsets.all(16),
@@ -1881,8 +1963,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Subscription Active',
+                    Text(
+                      '$daysRemaining Days Remaining',
                       style: TextStyle(
                         color: Color(0xFFF9D0B3),
                         fontSize: 15,
@@ -1943,7 +2025,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
-              value: 0.94,
+              value: progressValue,
               minHeight: 5,
               backgroundColor: Colors.black.withOpacity(0.35),
               valueColor: const AlwaysStoppedAnimation(Color(0xFFF9D0B3)),

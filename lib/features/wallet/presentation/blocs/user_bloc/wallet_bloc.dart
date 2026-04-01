@@ -51,6 +51,7 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
     on<GetUserKYCStatusEvent>(_getUserKYCStatusEventHandler);
     on<KycInitiateEvent>(_kycInitiateHandler);
     on<KycUploadEvent>(_kycUploadHandler);
+    on<StripeCheckoutEvent>(_stripeCheckoutHandler);
 
     //
   }
@@ -432,6 +433,19 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
     result.fold(
       (error) => emit(WalletError(message: error.message)),
       (data) => emit(KycUploadSuccess(data: data)),
+    );
+  }
+
+  Future<void> _stripeCheckoutHandler(
+    StripeCheckoutEvent event,
+    Emitter<WalletState> emit,
+  ) async {
+    emit(WalletLoading());
+    final result = await walletRepository.createStripeCheckout(
+        amount: event.amount);
+    result.fold(
+      (error) => emit(WalletError(message: error.message)),
+      (data) => emit(StripeCheckoutSuccess(checkoutData: data)),
     );
   }
 }

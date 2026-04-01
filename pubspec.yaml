@@ -74,6 +74,7 @@ dependencies:
   custom_preload_videos: ^0.0.12
   preload_page_view: ^0.2.0
   flutter_taggable: ^1.1.2
+  flutter_quill: ^11.0.0
   connectivity_plus:
   cached_video_player_plus: ^4.1.0
   

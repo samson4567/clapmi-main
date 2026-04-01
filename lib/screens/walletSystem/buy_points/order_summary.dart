@@ -85,6 +85,13 @@ class _OrderSummaryState extends State<OrderSummary> {
       return;
     }
 
+    if (widget.paymentMethod == 'stripe') {
+      context
+          .read<WalletBloc>()
+          .add(StripeCheckoutEvent(amount: widget.amount.toString()));
+      return;
+    }
+
     // Fallback: do nothing or show message
     setState(() {
       isLoading = false;
@@ -224,6 +231,23 @@ class _OrderSummaryState extends State<OrderSummary> {
                 'webview_link': state.checkoutEntity.$1,
                 'coins': widget.coin.toString(),
               });
+            }
+
+            if (state is StripeCheckoutSuccess) {
+              final checkoutUrl = state.checkoutData['checkout_url'];
+              if (checkoutUrl != null) {
+                context.pushNamed(MyAppRouteConstant.googleWebview, extra: {
+                  'webview_link': checkoutUrl,
+                  'coins': widget.coin.toString(),
+                });
+                // Reset loading state after navigating to webview
+                setState(() => isLoading = false);
+              } else {
+                setState(() => isLoading = false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Failed to get checkout URL')),
+                );
+              }
             }
           },
         ),

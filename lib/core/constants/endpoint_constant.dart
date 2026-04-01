@@ -150,6 +150,7 @@ class EndpointConstant {
   static const String verifyForgotPin = '/verify/forgot/withdrawal/pin/otp';
   static const String updatePin = '/update/withdrawal/pin';
   static const String depositConfirmation = '/deposit/confirm';
+  static const String stripeCheckout = '/stripe/checkout';
   //
 
   //chats
