@@ -52,17 +52,38 @@ class _WalletViewState extends State<WalletView> {
 
   @override
   void initState() {
-    //  context.read<WalletBloc>().add(ConnectWalletEvent());
-    context.read<WalletBloc>().add(GetTransactionsListRecentEvent());
-    context.read<WalletBloc>().add(LoadWalletBalances());
     super.initState();
+    _loadWalletHomeData();
   }
 
   List<TransactionHistoryModel> listOfTransactionHistoryModel = [];
 
+  void _loadWalletHomeData() {
+    final walletBloc = context.read<WalletBloc>();
+    walletBloc.add(GetTransactionsListRecentEvent());
+    walletBloc.add(LoadWalletBalances());
+    walletBloc.add(const RecentGiftingEvent());
+  }
+
+  Future<void> _refreshWalletHomeData() async {
+    _loadWalletHomeData();
+  }
+
+  void _updateWalletBalances(List<AssetModel> nextBalances) {
+    final computedTotal = nextBalances.fold<double>(0.0, (sum, coin) {
+      final parsedBalance = double.tryParse(coin.balance) ?? 0.0;
+      return sum + (coin.name == 'CAPP' ? parsedBalance / 100 : parsedBalance);
+    });
+
+    setState(() {
+      isWalletLoaded = true;
+      balances = nextBalances;
+      totalBalance = computedTotal;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    context.read<WalletBloc>().add(const RecentGiftingEvent());
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black,
@@ -89,10 +110,7 @@ class _WalletViewState extends State<WalletView> {
           // WalletModel? walletData;
           // if (walletState is WalletLoaded) walletData = walletState.walletData;
           return RefreshIndicator(
-            onRefresh: () async {
-              context.read<WalletBloc>().add(LoadWalletBalances());
-              context.read<WalletBloc>().add(GetTransactionsListRecentEvent());
-            },
+            onRefresh: _refreshWalletHomeData,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
@@ -113,25 +131,7 @@ class _WalletViewState extends State<WalletView> {
                 }
 
                 if (state is WalletLoaded) {
-                  setState(() {
-                    isWalletLoaded = true;
-                    balances = state.balances;
-                    print('bnbnnghggg${balances.map(
-                      (e) {
-                        return e.toJson();
-                      },
-                    )}');
-                    totalBalance = 0.0;
-                    for (var coin in balances) {
-                      if (coin.name == 'CAPP') {
-                        totalBalance = totalBalance +
-                            (double.tryParse(coin.balance)!.toDouble() / 100);
-                      } else {
-                        totalBalance = totalBalance +
-                            double.tryParse(coin.balance)!.toDouble();
-                      }
-                    }
-                  });
+                  _updateWalletBalances(state.balances);
                 }
                 // if (state is WalletConnected) {
                 //   _appKitModal = ReownAppKitModal(
@@ -455,10 +455,14 @@ class _WalletViewState extends State<WalletView> {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                _capitalizeFirst(tx.operation),
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 10),
+                              Expanded(
+                                child: Text(
+                                  _capitalizeFirst(tx.operation),
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 10),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ],
                           ),
@@ -480,10 +484,14 @@ class _WalletViewState extends State<WalletView> {
                                 size: 12,
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                _capitalizeFirst(tx.status),
-                                style: const TextStyle(
-                                    color: Colors.grey, fontSize: 10),
+                              Flexible(
+                                child: Text(
+                                  _capitalizeFirst(tx.status),
+                                  style: const TextStyle(
+                                      color: Colors.grey, fontSize: 10),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ],
                           ),

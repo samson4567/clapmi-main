@@ -151,12 +151,22 @@ class _LeaderboardPayemtUpgradeState extends State<LeaderboardPayemtUpgrade> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Image.asset(
+        leadingWidth: 40,
+        leading: IconButton(
+          padding: const EdgeInsets.only(left: 8),
+          splashRadius: 20,
+          onPressed: () {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) {
+                return;
+              }
+              Navigator.of(context).maybePop();
+            });
+          },
+          icon: Image.asset(
             'assets/icons/back_leader.png',
-            width: 20,
-            height: 20,
+            width: 16,
+            height: 16,
             color: Colors.white,
           ),
         ),

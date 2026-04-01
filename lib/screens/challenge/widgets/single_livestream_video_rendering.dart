@@ -43,6 +43,20 @@ class SingleVideoView extends StatelessWidget {
   final bool isMobile;
   final String mobilePlatForm;
 
+  double get _resolvedAspectRatio {
+    if (aspectRatio != null && aspectRatio! > 0) {
+      return aspectRatio!;
+    }
+
+    final width = renderer?.videoWidth ?? 0;
+    final height = renderer?.videoHeight ?? 0;
+    if (width > 0 && height > 0) {
+      return width / height;
+    }
+
+    return isMobile ? 9 / 16 : 16 / 9;
+  }
+
   @override
   Widget build(BuildContext context) {
     return shouldShowVideo
@@ -57,7 +71,7 @@ class SingleVideoView extends StatelessWidget {
             // ),
             decoration: videoContainerDecoration,
             child: AspectRatio(
-              aspectRatio: aspectRatio ?? 1,
+              aspectRatio: _resolvedAspectRatio,
               child: isMobile
                   //Render the Mobile producer (Either for android or IOS)
                   ? RotatedBox(

@@ -3,6 +3,7 @@ import 'package:clapmi/features/combo/domain/entities/combo_entity.dart';
 import 'package:clapmi/global_object_folder_jacket/global_classes/customColor.dart';
 import 'package:clapmi/global_object_folder_jacket/global_functions/global_functions.dart';
 import 'package:clapmi/global_object_folder_jacket/global_widgets/global_widgets.dart';
+import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -292,7 +293,7 @@ class _StartNowButtonWidgetState extends State<StartNowButtonWidget> {
                   SharePlus.instance.share(ShareParams(
                       title: 'Join the LiveStream on Clapmi',
                       text:
-                          "Join Livestream on clapmi https://app.clapmi.com/combo-ground/${widget.combo.combo}"));
+                          "Join Livestream on clapmi https://app.clapmi.com${MyAppRouteConstant.sharedLivestreamBase}/${widget.combo.combo}"));
                 },
                 width: 50.h,
                 backgroundColor: Colors.white,

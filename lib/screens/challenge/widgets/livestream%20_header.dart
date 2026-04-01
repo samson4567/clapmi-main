@@ -12,6 +12,7 @@ import 'package:clapmi/features/post/data/models/create_post_model.dart';
 import 'package:clapmi/features/post/presentation/blocs/user_bloc/post_bloc.dart';
 import 'package:clapmi/features/post/presentation/blocs/user_bloc/post_event.dart';
 import 'package:clapmi/global_object_folder_jacket/global_widgets/global_widgets.dart';
+import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
 import 'package:clapmi/screens/challenge/others/Single_livestream.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -28,6 +29,7 @@ class LivestreamHeader extends StatelessWidget {
       required this.onLeaveComboEvent,
       required this.bragID,
       this.totalGiftingPot,
+      this.creatorEarnedClapPoints,
       this.liveChallenger,
       required this.numOfChallengers,
       required this.streamersCount,
@@ -39,6 +41,7 @@ class LivestreamHeader extends StatelessWidget {
   final CreatePostModel? model;
   final String comboId;
   final num? totalGiftingPot;
+  final num? creatorEarnedClapPoints;
   final String? timerCountdown;
   final String bragID;
   final int numOfChallengers;
@@ -80,7 +83,19 @@ class LivestreamHeader extends StatelessWidget {
                     children: [
                       IconButton(
                         onPressed: () {
-                          onLeaveComboEvent(true);
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) {
+                              return EndliveStream(
+                                comboId: comboId,
+                                earnedClapPoints: creatorEarnedClapPoints,
+                                totalGiftPoints: totalGiftingPot,
+                                showGiftSummary:
+                                    creatorEarnedClapPoints != null,
+                              );
+                            },
+                          );
                         },
                         icon: const Icon(Icons.close,
                             size: 22, color: Colors.white),
@@ -175,20 +190,21 @@ class LivestreamHeader extends StatelessWidget {
                   height: 30,
                   width: 40,
                   action: () async {
-                    // Use bragID for livestream share (primary), fallback to model?.uuid
-                    final shareId = bragID.isNotEmpty ? bragID : (model?.uuid ?? '');
-                    if (shareId.isEmpty) {
+                    final trackingId =
+                        bragID.isNotEmpty ? bragID : (model?.uuid ?? '');
+                    if (comboId.isEmpty) {
                       return;
                     }
                     final result = await SharePlus.instance.share(ShareParams(
-                        title: 'Check out the Post',
+                        title: 'Check out the Livestream',
                         text:
-                            'Check out the livestream  on clapmi https://app.clapmi.com/posts/$shareId'));
+                            'Check out the livestream on clapmi https://app.clapmi.com${MyAppRouteConstant.sharedLivestreamBase}/$comboId'));
 
-                    if (result.status == ShareResultStatus.success) {
+                    if (result.status == ShareResultStatus.success &&
+                        trackingId.isNotEmpty) {
                       context.read<PostBloc>().add(
                             SharePostEvent(
-                              postID: shareId,
+                              postID: trackingId,
                             ),
                           );
                     }

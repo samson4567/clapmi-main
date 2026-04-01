@@ -5,6 +5,8 @@ class MyAppRouteConstant {
   static const String bragScreen = '/bragScreen';
   static const String feedScreen = '/feedScreen';
   static const String postScreen = '/postScreen';
+  static const String sharedPostBase = '/posts';
+  static const String sharedPostPath = '/posts/:postId';
   static const String myAccountPage = '/myAccountPage';
   static const String othersAccountPage = '/othersAccountPage';
   static const String challenge = '/challenge';
@@ -85,6 +87,10 @@ class MyAppRouteConstant {
       '/upcomingChallengeDetailPage';
   static const String singleLivestreamDetailPage =
       '/singleLivestreamDetailPage';
+  static const String sharedLivestreamBase = '/livestream';
+  static const String sharedLivestreamPath = '/livestream/:comboId';
+  static const String sharedComboGroundBase = '/combo-ground';
+  static const String sharedComboGroundPath = '/combo-ground/:comboId';
 
   // upcomingChallengeDetailPage
   static const String giftCoin = '/walletGiftCoin';

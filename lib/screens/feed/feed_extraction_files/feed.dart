@@ -38,6 +38,7 @@ import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_bloc.
 import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_event.dart';
 import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_state.dart';
 import 'package:clapmi/global_object_folder_jacket/global_object.dart';
+import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
 import 'package:clapmi/screens/Brag/brag_screen_tu_controller.dart';
 import 'package:clapmi/screens/chatsection/chats_list_page.dart';
 import 'package:clapmi/screens/feed/feed_extraction_files/showcase_widget.dart';
@@ -1036,30 +1037,6 @@ class _FeedScreenState extends State<FeedScreen> {
                                   ),
                                 ),
                               ),
-                            if (liveLoading)
-                              Builder(
-                                builder: (context) {
-                                  WidgetsBinding.instance
-                                      .addPostFrameCallback((_) {
-                                    showDialog(
-                                      context: context,
-                                      barrierColor: Colors.black54,
-                                      barrierDismissible: false,
-                                      builder: (dialogContext) =>
-                                          ReturnToLivestreamDialog(
-                                        countdownSeconds: 59,
-                                        onGoBack: () {
-                                          Navigator.pop(dialogContext);
-                                          // navigate back to stream
-                                        },
-                                        onDismiss: () =>
-                                            Navigator.pop(dialogContext),
-                                      ),
-                                    );
-                                  });
-                                  return const SizedBox.shrink();
-                                },
-                              ),
                             Visibility(
                               visible: state is SavePostLoadingState ||
                                   state is SharePostLoadingState,
@@ -1818,7 +1795,7 @@ class _ReactionPanelHorizontalState extends State<ReactionPanelHorizontal> {
                     final result = await SharePlus.instance.share(ShareParams(
                         title: 'Check out the Post',
                         text:
-                            'Check out the post on clapmi https://app.clapmi.com/posts/${widget.model?.uuid}'));
+                            'Check out the post on clapmi https://app.clapmi.com${MyAppRouteConstant.sharedPostBase}/${widget.model?.uuid}'));
 
                     if (result.status == ShareResultStatus.success) {
                       context.read<PostBloc>().add(

@@ -10,7 +10,18 @@ import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_bloc.
 import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_event.dart';
 import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_state.dart';
 import 'package:clapmi/global_object_folder_jacket/global_object.dart';
-import 'package:clapmi/screens/challenge/others/widgets/live_buy_point_button.dart' show ClapLiveStreamButton, BuyPointButton, GiftLiveButton, LiveInteractionButton, SpectatorsInteractionButton, buttonWidget, BoostSuccessWidget, PopRecord, PopRecordVariant, SingleLiveScheduler;
+import 'package:clapmi/screens/challenge/others/widgets/live_buy_point_button.dart'
+    show
+        ClapLiveStreamButton,
+        BuyPointButton,
+        GiftLiveButton,
+        LiveInteractionButton,
+        SpectatorsInteractionButton,
+        buttonWidget,
+        BoostSuccessWidget,
+        PopRecord,
+        PopRecordVariant,
+        SingleLiveScheduler;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -1191,12 +1202,22 @@ class ScreenSharingIcon extends StatelessWidget {
 
 class EndliveStream extends StatelessWidget {
   final String comboId;
-  const EndliveStream({super.key, required this.comboId});
+  final num? earnedClapPoints;
+  final num? totalGiftPoints;
+  final bool showGiftSummary;
+
+  const EndliveStream({
+    super.key,
+    required this.comboId,
+    this.earnedClapPoints,
+    this.totalGiftPoints,
+    this.showGiftSummary = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 240.h,
+      height: showGiftSummary ? 340.h : 240.h,
       decoration: BoxDecoration(
         color: const Color(0xFF0D0D0F),
         borderRadius: BorderRadius.only(
@@ -1220,6 +1241,11 @@ class EndliveStream extends StatelessWidget {
             ),
           ),
           SizedBox(height: 20.h),
+
+          if (showGiftSummary) ...[
+            _giftSummaryCard(),
+            SizedBox(height: 18.h),
+          ],
 
           // Title
           Text(
@@ -1275,6 +1301,99 @@ class EndliveStream extends StatelessWidget {
     );
   }
 
+  Widget _giftSummaryCard() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141417),
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.08),
+        ),
+      ),
+      child: Column(
+        children: [
+          _giftMetric(
+            title: 'Your clap points earned',
+            value: earnedClapPoints ?? 0,
+          ),
+          SizedBox(height: 12.h),
+          Divider(
+            color: Colors.white.withOpacity(0.08),
+            height: 1,
+          ),
+          SizedBox(height: 12.h),
+          _giftMetric(
+            title: 'Total gifts given',
+            value: totalGiftPoints ?? 0,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _giftMetric({
+    required String title,
+    required num value,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 42.w,
+          height: 42.w,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1F1F24),
+            borderRadius: BorderRadius.circular(14.r),
+          ),
+          child: Center(
+            child: Image.asset(
+              value == 0
+                  ? 'assets/icons/crying.png'
+                  : 'assets/icons/commentcoin.png',
+              width: 22.w,
+              height: 22.w,
+            ),
+          ),
+        ),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.68),
+                  fontSize: 12.sp,
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                _formatClapPoints(value),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18.sp,
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatClapPoints(num value) {
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+    return value.toStringAsFixed(2);
+  }
+
   Widget _actionButton({
     required String text,
     required Color color,
@@ -1304,6 +1423,111 @@ class EndliveStream extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class NoLivestreamGiftPrompt extends StatefulWidget {
+  const NoLivestreamGiftPrompt({super.key});
+
+  @override
+  State<NoLivestreamGiftPrompt> createState() => _NoLivestreamGiftPromptState();
+}
+
+class _NoLivestreamGiftPromptState extends State<NoLivestreamGiftPrompt>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _scaleAnimation = Tween<double>(begin: 0.94, end: 1.04).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.symmetric(horizontal: 28.w),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 22.w, vertical: 24.h),
+        decoration: BoxDecoration(
+          color: const Color(0xFF101013),
+          borderRadius: BorderRadius.circular(24.r),
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ScaleTransition(
+              scale: _scaleAnimation,
+              child: Image.asset(
+                'assets/icons/crying.png',
+                width: 78.w,
+                height: 78.w,
+              ),
+            ),
+            SizedBox(height: 18.h),
+            Text(
+              'No gifts yet',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20.sp,
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              'Keep engaging your audience. We will keep reminding you every 5 minutes until your first gift drops in.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.72),
+                fontSize: 13.sp,
+                height: 1.5,
+                fontFamily: 'Poppins',
+              ),
+            ),
+            SizedBox(height: 20.h),
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                width: double.infinity,
+                height: 48.h,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1F6BFF),
+                  borderRadius: BorderRadius.circular(24.r),
+                ),
+                child: Center(
+                  child: Text(
+                    'Keep streaming',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15.sp,
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

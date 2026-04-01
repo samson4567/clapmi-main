@@ -122,6 +122,7 @@ class _MyAppState extends State<MyApp> {
   StreamSubscription<RemoteMessage>? _fcmMessageSubscription;
   StreamSubscription<RemoteMessage>? _fcmMessageOpenedAppSubscription;
   final appLinks = AppLinks();
+  Uri? _lastHandledLink;
 
   @override
   void initState() {
@@ -140,6 +141,7 @@ class _MyAppState extends State<MyApp> {
 
     SchedulerBinding.instance.addPostFrameCallback(
       (timeStamp) {
+        unawaited(initDeepLinks());
         _fcmTokenRefreshSubscription =
             FirebaseMessaging.instance.onTokenRefresh.listen(
           (event) {
@@ -167,7 +169,12 @@ class _MyAppState extends State<MyApp> {
     super.dispose();
   }
 
-  Future<void> initDeepLinks(BuildContext context) async {
+  Future<void> initDeepLinks() async {
+    final initialUri = await appLinks.getInitialLink();
+    if (initialUri != null) {
+      _handleIncomingLink(initialUri);
+    }
+
     _linkSubscription = appLinks.uriLinkStream.listen((Uri? uri) {
       if (uri != null) {
         _handleIncomingLink(uri);
@@ -189,11 +196,67 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _handleIncomingLink(Uri link) async {
-    if (link.scheme == 'https') {
+    if (_lastHandledLink == link) {
+      return;
+    }
+
+    _lastHandledLink = link;
+    final location = _getAppLocationFromLink(link);
+
+    if (location != null && mounted) {
+      router.go(location);
+    }
+  }
+
+  String? _getAppLocationFromLink(Uri link) {
+    if (link.scheme == 'https' || link.scheme == 'http') {
       if (link.host == 'google' && link.pathSegments.isNotEmpty) {
-        context.goNamed(MyAppRouteConstant.walletGeneralPage);
+        return MyAppRouteConstant.walletGeneralPage;
+      }
+
+      if (link.host == 'app.clapmi.com') {
+        return _mapPathSegmentsToLocation(link.pathSegments);
       }
     }
+
+    if (link.scheme.toLowerCase() == 'clapmi') {
+      final segments = <String>[
+        if (link.host.isNotEmpty) link.host,
+        ...link.pathSegments.where((segment) => segment.isNotEmpty),
+      ];
+      return _mapPathSegmentsToLocation(segments);
+    }
+
+    return null;
+  }
+
+  String? _mapPathSegmentsToLocation(List<String> rawSegments) {
+    final segments =
+        rawSegments.where((segment) => segment.trim().isNotEmpty).toList();
+
+    if (segments.length < 2) {
+      return null;
+    }
+
+    final resource = segments.first.toLowerCase();
+    final id = segments[1];
+    if (id.isEmpty) {
+      return null;
+    }
+
+    if (resource == 'posts') {
+      return '${MyAppRouteConstant.sharedPostBase}/$id';
+    }
+
+    if (resource == 'livestream') {
+      return '${MyAppRouteConstant.sharedLivestreamBase}/$id';
+    }
+
+    if (resource == 'combo-ground') {
+      return '${MyAppRouteConstant.sharedComboGroundBase}/$id';
+    }
+
+    return null;
   }
 }
 

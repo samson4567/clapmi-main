@@ -215,6 +215,20 @@ class ScreenShareView extends StatelessWidget {
   final bool isMobile;
   final String mobilePlatForm;
 
+  double get _resolvedAspectRatio {
+    if (aspectRatio != null && aspectRatio! > 0) {
+      return aspectRatio!;
+    }
+
+    final width = screenshareRender?.videoWidth ?? 0;
+    final height = screenshareRender?.videoHeight ?? 0;
+    if (width > 0 && height > 0) {
+      return width / height;
+    }
+
+    return isMobile ? 9 / 16 : 16 / 9;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -228,7 +242,7 @@ class ScreenShareView extends StatelessWidget {
         children: [
           if (screenshareRender?.srcObject != null)
             AspectRatio(
-              aspectRatio: aspectRatio ?? 1.0,
+              aspectRatio: _resolvedAspectRatio,
               child: RTCVideoView(
                 screenshareRender!,
                 mirror: false,
@@ -240,40 +254,70 @@ class ScreenShareView extends StatelessWidget {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                 child: Container(
-                  color: Colors.grey.withValues(alpha: 0.8),
+                  color: Colors.black.withValues(alpha: 0.42),
                 ),
               ),
             ),
           if (isHostLocalUser)
-            Positioned(
-                left: 50.w,
-                top: 50.h,
-                child: FancyContainer(
-                    child: Column(
-                  children: [
-                    CustomText(
-                      text: "You are sharing your screen with everyone",
-                      color: Colors.white,
+            Align(
+              alignment: Alignment.center,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.w),
+                child: Container(
+                  constraints: BoxConstraints(maxWidth: 320.w),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 18.w, vertical: 18.h),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.42),
+                    borderRadius: BorderRadius.circular(22.w),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      width: 1,
                     ),
-                    SizedBox(
-                      height: 12.h,
-                    ),
-                    GestureDetector(
-                      onTap: action,
-                      child: Container(
-                        width: 100.w,
-                        height: 30.h,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(40.w),
-                          color: getFigmaColor("3D3D3D"),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "You're sharing your screen with everyone",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w600,
+                          height: 1.35,
                         ),
-                        child: CustomText(
-                            text: 'Stop Sharing', color: Colors.white),
                       ),
-                    )
-                  ],
-                ))),
+                      SizedBox(height: 16.h),
+                      GestureDetector(
+                        onTap: action,
+                        child: Container(
+                          constraints: BoxConstraints(minWidth: 170.w),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24.w,
+                            vertical: 12.h,
+                          ),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(999.w),
+                            color: const Color(0xFF3F3F42),
+                          ),
+                          child: Text(
+                            'Stop Sharing',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w700,
+                              height: 1.2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           if (role == 'host')
             Positioned(
               // left: 5.w,
@@ -378,7 +422,6 @@ class DoubleScreenShareView extends StatelessWidget {
                 mobilePlatForm: mobilePlatForm,
                 isFullScreen: isFullScreen,
                 imageAvatar: firstAvatar,
-                aspectRatio: 1.35,
                 role: 'host',
                 action: () {},
                 cameraRenderer: firstCamera,
@@ -389,13 +432,12 @@ class DoubleScreenShareView extends StatelessWidget {
                 imageAvatar: secondAvatar,
                 mobilePlatForm: mobilePlatForm,
                 isMobile: isMobile,
-                aspectRatio: 1.35,
                 role: 'challenger',
                 isFullScreen: isSecondFullScreen,
                 screenshareRender: secondScreenShare,
                 cameraRenderer: secondCamera,
                 action: () {},
-                isHostLocalUser: isSecondFullScreen),
+                isHostLocalUser: isSecondHostLocalUser),
           ],
         ),
       ),

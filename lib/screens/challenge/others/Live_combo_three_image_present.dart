@@ -139,6 +139,8 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
   String? _pendingSwitchMessage;
   String? _pendingSwitchDevice;
   bool _isDeviceActionInProgress = false;
+  Timer? _noGiftReminderTimer;
+  bool _isNoGiftReminderVisible = false;
 
   bool get _isCreatorDevice =>
       role == 'host' || role == 'challenger';
@@ -146,6 +148,15 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
       _isCreatorDevice &&
       _deviceRole != DeviceRole.companion &&
       _deviceRole != DeviceRole.spectator;
+  num get _currentCreatorGiftTotal {
+    if (role == 'challenger') {
+      return challengerCoin;
+    }
+    if (role == 'host') {
+      return hostCoin;
+    }
+    return 0;
+  }
 
   // ─────────────────────────────────────────────
   // SOCKET CONNECTION
@@ -666,6 +677,7 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
     }
 
     initRenderers().then((_) async {
+      _syncNoGiftReminder();
       await _initializeDeviceSwitch();
       connect();
     });
@@ -699,6 +711,7 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
     socket?.dispose();
     _scrollController.dispose();
     _newCommentTimer?.cancel();
+    _noGiftReminderTimer?.cancel();
     _deviceSwitchHelper.dispose();
     _sendTransport?.close();
     _recvTransport?.close();
@@ -815,6 +828,7 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                     setState(() {
                       totalGiftingPot = state.totalAmount;
                     });
+                    _syncNoGiftReminder();
                   }
                   if (state is UserJoined) {
                     setState(() {
@@ -871,6 +885,7 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                             num.parse(state.gifts.giftdata?.amount ?? '0');
                       }
                     });
+                    _syncNoGiftReminder();
                     _controller.reset();
                     _controller.forward();
                   }
@@ -1007,7 +1022,6 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                                                           screenshareRender,
                                                     )
                                                   : SingleVideoView(
-                                                      aspectRatio: 0.8,
                                                       isMobile: isMobile,
                                                       mobilePlatForm:
                                                           mobilePlatForm,
@@ -1055,7 +1069,6 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                                                           hostScreenShareRender,
                                                     )
                                                   : SingleVideoView(
-                                                      aspectRatio: 0.8,
                                                       isMobile: isMobile,
                                                       mobilePlatForm:
                                                           mobilePlatForm,
@@ -1081,6 +1094,9 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                                 comboInfo: widget.comboInfo,
                                 comboId: widget.comboId,
                                 totalGiftingPot: totalGiftingPot,
+                                creatorEarnedClapPoints: _isCreatorDevice
+                                    ? _currentCreatorGiftTotal
+                                    : null,
                                 timerCountdown: timerCountdown,
                                 bragID: widget.bragID,
                                 streamersCount: numberOfStreamers,
@@ -1094,6 +1110,10 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                                         builder: (context) {
                                           return EndliveStream(
                                             comboId: widget.comboId,
+                                            earnedClapPoints:
+                                                _currentCreatorGiftTotal,
+                                            totalGiftPoints: totalGiftingPot,
+                                            showGiftSummary: _isCreatorDevice,
                                           );
                                         });
                                   }
@@ -1361,6 +1381,12 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                                                 builder: (context) {
                                                   return EndliveStream(
                                                     comboId: widget.comboId,
+                                                    earnedClapPoints:
+                                                        _currentCreatorGiftTotal,
+                                                    totalGiftPoints:
+                                                        totalGiftingPot,
+                                                    showGiftSummary:
+                                                        _isCreatorDevice,
                                                   );
                                                 });
                                           }
@@ -1372,6 +1398,12 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                                                 builder: (context) {
                                                   return EndliveStream(
                                                     comboId: widget.comboId,
+                                                    earnedClapPoints:
+                                                        _currentCreatorGiftTotal,
+                                                    totalGiftPoints:
+                                                        totalGiftingPot,
+                                                    showGiftSummary:
+                                                        _isCreatorDevice,
                                                   );
                                                 });
                                           }
@@ -1471,6 +1503,34 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
       opacity: opacity.clamp(0.0, 1.0),
       child: BuildCommentBox(commentData: comment),
     );
+  }
+
+  void _syncNoGiftReminder() {
+    if (!_isCreatorDevice || _currentCreatorGiftTotal > 0) {
+      _noGiftReminderTimer?.cancel();
+      _noGiftReminderTimer = null;
+      return;
+    }
+
+    _noGiftReminderTimer ??=
+        Timer.periodic(const Duration(minutes: 5), (_) => _showNoGiftPrompt());
+  }
+
+  Future<void> _showNoGiftPrompt() async {
+    if (!mounted ||
+        !_isCreatorDevice ||
+        _currentCreatorGiftTotal > 0 ||
+        _isNoGiftReminderVisible) {
+      return;
+    }
+
+    _isNoGiftReminderVisible = true;
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => const NoLivestreamGiftPrompt(),
+    );
+    _isNoGiftReminderVisible = false;
   }
 
   // ─────────────────────────────────────────────
@@ -2128,7 +2188,11 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
             videoGoogleStartBitrate:
                 1000), // ✅ Reduced from 2500 to 1000 for better performance
         source: 'screen-share',
-        appData: {'mediaTag': 'screen-share', 'role': role},
+        appData: {
+          'mediaTag': 'screen-share',
+          'role': role,
+          'device': Platform.isIOS ? 'IOS' : 'android',
+        },
       );
       debugPrint(
           'dbjfkdbfskdfbkdbfkjbdsfkj ✅ enableShareScreen: produce() called for video');
@@ -2143,7 +2207,11 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
           track: localScreenShareAudioTrack!,
           stream: shareScreenStream!,
           source: 'screen-share-audio',
-          appData: {'mediaTag': 'screen-share-audio', 'role': role},
+          appData: {
+            'mediaTag': 'screen-share-audio',
+            'role': role,
+            'device': Platform.isIOS ? 'IOS' : 'android',
+          },
         );
       } else {
         debugPrint('⚠️ No audio track available for screen share');

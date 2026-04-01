@@ -4,6 +4,7 @@ import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_event
 import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_state.dart';
 import 'package:clapmi/global_object_folder_jacket/global_classes/customColor.dart';
 import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
+import 'package:clapmi/screens/walletSystem/transaction/transaction_history_args.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -23,19 +24,75 @@ class TransactionHistory extends StatefulWidget {
 }
 
 class _TransactionHistoryState extends State<TransactionHistory> {
+  final TextEditingController _searchController = TextEditingController();
+  TransactionHistoryFilterArgs _filterArgs =
+      const TransactionHistoryFilterArgs();
+  List<TransactionHistoryModel> _transactions = [];
+
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(_handleSearchChanged);
+    _loadTransactions();
+  }
+
+  @override
+  void dispose() {
+    _searchController
+      ..removeListener(_handleSearchChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleSearchChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  void _loadTransactions() {
     context.read<WalletBloc>().add(WalletUpdateEvent(
           recent: widget.recent,
           perPage: widget.perPage,
           transaction: '',
-          operation: '',
+          operation: _filterArgs.operation,
           currency: '',
           amount: '',
           date: '',
-          status: '',
+          status: _filterArgs.status,
         ));
+  }
+
+  Future<void> _openFilter() async {
+    final result = await context.push<TransactionHistoryFilterArgs>(
+      MyAppRouteConstant.transactionFilter,
+      extra: _filterArgs,
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _filterArgs = result;
+    });
+    _loadTransactions();
+  }
+
+  List<TransactionHistoryModel> _applyLocalFilters(
+      List<TransactionHistoryModel> transactions) {
+    final query = _searchController.text.trim().toLowerCase();
+
+    return transactions.where((tx) {
+      final matchesQuery = query.isEmpty ||
+          tx.transaction.toLowerCase().contains(query) ||
+          tx.operation.toLowerCase().contains(query) ||
+          tx.status.toLowerCase().contains(query) ||
+          tx.currency.toLowerCase().contains(query) ||
+          tx.amount.toLowerCase().contains(query);
+
+      final matchesStart = _filterArgs.startDate.isEmpty ||
+          tx.date.compareTo(_filterArgs.startDate) >= 0;
+      final matchesEnd = _filterArgs.endDate.isEmpty ||
+          tx.date.compareTo(_filterArgs.endDate) <= 0;
+
+      return matchesQuery && matchesStart && matchesEnd;
+    }).toList();
   }
 
   @override
@@ -64,18 +121,18 @@ class _TransactionHistoryState extends State<TransactionHistory> {
             Row(
               children: [
                 InkWell(
-                  onTap: () {
-                    context.push(MyAppRouteConstant.transactionFilter);
-                  },
+                  onTap: _openFilter,
                   child: Row(
                     children: [
                       SvgPicture.asset('assets/icons/filter.svg',
                           width: 20, height: 20),
                       const Gap(8),
                       Text(
-                        'Filter',
+                        _filterArgs.hasActiveFilters ? 'Filter applied' : 'Filter',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppColors.greyTextColor,
+                              color: _filterArgs.hasActiveFilters
+                                  ? AppColors.primaryColor
+                                  : AppColors.greyTextColor,
                             ),
                       ),
                     ],
@@ -93,6 +150,7 @@ class _TransactionHistoryState extends State<TransactionHistory> {
                       children: [
                         Expanded(
                           child: TextField(
+                            controller: _searchController,
                             decoration: InputDecoration(
                               border: InputBorder.none,
                               hintText: 'Search transaction history',
@@ -114,7 +172,14 @@ class _TransactionHistoryState extends State<TransactionHistory> {
             ),
             const Gap(18),
             Expanded(
-              child: BlocBuilder<WalletBloc, WalletState>(
+              child: BlocConsumer<WalletBloc, WalletState>(
+                listener: (context, state) {
+                  if (state is WalletUpdateSuccessState) {
+                    setState(() {
+                      _transactions = state.transactionHistoryModel;
+                    });
+                  }
+                },
                 builder: (context, state) {
                   if (state is WalletUpdateLoadingState) {
                     return Shimmer.fromColors(
@@ -138,16 +203,19 @@ class _TransactionHistoryState extends State<TransactionHistory> {
                     );
                   } else if (state is WalletUpdateErrorState) {
                     return Center(child: Text('Error: ${state.errorMessage}'));
-                  } else if (state is WalletUpdateSuccessState) {
-                    final transactions = state.transactionHistoryModel;
+                  } else if (state is WalletUpdateSuccessState ||
+                      _transactions.isNotEmpty) {
+                    final transactions = _applyLocalFilters(_transactions);
 
                     if (transactions.isEmpty) {
-                      return SizedBox(
-                        height: 200,
-                        width: 200,
-                        child: Image.asset(
-                          'assets/images/ode.png',
+                      return Center(
+                        child: SizedBox(
                           height: 200,
+                          width: 200,
+                          child: Image.asset(
+                            'assets/images/ode.png',
+                            height: 200,
+                          ),
                         ),
                       );
                     }
@@ -175,8 +243,10 @@ Widget _transactionWidget(BuildContext context,
     {required TransactionHistoryModel tx}) {
   return InkWell(
     onTap: () {
-      context.push(MyAppRouteConstant.transactionDetail,
-          extra: {"transactionID": tx.transaction});
+      context.push(
+        MyAppRouteConstant.transactionDetail,
+        extra: tx,
+      );
     },
     child: Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -188,7 +258,7 @@ Widget _transactionWidget(BuildContext context,
       child: Row(
         children: [
           Expanded(
-            flex: 2,
+            flex: 3,
             child: Row(
               children: [
                 CircleAvatar(
@@ -221,9 +291,13 @@ Widget _transactionWidget(BuildContext context,
                   ),
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  tx.amount,
-                  style: const TextStyle(color: Colors.grey, fontSize: 10),
+                Expanded(
+                  child: Text(
+                    tx.amount,
+                    style: const TextStyle(color: Colors.grey, fontSize: 10),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                 ),
               ],
             ),
@@ -233,6 +307,8 @@ Widget _transactionWidget(BuildContext context,
             child: Text(
               tx.currency,
               style: const TextStyle(color: Colors.grey, fontSize: 10),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
           Expanded(
@@ -240,6 +316,8 @@ Widget _transactionWidget(BuildContext context,
             child: Text(
               tx.date,
               style: const TextStyle(color: Colors.grey, fontSize: 10),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
           Expanded(
@@ -259,6 +337,8 @@ Widget _transactionWidget(BuildContext context,
                   child: Text(
                     tx.status,
                     style: const TextStyle(color: Colors.grey, fontSize: 10),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
               ],

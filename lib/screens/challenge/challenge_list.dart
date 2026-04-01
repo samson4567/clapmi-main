@@ -429,6 +429,9 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                 isScrollControlled: true,
                 context: context,
                 builder: (_) => StreamCreatedModal(
+                  buttonLabel: _isInstantLive
+                      ? 'Start stream'
+                      : 'Await for stream live',
                   onPressed: () {
                     onCreateComboCallback(state.message ?? '');
                   },
@@ -502,7 +505,9 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                       SizedBox(height: 25.h),
                       // Title
                       Text(
-                        "Live Details",
+                        _isInstantLive
+                            ? "Live Details"
+                            : "Schedule live for later",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 18.sp,
@@ -702,6 +707,19 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                             width: double.infinity,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(40),
+                              gradient: LinearGradient(
+                                colors: isFilled
+                                    ? const [
+                                        Color(0xFFFF2400),
+                                        Color(0xFF0075FF),
+                                      ]
+                                    : const [
+                                        Color(0xFF4A4A4A),
+                                        Color(0xFF2B2B2B),
+                                      ],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
                             ),
                             padding: const EdgeInsets.symmetric(horizontal: 24),
                             child: Center(
@@ -709,10 +727,17 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                                 alignment: Alignment.center,
                                 children: [
                                   Opacity(
-                                    opacity: isLoading ? 0.5 : 1,
-                                    child: SvgPicture.asset(
-                                      'assets/images/crete.svg',
-                                      fit: BoxFit.contain,
+                                    opacity: isLoading ? 0 : 1,
+                                    child: Text(
+                                      _isInstantLive
+                                          ? 'Create stream'
+                                          : 'Schedule live for later',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                   ),
                                   if (isLoading)
@@ -723,7 +748,7 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                                         strokeWidth: 3,
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                                Colors.blue),
+                                                Colors.white),
                                       ),
                                     ),
                                 ],
@@ -1275,10 +1300,12 @@ Widget buildSpectatorsCardSingleStream(ComboEntity comboModel) {
 class StreamCreatedModal extends StatefulWidget {
   final VoidCallback onPressed;
   final bool enabled;
+  final String buttonLabel;
 
   const StreamCreatedModal({
     super.key,
     required this.onPressed,
+    required this.buttonLabel,
     this.enabled = true,
   });
 
@@ -1390,6 +1417,16 @@ class _StreamCreatedModalState extends State<StreamCreatedModal>
                           ),
                         );
                       },
+                    ),
+                    IgnorePointer(
+                      child: Text(
+                        widget.buttonLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                     if (_isLoading)
                       const SizedBox(

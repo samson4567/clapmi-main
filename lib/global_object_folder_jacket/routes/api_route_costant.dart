@@ -2,6 +2,7 @@ import 'package:clapmi/core/app_variables.dart';
 import 'package:clapmi/features/app/data/models/user_model.dart';
 import 'package:clapmi/features/brag/data/models/brag_challengers.dart';
 import 'package:clapmi/features/combo/domain/entities/combo_entity.dart';
+import 'package:clapmi/features/post/data/models/create_post_model.dart';
 import 'package:clapmi/features/wallet/data/models/paywith_transfer_enity.dart';
 import 'package:clapmi/features/wallet/data/models/transaction.dart';
 import 'package:clapmi/global_object_folder_jacket/global_variables/global_variables.dart';
@@ -80,6 +81,7 @@ import 'package:clapmi/screens/walletSystem/gifting/gifting_successful.dart';
 import 'package:clapmi/screens/walletSystem/receive.dart';
 import 'package:clapmi/screens/walletSystem/transaction/all_transaction_history.dart';
 import 'package:clapmi/screens/walletSystem/transaction/single_transaction_detail.dart';
+import 'package:clapmi/screens/walletSystem/transaction/transaction_history_args.dart';
 import 'package:clapmi/screens/walletSystem/transaction/transaction_history_filter.dart';
 import 'package:clapmi/screens/walletSystem/withdrawal/enter_setnewpin.dart';
 import 'package:clapmi/screens/walletSystem/withdrawal/fiat_withdrawal.dart';
@@ -162,6 +164,27 @@ final GoRouter router = GoRouter(
             host: params["host"] as ProfileModel,
             challenge: params["challenge"] as BragChallengersModel,
             postId: params["postId"] as String,
+          );
+        }),
+    GoRoute(
+        path: MyAppRouteConstant.sharedPostPath,
+        builder: (context, state) {
+          return PostScreen(
+            postId: state.pathParameters['postId'],
+          );
+        }),
+    GoRoute(
+        path: MyAppRouteConstant.sharedLivestreamPath,
+        builder: (context, state) {
+          return SingleLivestreamDetailPage(
+            comboId: state.pathParameters['comboId'],
+          );
+        }),
+    GoRoute(
+        path: MyAppRouteConstant.sharedComboGroundPath,
+        builder: (context, state) {
+          return SingleLivestreamDetailPage(
+            comboId: state.pathParameters['comboId'],
           );
         }),
     GoRoute(
@@ -578,8 +601,21 @@ final GoRouter router = GoRouter(
                     name: MyAppRouteConstant.postScreen,
                     path: MyAppRouteConstant.postScreen,
                     builder: (context, state) {
+                      final extra = state.extra;
+                      final postId = switch (extra) {
+                        String value => value,
+                        CreatePostModel model => model.uuid ?? '',
+                        Map map when map['model'] is CreatePostModel =>
+                          (map['model'] as CreatePostModel).uuid ?? '',
+                        Map map when map['post'] is String =>
+                          map['post'] as String,
+                        Map map when map['postId'] is String =>
+                          map['postId'] as String,
+                        _ => '',
+                      };
+
                       return PostScreen(
-                        postId: state.extra as String,
+                        postId: postId,
                       );
                     },
                     routes:  [
@@ -688,8 +724,47 @@ final GoRouter router = GoRouter(
                 name: MyAppRouteConstant.transactionDetail,
                 path: MyAppRouteConstant.transactionDetail,
                 builder: (context, state) {
+                  final extra = state.extra;
+                  final transaction = extra is TransactionHistoryModel
+                      ? extra
+                      : TransactionHistoryModel(
+                          transaction:
+                              extra is Map && extra['transactionID'] != null
+                                  ? extra['transactionID'].toString()
+                                  : '',
+                          operation:
+                              extra is Map && extra['operation'] != null
+                                  ? extra['operation'].toString()
+                                  : '',
+                          currency: extra is Map && extra['currency'] != null
+                              ? extra['currency'].toString()
+                              : '',
+                          amount: extra is Map && extra['amount'] != null
+                              ? extra['amount'].toString()
+                              : '',
+                          date: extra is Map && extra['date'] != null
+                              ? extra['date'].toString()
+                              : '',
+                          status: extra is Map && extra['status'] != null
+                              ? extra['status'].toString()
+                              : '',
+                          recent: false,
+                          perPage: 0,
+                          orderId: extra is Map && extra['orderId'] != null
+                              ? extra['orderId'].toString()
+                              : '',
+                          time: extra is Map && extra['time'] != null
+                              ? extra['time'].toString()
+                              : '',
+                          from: extra is Map && extra['from'] != null
+                              ? extra['from'].toString()
+                              : '',
+                          to: extra is Map && extra['to'] != null
+                              ? extra['to'].toString()
+                              : '',
+                        );
                   return SingleTransactionDetail(
-                    transaction: state.extra as TransactionHistoryModel,
+                    transaction: transaction,
                   );
                   // return const TransactionDetail();
                 }),
@@ -697,7 +772,12 @@ final GoRouter router = GoRouter(
                 name: MyAppRouteConstant.transactionFilter,
                 path: MyAppRouteConstant.transactionFilter,
                 builder: (context, state) {
-                  return const TransactionHistoryFilter();
+                  return TransactionHistoryFilter(
+                    initialFilters:
+                        state.extra is TransactionHistoryFilterArgs
+                            ? state.extra as TransactionHistoryFilterArgs
+                            : const TransactionHistoryFilterArgs(),
+                  );
                 }),
             // GoRoute(
             //     name: MyAppRouteConstant.giftCoin,

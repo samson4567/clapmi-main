@@ -162,7 +162,6 @@ class LiveInteractionButton extends StatelessWidget {
         //     isEnabled: widget.isScreenEnlarged),
         buttonWidget(Appassets.liveExit, widget.onExitPressed),
         //  buttonWidget(Appassets.liveTurnedOff, widget.onTurnedOffPressed)
-        // Hamburger menu for recording controls
         BlocBuilder<RecordingBloc, RecordingState>(
           builder: (context, recordingState) {
             final isRecording = recordingState is RecordingStarted;
@@ -181,6 +180,10 @@ class LiveInteractionButton extends StatelessWidget {
                             .recording
                             .recordingId
                         : null,
+                    onScreenShare: () {
+                      Navigator.pop(context);
+                      widget.onShareScreenPressed(!widget.isScreenShared);
+                    },
                     onStartRecording: () {
                       context.read<RecordingBloc>().add(
                             StartRecording(roomId: widget.comboId),
@@ -205,20 +208,15 @@ class LiveInteractionButton extends StatelessWidget {
                 );
               },
               child: Container(
+                margin: EdgeInsets.only(bottom: 4.h),
                 height: 35.w,
                 width: 35.w,
-                decoration: BoxDecoration(
-                  color: getFigmaColor('3D3D3D'),
-                  borderRadius: BorderRadius.circular(25.w),
-                ),
-                child: Center(
-                  child: SvgPicture.asset(
-                    'assets/icons/hanbumger.svg',
-                    width: 10.w,
-                    height: 10.w,
-                    colorFilter:
-                        const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-                  ),
+                alignment: Alignment.center,
+                child: SvgPicture.asset(
+                  'assets/icons/hanbumger.svg',
+                  width: 35.w,
+                  height: 35.w,
+                  fit: BoxFit.contain,
                 ),
               ),
             );

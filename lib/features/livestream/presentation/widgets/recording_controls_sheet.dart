@@ -7,6 +7,7 @@ import 'package:clapmi/features/livestream/data/models/recording_model.dart';
 class RecordingControlsSheet extends StatelessWidget {
   final RecordingStatus recordingStatus;
   final String? recordingId;
+  final VoidCallback onScreenShare;
   final VoidCallback onStartRecording;
   final VoidCallback onStopRecording;
   final VoidCallback onClose;
@@ -15,6 +16,7 @@ class RecordingControlsSheet extends StatelessWidget {
     super.key,
     required this.recordingStatus,
     this.recordingId,
+    required this.onScreenShare,
     required this.onStartRecording,
     required this.onStopRecording,
     required this.onClose,
@@ -53,9 +55,7 @@ class RecordingControlsSheet extends StatelessWidget {
                   svgAsset: 'assets/icons/screenshare.svg',
                   label: 'Screen share',
                   isActive: false,
-                  onTap: () {
-                    // handle screen share - dummy for now
-                  },
+                  onTap: onScreenShare,
                 ),
               ),
               const SizedBox(width: 12),
