@@ -53,16 +53,44 @@ class _WalletViewState extends State<WalletView> {
   @override
   void initState() {
     super.initState();
+    _hydrateFromWalletBlocCache();
     _loadWalletHomeData();
   }
 
   List<TransactionHistoryModel> listOfTransactionHistoryModel = [];
 
+  void _hydrateFromWalletBlocCache() {
+    final walletBloc = context.read<WalletBloc>();
+
+    if (walletBloc.assetBalances.isNotEmpty) {
+      final cachedBalances = walletBloc.assetBalances;
+      final computedTotal = cachedBalances.fold<double>(0.0, (sum, coin) {
+        final parsedBalance = double.tryParse(coin.balance) ?? 0.0;
+        return sum +
+            (coin.name == 'CAPP' ? parsedBalance / 100 : parsedBalance);
+      });
+
+      balances = cachedBalances;
+      totalBalance = computedTotal;
+      isWalletLoaded = true;
+    }
+
+    if (walletBloc.recentTransactions.isNotEmpty) {
+      listOfTransactionHistoryModel = walletBloc.recentTransactions;
+    }
+  }
+
   void _loadWalletHomeData() {
     final walletBloc = context.read<WalletBloc>();
-    walletBloc.add(GetTransactionsListRecentEvent());
-    walletBloc.add(LoadWalletBalances());
-    walletBloc.add(const RecentGiftingEvent());
+    if (walletBloc.recentTransactions.isEmpty) {
+      walletBloc.add(GetTransactionsListRecentEvent());
+    }
+    if (walletBloc.assetBalances.isEmpty) {
+      walletBloc.add(LoadWalletBalances());
+    }
+    if (walletBloc.recentGiftings.isEmpty) {
+      walletBloc.add(const RecentGiftingEvent());
+    }
   }
 
   Future<void> _refreshWalletHomeData() async {

@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'dart:typed_data';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:clapmi/global_object_folder_jacket/global_object.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -56,28 +55,11 @@ Widget userJoin({String? imageUrl, String? message, String? userName}) {
     child: ListTile(
       leading: CircularContainer(
           radius: 40,
-          child: CachedNetworkImage(
-            imageUrl: imageUrl ?? '',
-            imageBuilder: (context, imageProvider) {
-              return Container(
-                height: 10.w,
-                width: 10.w,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    image: DecorationImage(
-                        image: imageProvider, fit: BoxFit.cover)),
-              );
-            },
-            errorWidget: (context, url, error) {
-              return Container(
-                decoration:
-                    BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                child: Icon(
-                  Icons.person,
-                  size: 30,
-                ),
-              );
-            },
+          child: AppAvatar(
+            imageUrl: imageUrl,
+            name: userName,
+            size: 40,
+            backgroundColor: const Color(0xFF1E3A8A),
           )),
       title: Text(
         userName ?? '',
@@ -101,7 +83,11 @@ Widget userJoin({String? imageUrl, String? message, String? userName}) {
 }
 
 Widget giftWidget(
-    {String? imageUrl, String? message, String? userName, String? amount}) {
+    {String? imageUrl,
+    String? message,
+    String? userName,
+    String? amount,
+    Uint8List? avatarBytes}) {
   return Container(
     height: 60.h,
     width: 350.w,
@@ -113,28 +99,12 @@ Widget giftWidget(
         padding: EdgeInsets.zero,
         child: CircularContainer(
           radius: 40,
-          child: CachedNetworkImage(
-            imageUrl: imageUrl ?? '',
-            imageBuilder: (context, imageProvider) {
-              return Container(
-                height: 10.w,
-                width: 10.w,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    image: DecorationImage(
-                        image: imageProvider, fit: BoxFit.cover)),
-              );
-            },
-            errorWidget: (context, url, error) {
-              return Container(
-                decoration:
-                    BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                child: Icon(
-                  Icons.person,
-                  size: 30,
-                ),
-              );
-            },
+          child: AppAvatar(
+            imageUrl: imageUrl,
+            memoryBytes: avatarBytes,
+            name: userName,
+            size: 40,
+            backgroundColor: const Color(0xFF1E3A8A),
           ),
         ),
       ),
@@ -245,34 +215,13 @@ Widget clapLiveWidget(
         padding: EdgeInsets.zero,
         child: CircularContainer(
           radius: 40,
-          child: myavatar != null
-              ? Container(
-                  decoration: BoxDecoration(
-                      image: DecorationImage(image: MemoryImage(myavatar))),
-                )
-              : CachedNetworkImage(
-                  imageUrl: imageUrl ?? '',
-                  imageBuilder: (context, imageProvider) {
-                    return Container(
-                      // height: 10.w,
-                      // width: 10.w,
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          image: DecorationImage(
-                              image: imageProvider, fit: BoxFit.cover)),
-                    );
-                  },
-                  errorWidget: (context, url, error) {
-                    return Container(
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10)),
-                      child: Icon(
-                        Icons.person,
-                        size: 30,
-                      ),
-                    );
-                  },
-                ),
+          child: AppAvatar(
+            imageUrl: imageUrl,
+            memoryBytes: myavatar,
+            name: userName,
+            size: 40,
+            backgroundColor: const Color(0xFF1E3A8A),
+          ),
         ),
       ),
       title: Text(

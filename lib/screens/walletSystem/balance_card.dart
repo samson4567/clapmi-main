@@ -37,10 +37,14 @@ class _BalanceCardState extends State<BalanceCard> {
   @override
   void initState() {
     super.initState();
-    // Load wallet properties when widget loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<WalletBloc>().add(const GetWalletPropertiesEvent());
-    });
+    final walletBloc = context.read<WalletBloc>();
+    if (walletBloc.walletProperties == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<WalletBloc>().add(const GetWalletPropertiesEvent());
+      });
+    } else {
+      is2faSetUp = walletBloc.walletProperties!.is2faSetUp;
+    }
   }
 
   @override

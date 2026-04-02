@@ -8,6 +8,8 @@ import 'package:clapmi/features/notification/presentation/blocs/user_bloc/notifi
 import 'package:clapmi/features/notification/presentation/blocs/user_bloc/notification_state.dart';
 import 'package:clapmi/features/post/presentation/blocs/user_bloc/post_bloc.dart';
 import 'package:clapmi/features/post/presentation/blocs/user_bloc/post_event.dart';
+import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_bloc.dart';
+import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_event.dart';
 import 'package:clapmi/global_object_folder_jacket/global_classes/global_classes.dart';
 import 'package:clapmi/global_object_folder_jacket/global_variables/global_variables.dart';
 import 'package:clapmi/screens/Brag/brag_screen_tu_controller.dart';
@@ -59,6 +61,22 @@ class _MainPageState extends State<MainPage> {
       if (index == 2) {
         context.read<ComboBloc>().add(GetLiveCombosEvent());
         context.read<ComboBloc>().add(GetUpcomingCombosEvent());
+      }
+
+      if (index == 4) {
+        final walletBloc = context.read<WalletBloc>();
+        if (walletBloc.assetBalances.isEmpty) {
+          walletBloc.add(LoadWalletBalances());
+        }
+        if (walletBloc.recentTransactions.isEmpty) {
+          walletBloc.add(GetTransactionsListRecentEvent());
+        }
+        if (walletBloc.recentGiftings.isEmpty) {
+          walletBloc.add(const RecentGiftingEvent());
+        }
+        if (walletBloc.walletProperties == null) {
+          walletBloc.add(const GetWalletPropertiesEvent());
+        }
       }
 
       widget.navigationShell.goBranch(

@@ -347,10 +347,13 @@ class ComboEnded extends ChatsAndSocialsState {
 
 class GiftingState extends ChatsAndSocialsState {
   final GiftData gifts;
-  const GiftingState({required this.gifts});
+  final int eventId;
+
+  GiftingState({required this.gifts, int? eventId})
+      : eventId = eventId ?? DateTime.now().microsecondsSinceEpoch;
 
   @override
-  List<Object> get props => [gifts];
+  List<Object> get props => [gifts, eventId];
 }
 
 class PotAmount extends ChatsAndSocialsState {

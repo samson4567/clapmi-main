@@ -105,11 +105,12 @@ class LiveReactionUserModel extends LiveReactionUser {
       {super.avatar, super.message, super.user, super.username});
 
   factory LiveReactionUserModel.fromMap(Map<String, dynamic> map) {
+    final avatar = map['avatar'] ?? map['image'] ?? map['profile_picture'];
     return LiveReactionUserModel(
       message: map['message'] != null ? map['message'] as String : null,
       user: map['user'] != null ? map['user'] as String : null,
       username: map['username'] != null ? map['username'] as String : null,
-      avatar: map['avatar'] != null ? map['avatar'] as String : null,
+      avatar: avatar is String ? avatar : null,
     );
   }
 
@@ -197,10 +198,11 @@ class LiveUserInteractionDataModel extends LiveUserInteractionData {
   const LiveUserInteractionDataModel({super.image, super.pid, super.username});
 
   factory LiveUserInteractionDataModel.fromMap(Map<String, dynamic> map) {
+    final image = map['image'] ?? map['avatar'] ?? map['profile_picture'];
     return LiveUserInteractionDataModel(
       pid: map['pid'] != null ? map['pid'] as String : null,
       username: map['username'] != null ? map['username'] as String : null,
-      image: map['image'] != null ? map['image'] as String : null,
+      image: image is String ? image : null,
     );
   }
 
@@ -236,10 +238,11 @@ class GiftSenderModel extends GiftSender {
   GiftSenderModel({super.avatar, super.user, super.username});
 
   factory GiftSenderModel.fromMap(Map<String, dynamic> map) {
+    final avatar = map['avatar'] ?? map['image'] ?? map['profile_picture'];
     return GiftSenderModel(
       user: map['user'] != null ? map['user'] as String : null,
       username: map['username'] != null ? map['username'] as String : null,
-      avatar: map['avatar'] != null ? map['avatar'] as String : null,
+      avatar: avatar is String ? avatar : null,
     );
   }
 

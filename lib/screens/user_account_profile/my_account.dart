@@ -216,7 +216,9 @@ class _MyAccountPageState extends State<MyAccountPage> {
                               onPressed: () {
                                 context
                                     .read<AppBloc>()
-                                    .add(GetMyProfileEvent());
+                                    .add(const GetMyProfileEvent(
+                                      forceRefresh: true,
+                                    ));
                               },
                               child: Text("Try again"),
                             ),
@@ -242,7 +244,9 @@ class _MyAccountPageState extends State<MyAccountPage> {
                               onPressed: () {
                                 context
                                     .read<AppBloc>()
-                                    .add(GetMyProfileEvent());
+                                    .add(const GetMyProfileEvent(
+                                      forceRefresh: true,
+                                    ));
                                 context.read<AppBloc>().add(GetUserProfileEvent(
                                     userId: profileModelG?.pid ?? ''));
                               },

@@ -61,6 +61,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   static const String _leaderboardIntroSeenKey = 'leaderboard_intro_seen_v1';
   static CreatorLeaderboardResponse? _cachedLeaderboardResponse;
   static CreatorRankingModel? _cachedCurrentUserRanking;
+  static String? _cachedCurrentUserLevelName;
+  static String? _cachedCurrentUserTimeFilter;
   static String? _cachedLevelName;
   static int? _cachedPage;
   static String? _cachedTimeFilter;
@@ -105,9 +107,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     _hydrateFromCurrentBlocState();
     if (_creatorRankings.isEmpty && !_isLoading && _error == null) {
       _loadCreatorLeaderboard();
-    }
-    if (_currentUserRanking == null) {
-      _loadCurrentUserRanking();
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeShowLeaderboardIntro();
@@ -204,6 +203,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         _cachedTimeFilter == _selectedTimeFilter;
   }
 
+  bool _matchesCachedCurrentUserRequest() {
+    return _cachedCurrentUserRanking != null &&
+        _cachedCurrentUserLevelName == _getApiLevelName(_selectedLevel) &&
+        _cachedCurrentUserTimeFilter == _selectedTimeFilter;
+  }
+
   bool _matchesCurrentUserLeaderboardRequest({
     required String? levelName,
     required String timeFilter,
@@ -262,8 +267,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   void _loadCreatorLeaderboard() {
     final levelName = _getApiLevelName(_selectedLevel);
-    print(
-        'Loading creator leaderboard for level: $levelName, page: $_currentPage, timeFilter: $_selectedTimeFilter');
     context.read<UserBloc>().add(GetCreatorLeaderboardEvent(
           levelName: levelName,
           page: _currentPage,
@@ -276,6 +279,28 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     if (currentUserPid == null) {
       _isCurrentUserRankingLoading = false;
       _hasResolvedCurrentUserRanking = true;
+      return;
+    }
+
+    final visibleRanking = _currentUserRankingFromVisibleList();
+    if (visibleRanking != null) {
+      _currentUserRanking = visibleRanking;
+      _cachedCurrentUserRanking = visibleRanking;
+      _cachedCurrentUserLevelName = _getApiLevelName(_selectedLevel);
+      _cachedCurrentUserTimeFilter = _selectedTimeFilter;
+      _isCurrentUserRankingLoading = false;
+      _hasResolvedCurrentUserRanking = true;
+      return;
+    }
+
+    if (_matchesCachedCurrentUserRequest()) {
+      _currentUserRanking = _cachedCurrentUserRanking;
+      _isCurrentUserRankingLoading = false;
+      _hasResolvedCurrentUserRanking = true;
+      return;
+    }
+
+    if (_isCurrentUserRankingLoading) {
       return;
     }
 
@@ -293,8 +318,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     if (resetPage) {
       _currentPage = 1;
     }
+    _currentUserRanking = null;
+    _isCurrentUserRankingLoading = false;
+    _hasResolvedCurrentUserRanking = false;
     _loadCreatorLeaderboard();
-    _loadCurrentUserRanking();
   }
 
   void _hydrateFromCache() {
@@ -308,10 +335,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
 
     _applyLeaderboardResponse(cachedResponse);
-    _currentUserRanking =
-        _cachedCurrentUserRanking ?? _currentUserRankingFromVisibleList();
+    _currentUserRanking = _currentUserRankingFromVisibleList();
+    if (_currentUserRanking == null && _matchesCachedCurrentUserRequest()) {
+      _currentUserRanking = _cachedCurrentUserRanking;
+    }
     _hasResolvedCurrentUserRanking =
-        _currentUserRanking != null || _cachedCurrentUserRanking != null;
+        _currentUserRanking != null || _matchesCachedCurrentUserRequest();
     _isCurrentUserRankingLoading = false;
   }
 
@@ -355,9 +384,36 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               timeFilter: state.timeFilter,
               creator: state.creator,
             )) {
+          final visibleCurrentUserRanking =
+              _extractCurrentUserRanking(state.response);
+          final shouldLoadCurrentUserRanking = visibleCurrentUserRanking ==
+              null &&
+              profileModelG?.pid != null &&
+              !_matchesCachedCurrentUserRequest();
+
           setState(() {
             _applyLeaderboardResponse(state.response);
+            if (visibleCurrentUserRanking != null) {
+              _currentUserRanking = visibleCurrentUserRanking;
+              _cachedCurrentUserRanking = visibleCurrentUserRanking;
+              _cachedCurrentUserLevelName = _getApiLevelName(_selectedLevel);
+              _cachedCurrentUserTimeFilter = _selectedTimeFilter;
+              _isCurrentUserRankingLoading = false;
+              _hasResolvedCurrentUserRanking = true;
+            } else if (_matchesCachedCurrentUserRequest()) {
+              _currentUserRanking = _cachedCurrentUserRanking;
+              _isCurrentUserRankingLoading = false;
+              _hasResolvedCurrentUserRanking = true;
+            } else {
+              _currentUserRanking = null;
+              _isCurrentUserRankingLoading = false;
+              _hasResolvedCurrentUserRanking = false;
+            }
           });
+
+          if (shouldLoadCurrentUserRanking) {
+            _loadCurrentUserRanking();
+          }
         } else if (state is GetCreatorLeaderboardErrorState &&
             _matchesMainLeaderboardRequest(
               levelName: state.levelName,
@@ -378,6 +434,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           setState(() {
             _currentUserRanking = _extractCurrentUserRanking(state.response);
             _cachedCurrentUserRanking = _currentUserRanking;
+            _cachedCurrentUserLevelName = _getApiLevelName(_selectedLevel);
+            _cachedCurrentUserTimeFilter = _selectedTimeFilter;
             _isCurrentUserRankingLoading = false;
             _hasResolvedCurrentUserRanking = true;
           });

@@ -44,4 +44,11 @@ class SetPreviouslyStoredPostModelListEvent extends AppEvent {
   List<Object> get props => [listOfPostsToBeCached];
 }
 
-class GetMyProfileEvent extends AppEvent {}
+class GetMyProfileEvent extends AppEvent {
+  final bool forceRefresh;
+
+  const GetMyProfileEvent({this.forceRefresh = false});
+
+  @override
+  List<Object> get props => [forceRefresh];
+}

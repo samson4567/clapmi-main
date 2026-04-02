@@ -118,13 +118,16 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
   num totalGiftingPot = 0.0;
   num hostCoin = 0;
   num challengerCoin = 0;
-  bool userClappEvent = false;
   DateTime? targetTime;
   String? timerCountdown;
   int numberOfStreamers = 0;
   late AnimationController _controller;
   late Animation<double> _positionAnimation;
   late Animation<double> _opacityAnimation;
+  late AnimationController _giftMilestoneController;
+  late Animation<double> _giftMilestoneScaleAnimation;
+  late Animation<double> _giftMilestoneOpacityAnimation;
+  late Animation<Offset> _giftMilestoneSlideAnimation;
 
   bool? isComboOngoingNow;
   int numberOfChallenger = 0;
@@ -145,9 +148,15 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
   bool _isDeviceActionInProgress = false;
   Timer? _noGiftReminderTimer;
   bool _isNoGiftReminderVisible = false;
+  bool _showGiftMilestoneCup = false;
+  String _giftMilestoneMessage = '';
+  final Set<String> _giftMilestoneShownCreators = <String>{};
+  final List<Map<String, dynamic>> _pendingLiveNotifications = [];
+  Map<String, dynamic>? _activeLiveNotification;
   OverlayEntry? _floatingLiveOverlayEntry;
   bool _isRouteObserverRegistered = false;
   bool _isMinimizedToOverlay = false;
+  static const num _giftMilestoneThreshold = 500;
 
   bool get _isCreatorDevice => role == 'host' || role == 'challenger';
   bool get _canBroadcastFromThisDevice =>
@@ -706,6 +715,50 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
         .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     _opacityAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
         CurvedAnimation(parent: _controller, curve: Curves.easeOutQuad));
+    _giftMilestoneController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3200),
+    );
+    _giftMilestoneScaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.78, end: 1.08)
+            .chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 45,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.08, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 25,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.96)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 30,
+      ),
+    ]).animate(_giftMilestoneController);
+    _giftMilestoneOpacityAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 12,
+      ),
+      TweenSequenceItem(
+        tween: ConstantTween<double>(1.0),
+        weight: 68,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 20,
+      ),
+    ]).animate(_giftMilestoneController);
+    _giftMilestoneSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.2),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _giftMilestoneController,
+      curve: Curves.easeOutCubic,
+    ));
 
     context.read<ChatsAndSocialsBloc>().add(SubscribeTochatEvent(
         conversationId: widget.comboId, isLiveComboSubscription: true));
@@ -723,6 +776,7 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
           challengerCoin = widget.comboInfo.gifts?.challenger ?? 0;
         }
       });
+      _seedGiftMilestoneFlags();
     }
 
     initRenderers().then((_) async {
@@ -733,9 +787,19 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
 
     _controller.addStatusListener((status) {
       if (status.isCompleted) {
+        if (!mounted) {
+          return;
+        }
         setState(() {
-          debugPrint("----STATUS IS COMPLETED");
-          userClappEvent = false;
+          _activeLiveNotification = null;
+        });
+        _showNextLiveNotification();
+      }
+    });
+    _giftMilestoneController.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) {
+        setState(() {
+          _showGiftMilestoneCup = false;
         });
       }
     });
@@ -763,6 +827,7 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
     _scrollController.dispose();
     _newCommentTimer?.cancel();
     _noGiftReminderTimer?.cancel();
+    _giftMilestoneController.dispose();
     if (!_isMinimizedToOverlay) {
       _removeFloatingLiveOverlay();
       socket?.disconnect();
@@ -900,8 +965,10 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                         setState(() {
                           numberOfStreamers = numberOfStreamers + 1;
                         });
-                        _controller.reset();
-                        _controller.forward();
+                        _enqueueLiveNotification({
+                          'type': 'userJoined',
+                          'state': state.userJoined,
+                        });
                         debugPrint(
                             'THE USERNAME OF THE USER IS ${state.userJoined.user?.username}');
                         // FIX #3: Only reconnect if socket is actually disconnected
@@ -930,6 +997,8 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                         }
                       }
                       if (state is GiftingState) {
+                        final previousHostCoin = hostCoin;
+                        final previousChallengerCoin = challengerCoin;
                         setState(() {
                           totalGiftingPot = totalGiftingPot +
                               num.parse(state.gifts.giftdata?.amount ?? '0');
@@ -951,9 +1020,15 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                                 num.parse(state.gifts.giftdata?.amount ?? '0');
                           }
                         });
+                        _enqueueLiveNotification({
+                          'type': 'giftLive',
+                          'state': state.gifts,
+                        });
+                        _checkGiftMilestones(
+                          previousHostCoin: previousHostCoin,
+                          previousChallengerCoin: previousChallengerCoin,
+                        );
                         _syncNoGiftReminder();
-                        _controller.reset();
-                        _controller.forward();
                       }
                       if (state is ComboGroundInLive) {
                         debugPrint(
@@ -967,6 +1042,13 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                                   widget.comboInfo.metaData?.start_time,
                               durationTime:
                                   state.comboData.comboGround?.duration);
+                        });
+                        _seedGiftMilestoneFlags();
+                      }
+                      if (state is ClappLiveState) {
+                        _enqueueLiveNotification({
+                          'type': 'clapLive',
+                          'state': state.clapData,
                         });
                       }
                       if (state is LiveBragInCombo) {
@@ -1262,64 +1344,89 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                                                 : 0.0,
                                           ),
                                         )),
-                                  if (state is UserJoined)
+                                  if (_activeLiveNotification != null)
                                     LiveNotification(
                                       controller: _controller,
                                       positionAnimation: _positionAnimation,
                                       opacityAnimation: _opacityAnimation,
-                                      child: userJoin(
-                                          imageUrl:
-                                              state.userJoined.user?.image ??
-                                                  '',
-                                          message: state.userJoined.message,
-                                          userName:
-                                              state.userJoined.user?.username ??
-                                                  ''),
+                                      child: _buildLiveNotificationChild(
+                                        _activeLiveNotification!,
+                                      ),
                                     ),
-                                  if (state is GiftingState)
-                                    LiveNotification(
-                                      controller: _controller,
-                                      positionAnimation: _positionAnimation,
-                                      opacityAnimation: _opacityAnimation,
-                                      child: giftWidget(
-                                          imageUrl: state.gifts.giftdata?.sender
-                                                  ?.avatar ??
-                                              '',
-                                          message: state.gifts.message,
-                                          userName: state.gifts.giftdata?.sender
-                                                  ?.username ??
-                                              '',
-                                          amount:
-                                              state.gifts.giftdata?.amount ??
-                                                  ''),
+                                  if (_showGiftMilestoneCup)
+                                    Positioned(
+                                      top: 205.h,
+                                      left: 0,
+                                      right: 0,
+                                      child: IgnorePointer(
+                                        child: FadeTransition(
+                                          opacity:
+                                              _giftMilestoneOpacityAnimation,
+                                          child: SlideTransition(
+                                            position:
+                                                _giftMilestoneSlideAnimation,
+                                            child: ScaleTransition(
+                                              scale:
+                                                  _giftMilestoneScaleAnimation,
+                                              child: Center(
+                                                child: Container(
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: 20.w,
+                                                    vertical: 14.h,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.black
+                                                        .withOpacity(0.68),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            24.r),
+                                                    border: Border.all(
+                                                      color: const Color(
+                                                              0xFFFFD54A)
+                                                          .withOpacity(0.4),
+                                                    ),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: const Color(
+                                                                0xFFFFC83D)
+                                                            .withOpacity(0.28),
+                                                        blurRadius: 24,
+                                                        spreadRadius: 2,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Image.asset(
+                                                        'assets/icons/cup1.png',
+                                                        width: 88.w,
+                                                        height: 88.w,
+                                                      ),
+                                                      SizedBox(height: 8.h),
+                                                      Text(
+                                                        _giftMilestoneMessage,
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 14.sp,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          fontFamily:
+                                                              'Poppins',
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                  if (state is ClappLiveState)
-                                    LiveNotification(
-                                      controller: _controller,
-                                      positionAnimation: _positionAnimation,
-                                      opacityAnimation: _opacityAnimation,
-                                      child: clapLiveWidget(
-                                          imageUrl: state.clapData.user?.avatar,
-                                          message: state.clapData.message,
-                                          userName:
-                                              state.clapData.user?.username,
-                                          myavatar: state
-                                              .clapData.user?.avatarConvert),
-                                    ),
-                                  if (userClappEvent)
-                                    LiveNotification(
-                                      controller: _controller,
-                                      positionAnimation: _positionAnimation,
-                                      opacityAnimation: _opacityAnimation,
-                                      child: clapLiveWidget(
-                                          imageUrl: profileModelG?.image ?? '',
-                                          message:
-                                              'You sent a like \u2764\uFE0F',
-                                          userName:
-                                              profileModelG?.username ?? '',
-                                          myavatar: profileModelG?.myAvatar),
-                                    ),
-
                                   if (!isthereInternet)
                                     Positioned.fill(
                                       child: AbsorbPointer(
@@ -1419,10 +1526,8 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
                                             },
                                             onUserClappEvent: (value) {
                                               if (value) {
-                                                setState(() {
-                                                  _controller.reset();
-                                                  _controller.forward();
-                                                  userClappEvent = value;
+                                                _enqueueLiveNotification({
+                                                  'type': 'selfClap',
                                                 });
                                               }
                                             },
@@ -1562,6 +1667,64 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
     }
   }
 
+  void _enqueueLiveNotification(Map<String, dynamic> notification) {
+    _pendingLiveNotifications.add(notification);
+    if (_activeLiveNotification == null) {
+      _showNextLiveNotification();
+    }
+  }
+
+  void _showNextLiveNotification() {
+    if (!mounted || _pendingLiveNotifications.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _activeLiveNotification = _pendingLiveNotifications.removeAt(0);
+    });
+    _controller
+      ..reset()
+      ..forward();
+  }
+
+  Widget _buildLiveNotificationChild(Map<String, dynamic> notification) {
+    switch (notification['type']) {
+      case 'userJoined':
+        final state = notification['state'] as LiveUserInteraction;
+        return userJoin(
+          imageUrl: state.user?.image ?? '',
+          message: state.message,
+          userName: state.user?.username ?? '',
+        );
+      case 'giftLive':
+        final state = notification['state'] as GiftData;
+        return giftWidget(
+          imageUrl: state.giftdata?.sender?.avatar ?? '',
+          message: state.message,
+          userName: state.giftdata?.sender?.username ?? '',
+          amount: state.giftdata?.amount ?? '',
+          avatarBytes: state.giftdata?.sender?.avatarConvert,
+        );
+      case 'clapLive':
+        final state = notification['state'] as LiveGroundComment;
+        return clapLiveWidget(
+          imageUrl: state.user?.avatar,
+          message: state.message,
+          userName: state.user?.username,
+          myavatar: state.user?.avatarConvert,
+        );
+      case 'selfClap':
+        return clapLiveWidget(
+          imageUrl: profileModelG?.image ?? '',
+          message: 'You sent a like \u2764\uFE0F',
+          userName: profileModelG?.username ?? '',
+          myavatar: profileModelG?.myAvatar,
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   double _calculateOpacity(int index) {
     final scrollOffset = _scrollController.offset / commentHeight;
     final firstVisibleIndex = scrollOffset.floor();
@@ -1629,6 +1792,76 @@ class _LiveComboThreeImageScreenState extends State<LiveComboThreeImageScreen>
       builder: (_) => const NoLivestreamGiftPrompt(),
     );
     _isNoGiftReminderVisible = false;
+  }
+
+  String? get _challengerProfileId {
+    return isComboOngoingNow == true
+        ? (liveChallenger?.pid ??
+            widget.comboInfo.onGoingCombo?.challenger?.profile)
+        : widget.comboInfo.challenger?.profile;
+  }
+
+  String _hostMilestoneName() {
+    return widget.comboInfo.host?.username ?? 'Host';
+  }
+
+  String _challengerMilestoneName() {
+    if (isComboOngoingNow == true) {
+      return liveChallenger?.username ??
+          widget.comboInfo.onGoingCombo?.challenger?.username ??
+          widget.comboInfo.challenger?.username ??
+          'Challenger';
+    }
+    return widget.comboInfo.challenger?.username ?? 'Challenger';
+  }
+
+  void _seedGiftMilestoneFlags() {
+    final hostProfile = widget.comboInfo.host?.profile;
+    if (hostProfile != null && hostCoin >= _giftMilestoneThreshold) {
+      _giftMilestoneShownCreators.add(hostProfile);
+    }
+
+    final challengerProfile = _challengerProfileId;
+    if (challengerProfile != null &&
+        challengerCoin >= _giftMilestoneThreshold) {
+      _giftMilestoneShownCreators.add(challengerProfile);
+    }
+  }
+
+  void _checkGiftMilestones({
+    required num previousHostCoin,
+    required num previousChallengerCoin,
+  }) {
+    final hostProfile = widget.comboInfo.host?.profile;
+    if (hostProfile != null &&
+        previousHostCoin < _giftMilestoneThreshold &&
+        hostCoin >= _giftMilestoneThreshold &&
+        !_giftMilestoneShownCreators.contains(hostProfile)) {
+      _giftMilestoneShownCreators.add(hostProfile);
+      _showGiftMilestone(_hostMilestoneName());
+      return;
+    }
+
+    final challengerProfile = _challengerProfileId;
+    if (challengerProfile != null &&
+        previousChallengerCoin < _giftMilestoneThreshold &&
+        challengerCoin >= _giftMilestoneThreshold &&
+        !_giftMilestoneShownCreators.contains(challengerProfile)) {
+      _giftMilestoneShownCreators.add(challengerProfile);
+      _showGiftMilestone(_challengerMilestoneName());
+    }
+  }
+
+  void _showGiftMilestone(String creatorName) {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _giftMilestoneMessage = '$creatorName reached 500 CAP gifts!';
+      _showGiftMilestoneCup = true;
+    });
+    _giftMilestoneController.forward(from: 0);
   }
 
   Future<void> _minimizeToFloatingLive() async {

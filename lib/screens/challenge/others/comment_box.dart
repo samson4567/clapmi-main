@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:clapmi/features/chats_and_socials/domain/entities/live_reactions_entities.dart';
 import 'package:clapmi/global_object_folder_jacket/global_widgets/global_widgets.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +26,15 @@ class BuildCommentBox extends StatelessWidget {
       comment = commentData['state'];
     }
     String stateName = commentData['stateName'];
+    final avatarUrl = comment?.user?.avatar ??
+        user?.user?.image ??
+        giftdata?.giftdata?.sender?.avatar;
+    final avatarBytes =
+        comment?.user?.avatarConvert ?? giftdata?.giftdata?.sender?.avatarConvert;
+    final displayName = comment?.user?.username ??
+        user?.user?.username ??
+        giftdata?.giftdata?.sender?.username ??
+        '';
     return Container(
       decoration: BoxDecoration(
         // color: Colors.black.withOpacity(0.6),
@@ -37,46 +45,17 @@ class BuildCommentBox extends StatelessWidget {
           padding: EdgeInsets.zero,
           child: CircularContainer(
             radius: 40,
-            //**THIS WILL RENDER THE AVATAR */
-            child: comment?.user?.avatarConvert != null
-                ? Container(
-                    decoration: BoxDecoration(
-                        image: DecorationImage(
-                            image: MemoryImage(comment!.user!.avatarConvert!))),
-                  )
-                //ELSE IF THE PROFILE PICTURES ARE AVAILABLE, IT WILL RENDER THE IMAGE
-                : CachedNetworkImage(
-                    imageUrl: comment?.user?.avatar ??
-                        user?.user?.image ??
-                        giftdata?.giftdata?.sender?.avatar ??
-                        '',
-                    imageBuilder: (context, imageProvider) {
-                      return Container(
-                        // height: 10.w,
-                        // width: 10.w,
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            image: DecorationImage(
-                                image: imageProvider, fit: BoxFit.cover)),
-                      );
-                    },
-                    errorWidget: (context, url, error) {
-                      return Container(
-                        // height: 10.w,
-                        // width: 10.w,
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10)),
-                        child: Icon(Icons.person, size: 30),
-                      );
-                    },
-                  ),
+            child: AppAvatar(
+              imageUrl: avatarUrl,
+              memoryBytes: avatarBytes,
+              name: displayName,
+              size: 40,
+              backgroundColor: const Color(0xFF1E3A8A),
+            ),
           ),
         ),
         title: Text(
-          comment?.user?.username ??
-              user?.user?.username ??
-              giftdata?.giftdata?.sender?.username ??
-              '',
+          displayName,
           style: TextStyle(
             fontSize: 14,
             fontFamily: 'Poppins',
@@ -165,28 +144,16 @@ class BuildCommentBox extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      CachedNetworkImage(
-                        imageUrl: giftdata?.giftdata?.sender?.avatar ?? '',
-                        imageBuilder: (context, imageProvider) {
-                          return Container(
-                            height: 10.w,
-                            width: 10.w,
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                image: DecorationImage(
-                                    image: imageProvider, fit: BoxFit.cover)),
-                          );
-                        },
-                        errorWidget: (context, url, error) {
-                          return Container(
-                            // height: 10.w,
-                            // width: 10.w,
-                            margin: EdgeInsets.only(bottom: 4),
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(25)),
-                            child: Icon(Icons.person, size: 30),
-                          );
-                        },
+                      SizedBox(
+                        width: 22.w,
+                        height: 22.w,
+                        child: AppAvatar(
+                          imageUrl: giftdata?.giftdata?.sender?.avatar,
+                          memoryBytes: giftdata?.giftdata?.sender?.avatarConvert,
+                          name: giftdata?.giftdata?.sender?.username,
+                          size: 22.w,
+                          backgroundColor: const Color(0xFF1E3A8A),
+                        ),
                       ),
                       SizedBox(
                         width: 3,

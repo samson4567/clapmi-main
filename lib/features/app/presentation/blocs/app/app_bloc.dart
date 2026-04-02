@@ -43,6 +43,11 @@ class AppBloc extends Bloc<AppEvent, AppState> {
 
   Future<void> _onGetMyProfileEventHandler(
       GetMyProfileEvent event, Emitter<AppState> emit) async {
+    if (!event.forceRefresh && profileModelG != null) {
+      emit(ProfileSuccess(profileModelG!));
+      return;
+    }
+
     emit(GetUserProfileLoading());
     final result = await appRepository.getMyProfile();
     result.fold((failure) {

@@ -82,6 +82,7 @@ class _FeedScreenState extends State<FeedScreen> {
   String selectedComboId = '';
   String selectedComboBragId = '';
   bool liveLoading = false;
+  bool _hasTriggeredInitialLoad = false;
 
   // Stream subscription for progress updates - must be disposed
   StreamSubscription<double>? _progressSubscription;
@@ -110,7 +111,10 @@ class _FeedScreenState extends State<FeedScreen> {
           .save<int>(SecureKey.appPostauthUsecount, (formerCount ?? 0) + 1);
     });
 
-    context.read<AppBloc>().add(GetMyProfileEvent());
+    _ensureInitialDataLoaded();
+    if (profileModelG == null) {
+      context.read<AppBloc>().add(const GetMyProfileEvent());
+    }
     // callAllInitializingEvents();
     // getInitialData(context);
     context.read<AppBloc>().add(GetPreviouslyStoredPostModelListEvent());
@@ -142,6 +146,14 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   List<PostModel> followersPost = [];
+
+  void _ensureInitialDataLoaded() {
+    if (_hasTriggeredInitialLoad) {
+      return;
+    }
+    _hasTriggeredInitialLoad = true;
+    callAllInitializingEvents();
+  }
 
   // Cache for friend PIDs to avoid recreating on every filter
   Set<String>? _friendPidsCache;
@@ -188,7 +200,6 @@ class _FeedScreenState extends State<FeedScreen> {
               if (mounted) {
                 setState(() {});
               }
-              callAllInitializingEvents();
             }
           },
         )

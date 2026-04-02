@@ -111,24 +111,20 @@ class UserBloc extends Bloc<UserEvent, UserState> {
 
   Future<void> _onGetCreatorLeaderboardEvent(
       GetCreatorLeaderboardEvent event, Emitter<UserState> emit) async {
-    print('UserBloc: Starting getCreatorLeaderboard request');
     emit(GetCreatorLeaderboardLoadingState(
       levelName: event.levelName,
       page: event.page,
       timeFilter: event.timeFilter,
       creator: event.creator,
     ));
-    print('UserBloc: LoadingState emitted');
     final result = await userRepository.getCreatorLeaderboard(
       levelName: event.levelName,
       page: event.page,
       timeFilter: event.timeFilter,
       creator: event.creator,
     );
-    print('UserBloc: Repository result received');
     result.fold(
       (error) {
-        print('UserBloc: Error - ${error.message}');
         emit(GetCreatorLeaderboardErrorState(
           errorMessage: error.message,
           levelName: event.levelName,
@@ -138,11 +134,6 @@ class UserBloc extends Bloc<UserEvent, UserState> {
         ));
       },
       (data) {
-        print('UserBloc: Success - data.message: ${data.message}');
-        print('UserBloc: Success - data.data: ${data.data}');
-        print('UserBloc: Success - data.data.rankings: ${data.data.rankings}');
-        print(
-            'UserBloc: Success - data.data.rankings.length: ${data.data.rankings.length}');
         emit(GetCreatorLeaderboardSuccessState(
           response: data,
           levelName: event.levelName,

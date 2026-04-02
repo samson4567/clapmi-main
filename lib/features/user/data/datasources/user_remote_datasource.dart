@@ -48,6 +48,10 @@ class UserRemoteDatasourceImpl implements UserRemoteDatasource {
   CreatorLevelsResponse? _cachedCreatorLevels;
   DateTime? _creatorLevelsCacheTime;
 
+  // Simple in-memory cache for creator leaderboard queries
+  final Map<String, CreatorLeaderboardResponse> _cachedCreatorLeaderboard = {};
+  final Map<String, DateTime> _creatorLeaderboardCacheTimes = {};
+
   static const _cacheDuration = Duration(minutes: 5); // Cache for 5 minutes
 
   // Check if cache is valid for payment grades
@@ -64,6 +68,24 @@ class UserRemoteDatasourceImpl implements UserRemoteDatasource {
       return false;
     }
     return DateTime.now().difference(_creatorLevelsCacheTime!) < _cacheDuration;
+  }
+
+  String _creatorLeaderboardCacheKey({
+    String? levelName,
+    required int page,
+    required String timeFilter,
+    String? creator,
+  }) {
+    return '${levelName ?? ''}|$page|$timeFilter|${creator ?? ''}';
+  }
+
+  bool _isCreatorLeaderboardCacheValid(String cacheKey) {
+    final cachedResponse = _cachedCreatorLeaderboard[cacheKey];
+    final cachedAt = _creatorLeaderboardCacheTimes[cacheKey];
+    if (cachedResponse == null || cachedAt == null) {
+      return false;
+    }
+    return DateTime.now().difference(cachedAt) < _cacheDuration;
   }
 
   @override
@@ -204,6 +226,17 @@ class UserRemoteDatasourceImpl implements UserRemoteDatasource {
     String timeFilter = 'all',
     String? creator,
   }) async {
+    final cacheKey = _creatorLeaderboardCacheKey(
+      levelName: levelName,
+      page: page,
+      timeFilter: timeFilter,
+      creator: creator,
+    );
+
+    if (_isCreatorLeaderboardCacheValid(cacheKey)) {
+      return _cachedCreatorLeaderboard[cacheKey]!;
+    }
+
     final response = await networkClient.get(
       endpoint: EndpointConstant.getCreatorLeaderboard,
       isAuthHeaderRequired: true,
@@ -214,9 +247,6 @@ class UserRemoteDatasourceImpl implements UserRemoteDatasource {
         if (creator != null) 'creator': creator,
       },
     );
-    print('UserRemoteDatasource: raw response.data = ${response.data}');
-    print(
-        'UserRemoteDatasource: keys in response.data = ${(response.data as Map<String, dynamic>).keys}');
 
     // The API response structure is: {rankings: [...], pagination: {...}}
     // NOT {message: "...", success: true, data: {rankings: [...], pagination: {...}}}
@@ -234,9 +264,10 @@ class UserRemoteDatasourceImpl implements UserRemoteDatasource {
         pagination: PaginationInfo.fromJson(json['pagination'] ?? {}),
       ),
     );
-    print('UserRemoteDatasource: parsed result = $result');
-    print(
-        'UserRemoteDatasource: parsed rankings count = ${result.data.rankings.length}');
+
+    _cachedCreatorLeaderboard[cacheKey] = result;
+    _creatorLeaderboardCacheTimes[cacheKey] = DateTime.now();
+
     return result;
   }
 
@@ -267,10 +298,16 @@ class UserRemoteDatasourceImpl implements UserRemoteDatasource {
     _creatorLevelsCacheTime = null;
   }
 
+  void clearCreatorLeaderboardCache() {
+    _cachedCreatorLeaderboard.clear();
+    _creatorLeaderboardCacheTimes.clear();
+  }
+
   // Clear all caches
   void clearAllCaches() {
     clearPaymentGradesCache();
     clearCreatorLevelsCache();
+    clearCreatorLeaderboardCache();
   }
 
   @override

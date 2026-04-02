@@ -1,12 +1,14 @@
 import 'dart:async';
 
-import 'package:bloc/bloc.dart';
 import 'package:clapmi/features/app/presentation/blocs/app/app_bloc.dart';
 import 'package:clapmi/features/wallet/data/models/asset_balance.dart';
+import 'package:clapmi/features/wallet/data/models/recent_gifting_transaction.dart';
 import 'package:clapmi/features/wallet/data/models/transaction.dart';
+import 'package:clapmi/features/wallet/domain/entities/wallet_properties.dart';
 import 'package:clapmi/features/wallet/domain/repositories/wallet_repository.dart';
 import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_event.dart';
 import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_state.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class WalletBloc extends Bloc<WalletEvent, WalletState> {
   final WalletRepository walletRepository;
@@ -87,6 +89,13 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
 
   List<AssetModel> _assetBalances = [];
   List<AssetModel> get assetBalances => _assetBalances;
+  List<TransactionHistoryModel> _recentTransactions = [];
+  List<TransactionHistoryModel> get recentTransactions => _recentTransactions;
+  List<RecentGiftingModel> _recentGiftings = [];
+  List<RecentGiftingModel> get recentGiftings => _recentGiftings;
+  WalletPropertiesEntity? _walletProperties;
+  WalletPropertiesEntity? get walletProperties => _walletProperties;
+
   Future<void> _onLoadWalletBalances(
     LoadWalletBalances event,
     Emitter<WalletState> emit,
@@ -140,6 +149,7 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
         (error) => emit(
             GetTransactionsListRecentErrorState(errorMessage: error.message)),
         (listOfTransactionHistoryModel) {
+      _recentTransactions = listOfTransactionHistoryModel;
       emit(
         GetTransactionsListRecentSuccessState(
             listOfTransactionHistoryModel: listOfTransactionHistoryModel),
@@ -157,8 +167,10 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
 
     result.fold(
       (error) => emit(RecentGiftingErrorState(error.message)),
-      (listOfRecentGifting) =>
-          emit(RecentGiftingSuccessState(listOfRecentGifting)),
+      (listOfRecentGifting) {
+        _recentGiftings = listOfRecentGifting;
+        emit(RecentGiftingSuccessState(listOfRecentGifting));
+      },
     );
   }
 
@@ -269,10 +281,11 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
     emit(WalletLoading());
     final result = await walletRepository.getWalletProperties();
 
-    result.fold(
-        (error) => emit(WalletError(message: error.message)),
-        (properties) =>
-            emit(WalletPropertiesLoaded(walletProperties: properties)));
+    result.fold((error) => emit(WalletError(message: error.message)),
+        (properties) {
+      _walletProperties = properties;
+      emit(WalletPropertiesLoaded(walletProperties: properties));
+    });
   }
 
   Future<void> _initiateWithDrawalEventHandler(
@@ -441,8 +454,8 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
     Emitter<WalletState> emit,
   ) async {
     emit(WalletLoading());
-    final result = await walletRepository.createStripeCheckout(
-        amount: event.amount);
+    final result =
+        await walletRepository.createStripeCheckout(amount: event.amount);
     result.fold(
       (error) => emit(WalletError(message: error.message)),
       (data) => emit(StripeCheckoutSuccess(checkoutData: data)),

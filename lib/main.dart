@@ -89,7 +89,6 @@ Future<void> main() async {
       BlocProvider(create: (_) => getItInstance<ComboBloc>()),
       BlocProvider(create: (_) => getItInstance<BragBloc>()),
       BlocProvider(create: (_) => getItInstance<NotificationBloc>()),
-      BlocProvider(create: (_) => getItInstance<AppBloc>()),
       BlocProvider(create: (_) => getItInstance<WalletBloc>()),
       BlocProvider(create: (_) => getItInstance<VideoBloc>()),
       BlocProvider(

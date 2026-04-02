@@ -425,7 +425,7 @@ class ChatsAndSocialsRemoteDatasourceImpl
   Stream<dynamic> listeningToSocket()
   //=>  socket!.asBroadcastStream();
   {
-    socket?.messages.listen((data) {
+    socket?.messages.listen((data) async {
       print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ $data');
       Map<String, dynamic> dataDecoded =
           jsonDecode(data) as Map<String, dynamic>;
@@ -510,10 +510,9 @@ class ChatsAndSocialsRemoteDatasourceImpl
         var connectionData =
             LiveGroundCommentModel.fromJson(dataDecoded['data']);
         //**IN CASE THE DEFAULT AVATAR WAS USED, IT WOULD FIRST BE CONVERTED BEFORE USE */
-        if (connectionData.user != null &&
-            connectionData.user!.avatar!.contains(".svg")) {
-          convertAvatar(avatar: connectionData.user!.avatar ?? '');
-          connectionData.user?.avatarConvert = tempAvatarData;
+        if (connectionData.user?.avatar != null) {
+          connectionData.user?.avatarConvert =
+              await _resolveAvatarBytes(connectionData.user?.avatar);
         }
         socketStream
             .add({"event": dataDecoded['event'], 'data': connectionData});
@@ -546,10 +545,9 @@ class ChatsAndSocialsRemoteDatasourceImpl
       if (dataDecoded['event'] == 'GiftedCoinInComboGround') {
         var connectionData = GiftDataModel.fromJson(dataDecoded['data']);
         //**CONVERT THE AVATAR TO THE KNOWN DATA IN SVG FOR PROPER RENDERING */
-        if (connectionData.giftdata?.sender != null &&
-            connectionData.giftdata!.sender!.avatar!.contains(".svg")) {
-          convertAvatar(avatar: connectionData.giftdata?.sender?.avatar ?? '');
-          connectionData.giftdata?.sender?.avatarConvert = tempAvatarData;
+        if (connectionData.giftdata?.sender?.avatar != null) {
+          connectionData.giftdata?.sender?.avatarConvert =
+              await _resolveAvatarBytes(connectionData.giftdata?.sender?.avatar);
         }
         print('This is the giftingCoin messages $connectionData');
         socketStream
@@ -559,10 +557,9 @@ class ChatsAndSocialsRemoteDatasourceImpl
         print("This is calling this event already");
         var connectionData =
             ComboInLiveStreamModel.fromJson(dataDecoded['data']);
-        if (connectionData.challenger != null &&
-            connectionData.challenger!.image!.contains(".svg")) {
-          convertAvatar(avatar: connectionData.challenger?.image ?? '');
-          connectionData.challenger?.avatar = tempAvatarData;
+        if (connectionData.challenger?.image != null) {
+          connectionData.challenger?.avatar =
+              await _resolveAvatarBytes(connectionData.challenger?.image);
         }
         socketStream
             .add({'event': dataDecoded['event'], 'data': connectionData});
@@ -825,8 +822,10 @@ class ChatsAndSocialsRemoteDatasourceImpl
   }
 }
 
-//CONVERTING AVATAR BEFORE SENDING TO THE UI
-Uint8List? tempAvatarData;
-void convertAvatar({required String avatar}) async {
-  tempAvatarData = await fetchSvg(avatar);
+Future<Uint8List?> _resolveAvatarBytes(String? avatar) async {
+  final normalized = avatar?.trim() ?? '';
+  if (normalized.isEmpty || !normalized.toLowerCase().contains('.svg')) {
+    return null;
+  }
+  return fetchSvg(normalized);
 }
