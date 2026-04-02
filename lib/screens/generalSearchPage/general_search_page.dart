@@ -1,8 +1,8 @@
 import 'package:clapmi/Models/brag_model.dart';
 import 'package:clapmi/features/post/data/models/create_post_model.dart';
 import 'package:clapmi/features/user/data/models/user_model.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:clapmi/features/search/presentation/blocs/search_bloc.dart'; // Add SearchBloc import
+import 'package:clapmi/global_object_folder_jacket/global_widgets/global_widgets.dart';
 import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart'; // Add Bloc import
@@ -175,10 +175,12 @@ class _SocialGeeralSearchState extends State<SocialGeeralSearch> {
                           itemBuilder: (context, index) {
                             final user = state.users[index];
                             return ListTile(
-                              leading: CircleAvatar(
-                                backgroundImage:
-                                    CachedNetworkImageProvider(user.image),
-                                child: const Icon(Icons.person),
+                              leading: AppAvatar(
+                                imageUrl: user.image,
+                                name: user.username.isNotEmpty
+                                    ? user.username
+                                    : user.name,
+                                size: 40,
                               ),
                               title: Text(user.username,
                                   style: const TextStyle(color: Colors.white)),

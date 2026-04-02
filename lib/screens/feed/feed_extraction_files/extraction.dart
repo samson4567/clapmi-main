@@ -127,48 +127,13 @@ class DrawerList extends StatelessWidget {
                   width: 100,
                 ),
                 GestureDetector(
-                  child: profileModelG?.myAvatar != null
-                      ? Container(
-                          width: 30.w,
-                          height: 30.w,
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(30),
-                              image: DecorationImage(
-                                  image:
-                                      MemoryImage(profileModelG!.myAvatar!))),
-                        )
-                      : CachedNetworkImage(
-                          height: 30.w,
-                          width: 30.w,
-                          imageUrl: profileModelG?.image ?? '',
-                          fit: BoxFit.cover,
-                          imageBuilder: (context, imageBuilder) {
-                            return Container(
-                              decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(30),
-                                  image: DecorationImage(image: imageBuilder)),
-                            );
-                          },
-                          errorWidget: (context, error, trace) {
-                            return Container(
-                                decoration: BoxDecoration(
-                                    color: getFigmaColor("006FCD"),
-                                    borderRadius: BorderRadius.circular(30)),
-                                width: 30.w,
-                                height: 30.w,
-                                child:
-                                    //CircularProgressIndicator.adaptive()
-                                    Icon(Icons.person));
-                          },
-                          placeholder: (context, url) {
-                            return Container(
-                                decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(30)),
-                                width: 45.w,
-                                height: 45.w,
-                                child: Icon(Icons.person));
-                          },
-                        ),
+                  child: AppAvatar(
+                    imageUrl: profileModelG?.image,
+                    memoryBytes: profileModelG?.myAvatar,
+                    name: profileModelG?.username ?? profileModelG?.name,
+                    size: 30.w,
+                    backgroundColor: getFigmaColor("006FCD"),
+                  ),
                 ),
 
                 // FancyContainer(
@@ -1034,21 +999,24 @@ class PostWidget extends StatelessWidget {
 
   // Helper method to strip HTML tags from content
   String _stripHtmlTags(String htmlString) {
-    // Remove HTML tags like <p>, </p>, <br>, etc.
+    String result = htmlString
+        .replaceAll(RegExp(r'<\s*br\s*/?>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'</\s*p\s*>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'</\s*div\s*>', caseSensitive: false), '\n');
     final RegExp htmlTags = RegExp(r'<[^>]*>');
-    String result = htmlString.replaceAll(htmlTags, '');
+    result = result.replaceAll(htmlTags, '');
     // Decode HTML entities if any
     result = result.replaceAll('&nbsp;', ' ');
     result = result.replaceAll('&amp;', '&');
     result = result.replaceAll('&lt;', '<');
     result = result.replaceAll('&gt;', '>');
     result = result.replaceAll('&quot;', '"');
+    result = result.replaceAll(RegExp(r'\n{3,}'), '\n\n');
     return result.trim();
   }
 
   // Helper method to build text with clickable blue @ mentions
   Widget _buildContentWithBlueMentions(BuildContext context, String content) {
-    // Strip HTML tags from content first
     final String cleanContent = _stripHtmlTags(content);
     final List<InlineSpan> spans = [];
     final RegExp pattern = RegExp(r'(@\w+)'); // Only match @mentions
@@ -1060,7 +1028,7 @@ class PostWidget extends StatelessWidget {
       // Add normal text before the match
       if (match.start > lastMatchEnd) {
         spans.add(TextSpan(
-          text: content.substring(lastMatchEnd, match.start),
+          text: cleanContent.substring(lastMatchEnd, match.start),
           style: TextStyle(
             letterSpacing: 1,
             wordSpacing: 0.1,
@@ -1098,9 +1066,9 @@ class PostWidget extends StatelessWidget {
     }
 
     // Add remaining text after last match
-    if (lastMatchEnd < content.length) {
+    if (lastMatchEnd < cleanContent.length) {
       spans.add(TextSpan(
-        text: content.substring(lastMatchEnd),
+        text: cleanContent.substring(lastMatchEnd),
         style: TextStyle(
           letterSpacing: 1,
           wordSpacing: 0.1,
@@ -1209,16 +1177,11 @@ class PostWidget extends StatelessWidget {
                                               .adaptive(),
                                         );
                                       })
-                                  : CachedNetworkImage(
-                                      imageUrl: postModel.authorImage ?? "",
-                                      fit: BoxFit.cover,
-                                      placeholder: (context, url) => Center(
-                                        child: CircularProgressIndicator
-                                            .adaptive(),
-                                      ),
-                                      errorWidget:
-                                          (context, error, stackTrace) =>
-                                              const Icon(Icons.person),
+                                  : AppAvatar(
+                                      imageUrl: postModel.authorImage,
+                                      name: postModel.authorName,
+                                      size: 32.w,
+                                      backgroundColor: getFigmaColor("006FCD"),
                                     ),
                             ),
                     ),
@@ -1554,15 +1517,18 @@ class FeedItemWidget extends StatelessWidget {
 
   // Helper method to strip HTML tags from content
   String _stripHtmlTags(String htmlString) {
-    // Remove HTML tags like <p>, </p>, <br>, etc.
+    String result = htmlString
+        .replaceAll(RegExp(r'<\s*br\s*/?>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'</\s*p\s*>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'</\s*div\s*>', caseSensitive: false), '\n');
     final RegExp htmlTags = RegExp(r'<[^>]*>');
-    String result = htmlString.replaceAll(htmlTags, '');
-    // Decode HTML entities if any
+    result = result.replaceAll(htmlTags, '');
     result = result.replaceAll('&nbsp;', ' ');
     result = result.replaceAll('&amp;', '&');
     result = result.replaceAll('&lt;', '<');
     result = result.replaceAll('&gt;', '>');
     result = result.replaceAll('&quot;', '"');
+    result = result.replaceAll(RegExp(r'\n{3,}'), '\n\n');
     return result.trim();
   }
 
@@ -2302,47 +2268,6 @@ class _ReactionPanelVerticalState extends State<ReactionPanelVertical> {
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // class BragsExtension extends StatelessWidget {
 //   final String imagePath;
 //   final String avatarPath;
@@ -2443,25 +2368,25 @@ class _ReactionPanelVerticalState extends State<ReactionPanelVertical> {
 //   }
 // }
 
-   // ListTile(
-          //   leading: Image.asset("assets/icons/navbuttoncross.png",
-          //       width: 30, height: 30),
-          //   title: const Text(
-          //     'Societies',
-          //     style: TextStyle(color: Colors.white),
-          //   ),
-          //   onTap: () {
-          //     Navigator.pop(context);
-          //     context.pushNamed(MyAppRouteConstant.societyPage);
-          //   },
-          // ),
-          // ListTile(
-          //   leading: Image.asset("assets/icons/cup.png", width: 30, height: 30),
-          //   title: const Text(
-          //     'Competition',
-          //     style: TextStyle(color: Colors.white),
-          //   ),
-          //   onTap: () {
-          //     Navigator.pop(context);
-          //   },
-          // ),
+// ListTile(
+//   leading: Image.asset("assets/icons/navbuttoncross.png",
+//       width: 30, height: 30),
+//   title: const Text(
+//     'Societies',
+//     style: TextStyle(color: Colors.white),
+//   ),
+//   onTap: () {
+//     Navigator.pop(context);
+//     context.pushNamed(MyAppRouteConstant.societyPage);
+//   },
+// ),
+// ListTile(
+//   leading: Image.asset("assets/icons/cup.png", width: 30, height: 30),
+//   title: const Text(
+//     'Competition',
+//     style: TextStyle(color: Colors.white),
+//   ),
+//   onTap: () {
+//     Navigator.pop(context);
+//   },
+// ),

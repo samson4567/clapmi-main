@@ -32,7 +32,6 @@ class _PostEmptyState extends State<PostEmpty> {
   String selectedOption = "Everyone";
   List<File> imageFiles = [];
   FocusNode textFieldNode = FocusNode();
-  TextEditingController contentController = TextEditingController();
 
   // Quill editor controller for rich text editing
   late quill.QuillController _quillController;
@@ -46,21 +45,18 @@ class _PostEmptyState extends State<PostEmpty> {
   @override
   void initState() {
     super.initState();
-    contentController.addListener(_onTextChanged);
-
-    // Initialize Quill controller with empty document
     final doc = quill.Document();
     _quillController = quill.QuillController(
       document: doc,
       selection: const TextSelection.collapsed(offset: 0),
     );
+    _quillController.addListener(_onTextChanged);
   }
 
   @override
   void dispose() {
-    contentController.removeListener(_onTextChanged);
-    contentController.dispose();
     textFieldNode.dispose();
+    _quillController.removeListener(_onTextChanged);
     _quillController.dispose();
     _quillFocusNode.dispose();
     _removeOverlay();
@@ -68,8 +64,8 @@ class _PostEmptyState extends State<PostEmpty> {
   }
 
   void _onTextChanged() {
-    final text = contentController.text;
-    final cursorPosition = contentController.selection.baseOffset;
+    final text = _editorText;
+    final cursorPosition = _editorCursorPosition;
 
     if (cursorPosition == -1) return;
 
@@ -96,6 +92,10 @@ class _PostEmptyState extends State<PostEmpty> {
       _removeOverlay();
     }
   }
+
+  String get _editorText => _quillController.document.toPlainText();
+
+  int get _editorCursorPosition => _quillController.selection.baseOffset;
 
   bool _isSvgUrl(String? url) {
     if (url == null) return false;
@@ -201,21 +201,21 @@ class _PostEmptyState extends State<PostEmpty> {
   }
 
   void _onUserSelected(UserSearch user) {
-    final text = contentController.text;
-    final cursorPosition = contentController.selection.baseOffset;
+    final text = _editorText;
+    final cursorPosition = _editorCursorPosition;
     final beforeCursor = text.substring(0, cursorPosition);
     final lastAtIndex = beforeCursor.lastIndexOf('@');
 
     if (lastAtIndex != -1) {
-      final beforeAt = text.substring(0, lastAtIndex);
-      final afterCursor = text.substring(cursorPosition);
-
       final username = user.username;
-      final newText = '$beforeAt@$username $afterCursor';
-
-      contentController.text = newText;
-      contentController.selection = TextSelection.fromPosition(
-        TextPosition(offset: beforeAt.length + username.length + 2),
+      final replacement = '@$username ';
+      _quillController.replaceText(
+        lastAtIndex,
+        cursorPosition - lastAtIndex,
+        replacement,
+        TextSelection.collapsed(
+          offset: lastAtIndex + replacement.length,
+        ),
       );
 
       // Add to tagged users list

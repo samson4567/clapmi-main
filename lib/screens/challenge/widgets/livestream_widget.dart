@@ -30,6 +30,7 @@ class LiveStreamBottomSession extends StatefulWidget {
     required this.isLiveRecording,
     required this.onEnlargeScreenPressed,
     required this.isScreenEnlarged,
+    required this.onMiniPressed,
     required this.onExitPressed,
     required this.onTurnedOffPressed,
     required this.onUserClappEvent,
@@ -51,6 +52,7 @@ class LiveStreamBottomSession extends StatefulWidget {
   final bool isLiveRecording;
   final ClickLiveButton onEnlargeScreenPressed;
   final bool isScreenEnlarged;
+  final ClickLiveButton onMiniPressed;
   final ClickLiveButton onExitPressed;
   final ClickLiveButton onTurnedOffPressed;
   final ClickLiveButton onUserClappEvent;

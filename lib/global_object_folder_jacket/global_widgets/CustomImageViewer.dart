@@ -103,14 +103,21 @@ class CustomImageView extends StatelessWidget {
                       // colorFilter: ColorFilter.mode(
                       //     color ?? Colors.transparent, BlendMode.srcIn),
                     )
-                  : SvgPicture.asset(
-                      imagePath!,
-                      height: height,
-                      width: width,
-                      fit: fit ?? BoxFit.contain,
-                      // colorFilter: ColorFilter.mode(
-                      //     color ?? Colors.transparent, BlendMode.srcIn),
-                    );
+                  : imagePath!.startsWith('assets')
+                      ? SvgPicture.asset(
+                          imagePath!,
+                          height: height,
+                          width: width,
+                          fit: fit ?? BoxFit.contain,
+                          // colorFilter: ColorFilter.mode(
+                          //     color ?? Colors.transparent, BlendMode.srcIn),
+                        )
+                      : SvgPicture.file(
+                          File(imagePath!),
+                          height: height,
+                          width: width,
+                          fit: fit ?? BoxFit.contain,
+                        );
             }),
           );
         case ImageType.file:
@@ -176,10 +183,11 @@ class CustomImageView extends StatelessWidget {
 
 extension ImageTypeExtension on String {
   ImageType get imageType {
-    if (startsWith('http') || startsWith('https')) {
-      return ImageType.network;
-    } else if (endsWith('.svg')) {
+    final normalized = trim().split('?').first.toLowerCase();
+    if (normalized.endsWith('.svg')) {
       return ImageType.svg;
+    } else if (startsWith('http') || startsWith('https')) {
+      return ImageType.network;
     } else if (startsWith('file://') || !(startsWith('assets'))) {
       return ImageType.file;
     } else {

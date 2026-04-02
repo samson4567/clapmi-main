@@ -184,6 +184,10 @@ class LiveInteractionButton extends StatelessWidget {
                       Navigator.pop(context);
                       widget.onShareScreenPressed(!widget.isScreenShared);
                     },
+                    onMini: () {
+                      Navigator.pop(context);
+                      widget.onMiniPressed(true);
+                    },
                     onStartRecording: () {
                       context.read<RecordingBloc>().add(
                             StartRecording(roomId: widget.comboId),
@@ -243,6 +247,7 @@ class SpectatorsInteractionButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           buttonWidget(Appassets.liveSpeaker, (value) {}, isEnabled: true),
+          buttonWidget(Appassets.mini, widget.onMiniPressed, isEnabled: false),
           // buttonWidget(
           //     Appassets.liveEnlarge, widget.onEnlargeScreenPressed,
           //     isEnabled: widget.isScreenEnlarged),

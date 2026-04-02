@@ -8,6 +8,7 @@ class RecordingControlsSheet extends StatelessWidget {
   final RecordingStatus recordingStatus;
   final String? recordingId;
   final VoidCallback onScreenShare;
+  final VoidCallback? onMini;
   final VoidCallback onStartRecording;
   final VoidCallback onStopRecording;
   final VoidCallback onClose;
@@ -17,6 +18,7 @@ class RecordingControlsSheet extends StatelessWidget {
     required this.recordingStatus,
     this.recordingId,
     required this.onScreenShare,
+    this.onMini,
     required this.onStartRecording,
     required this.onStopRecording,
     required this.onClose,
@@ -49,7 +51,6 @@ class RecordingControlsSheet extends StatelessWidget {
           // Buttons row
           Row(
             children: [
-              // Screen share button (dummy)
               Expanded(
                 child: _ControlButton(
                   svgAsset: 'assets/icons/screenshare.svg',
@@ -59,14 +60,21 @@ class RecordingControlsSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-
-              // Record / Stop Recording button
               Expanded(
                 child: _ControlButton(
                   svgAsset: 'assets/icons/rec.svg',
                   label: isRecording ? 'Stop Recording' : 'Record',
                   isActive: isRecording,
                   onTap: isRecording ? onStopRecording : onStartRecording,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ControlButton(
+                  svgAsset: 'assets/icons/mini.svg',
+                  label: 'Mini',
+                  isActive: false,
+                  onTap: onMini ?? onClose,
                 ),
               ),
             ],
@@ -101,7 +109,7 @@ class _ControlButton extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
+        child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeInOut,
         height: 110,
@@ -110,7 +118,7 @@ class _ControlButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           border: border,
         ),
-        child: Row(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SvgPicture.asset(
@@ -119,12 +127,15 @@ class _ControlButton extends StatelessWidget {
               height: 28,
               colorFilter: ColorFilter.mode(contentColor, BlendMode.srcIn),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(height: 10),
             Text(
               label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: contentColor,
-                fontSize: 18,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
             ),

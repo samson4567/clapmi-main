@@ -14,6 +14,14 @@ class ProfileModel extends ProfileEntity {
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
+    final resolvedImage = (json['image'] ??
+            json['avatar'] ??
+            json['profile_picture'] ??
+            json['profilePicture'] ??
+            json['creator_image'] ??
+            '')
+        .toString();
+
     return ProfileModel(
       pid: json['pid'] ?? "",
       name: json['name'] ?? "",
@@ -22,7 +30,7 @@ class ProfileModel extends ProfileEntity {
       country: json['country'] ?? "",
       mobile: json['mobile'] ?? "",
       state: json['state'] ?? "",
-      image: json['image'] ?? "",
+      image: resolvedImage,
     );
   }
 

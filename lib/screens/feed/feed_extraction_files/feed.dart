@@ -3,7 +3,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:clapmi/Models/brag_model.dart';
 import 'package:clapmi/Models/comment_model.dart';
 import 'package:clapmi/Uicomponent/DialogsAndBottomSheets/challenge_box.dart';
@@ -186,6 +185,9 @@ class _FeedScreenState extends State<FeedScreen> {
                   .showSnackBar(generalSnackBar(" ${state.errorMessage}"));
             }
             if (state is ProfileSuccess) {
+              if (mounted) {
+                setState(() {});
+              }
               callAllInitializingEvents();
             }
           },
@@ -286,41 +288,17 @@ class _FeedScreenState extends State<FeedScreen> {
                             Row(
                               children: [
                                 GestureDetector(
-                                  child: profileModelG?.myAvatar != null
-                                      ? Container(
-                                          width: 30.w,
-                                          height: 30.w,
-                                          decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(30),
-                                              image: DecorationImage(
-                                                  image: MemoryImage(
-                                                      profileModelG!
-                                                          .myAvatar!))),
-                                        )
-                                      : Padding(
-                                          padding: EdgeInsets.only(top: 6.h),
-                                          child: ClipOval(
-                                            child: CachedNetworkImage(
-                                              height: 30.w,
-                                              width: 30.w,
-                                              imageUrl:
-                                                  profileModelG?.image ?? '',
-                                              fit: BoxFit.cover,
-                                              placeholder: (context, url) =>
-                                                  Container(
-                                                color: Colors.grey[200],
-                                                child: const Icon(Icons.person),
-                                              ),
-                                              errorWidget:
-                                                  (context, error, trace) =>
-                                                      Container(
-                                                color: Colors.grey[300],
-                                                child: const Icon(Icons.person),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
+                                  child: Padding(
+                                    padding: EdgeInsets.only(top: 6.h),
+                                    child: AppAvatar(
+                                      imageUrl: profileModelG?.image,
+                                      memoryBytes: profileModelG?.myAvatar,
+                                      name: profileModelG?.username ??
+                                          profileModelG?.name,
+                                      size: 30.w,
+                                      backgroundColor: Colors.grey[300]!,
+                                    ),
+                                  ),
                                   onTap: () {
                                     _scaffoldKey.currentState?.openDrawer();
                                   },
@@ -2296,23 +2274,13 @@ class _GiftCapcoinSheetState extends State<_GiftCapcoinSheet> {
                         child: Row(
                           children: [
                             //**THE SESSION THAT HAS THE PROFILE PICTURES AND THE LIKES */
-                            profileModelG?.myAvatar != null
-                                ? Container(
-                                    height: 40.w,
-                                    width: 40.w,
-                                    decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(30),
-                                        image: DecorationImage(
-                                            fit: BoxFit.cover,
-                                            image: MemoryImage(
-                                                profileModelG!.myAvatar!))),
-                                  )
-                                : CustomImageView(
-                                    height: 35.w,
-                                    width: 35.w,
-                                    radius: BorderRadius.circular(25),
-                                    imagePath: profileModelG?.image ?? '',
-                                  ),
+                            AppAvatar(
+                              imageUrl: profileModelG?.image,
+                              memoryBytes: profileModelG?.myAvatar,
+                              name: profileModelG?.username ??
+                                  profileModelG?.name,
+                              size: 40.w,
+                            ),
 
                             const Gap(16),
                             Column(

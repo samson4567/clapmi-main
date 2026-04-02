@@ -1,10 +1,13 @@
 package com.clapmi.mvp
 
 import android.app.Activity
+import android.app.PictureInPictureParams
 import android.content.Intent
+import android.graphics.Rect
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.util.Log
+import android.util.Rational
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -40,10 +43,49 @@ class MainActivity: FlutterActivity() {
                 "isServiceRunning" -> {
                     result.success(ScreenCaptureService.isServiceRunning())
                 }
+                "enterPictureInPicture" -> {
+                    val width = call.argument<Int>("width") ?: 9
+                    val height = call.argument<Int>("height") ?: 16
+                    result.success(enterPictureInPicture(width, height))
+                }
                 else -> {
                     result.notImplemented()
                 }
             }
+        }
+    }
+
+    private fun enterPictureInPicture(width: Int, height: Int): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            Log.w("MainActivity", "Picture-in-Picture requires Android 8.0+")
+            return false
+        }
+
+        return try {
+            val safeWidth = width.coerceAtLeast(1)
+            val safeHeight = height.coerceAtLeast(1)
+            val builder = PictureInPictureParams.Builder()
+                .setAspectRatio(Rational(safeWidth, safeHeight))
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val decorView = window.decorView
+                if (decorView.width > 0 && decorView.height > 0) {
+                    builder.setSourceRectHint(
+                        Rect(
+                            decorView.left,
+                            decorView.top,
+                            decorView.right,
+                            decorView.bottom
+                        )
+                    )
+                }
+            }
+
+            enterPictureInPictureMode(builder.build())
+            true
+        } catch (error: Exception) {
+            Log.e("MainActivity", "Failed to enter Picture-in-Picture", error)
+            false
         }
     }
 

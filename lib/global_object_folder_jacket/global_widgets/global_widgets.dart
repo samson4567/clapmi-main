@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 export 'customTextfiled.dart';
 export 'customText.dart';
 export 'CustomImageViewer.dart';
+export 'app_avatar.dart';
 export 'video_trimmer_widget.dart';
 export 'custom_container.dart';
 
@@ -260,7 +261,8 @@ class _PillButtonState extends State<PillButton> {
           widget.onTap ?? widget.onPressed, // Handle both onTap and onPressed
       child: FancyContainer(
         radius: 70,
-        padding: widget.padding ?? EdgeInsets.symmetric(horizontal: 10,vertical: 10),
+        padding: widget.padding ??
+            EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         backgroundColor: widget.backgroundColor ?? AppColors.primaryColor,
         action: widget.onTap ?? widget.onPressed, // Ensure action is triggered
         isAsync: widget.isAsync,

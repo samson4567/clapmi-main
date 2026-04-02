@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:clapmi/core/app_variables.dart';
 import 'package:clapmi/core/db/app_preference_service.dart';
 import 'package:clapmi/core/di/injector.dart';
@@ -8,6 +7,7 @@ import 'package:clapmi/features/user/data/datasources/user_remote_datasource.dar
 import 'package:clapmi/features/user/presentation/blocs/user_bloc/user_bloc.dart';
 import 'package:clapmi/features/user/presentation/blocs/user_bloc/user_event.dart';
 import 'package:clapmi/features/user/presentation/blocs/user_bloc/user_state.dart';
+import 'package:clapmi/global_object_folder_jacket/global_widgets/global_widgets.dart';
 import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -430,34 +430,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       child: Row(
         children: [
           GestureDetector(
-            child: profileModelG?.myAvatar != null
-                ? Container(
-                    width: 30.w,
-                    height: 30.w,
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        image: DecorationImage(
-                            image: MemoryImage(profileModelG!.myAvatar!))),
-                  )
-                : Padding(
-                    padding: EdgeInsets.only(top: 6.h),
-                    child: ClipOval(
-                      child: CachedNetworkImage(
-                        height: 30.w,
-                        width: 30.w,
-                        imageUrl: profileModelG?.image ?? '',
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.person),
-                        ),
-                        errorWidget: (context, error, trace) => Container(
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.person),
-                        ),
-                      ),
-                    ),
-                  ),
+            child: Padding(
+              padding: EdgeInsets.only(top: 6.h),
+              child: AppAvatar(
+                imageUrl: profileModelG?.image,
+                memoryBytes: profileModelG?.myAvatar,
+                name: profileModelG?.username ?? profileModelG?.name,
+                size: 30.w,
+                backgroundColor: Colors.grey[300]!,
+              ),
+            ),
             onTap: () {
               // Open drawer - try Scaffold first, then use global key
               if (context.canPop()) {
@@ -937,29 +919,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     required Color fallbackColor,
     required double size,
   }) {
-    if (imageUrl != null && imageUrl.isNotEmpty) {
-      return CachedNetworkImage(
-        imageUrl: imageUrl,
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-        placeholder: (context, url) => _buildInitialsAvatar(
-          initials: initials,
-          backgroundColor: fallbackColor,
-          size: size,
-        ),
-        errorWidget: (context, error, trace) => _buildInitialsAvatar(
-          initials: initials,
-          backgroundColor: fallbackColor,
-          size: size,
-        ),
-      );
-    }
-
-    return _buildInitialsAvatar(
-      initials: initials,
-      backgroundColor: fallbackColor,
+    return AppAvatar(
+      imageUrl: imageUrl,
+      fallbackText: initials,
       size: size,
+      backgroundColor: fallbackColor,
+      foregroundColor: Colors.white,
     );
   }
 
@@ -1526,11 +1491,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadPaymentGrades({int retryCount = 0}) async {
     const maxRetries = 3;
     const baseDelay = Duration(seconds: 2);
-    
+
     try {
       final datasource = getItInstance<UserRemoteDatasource>();
       final response = await datasource.getPaymentGrades();
-      
+
       if (mounted) {
         setState(() {
           _paymentGrades = response.data.data;
@@ -1538,12 +1503,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
         print('ProfileScreen: Loaded ${_paymentGrades.length} payment grades');
         for (final grade in _paymentGrades) {
-          print('ProfileScreen: Grade ${grade.name} - subscriptionEndsAt: ${grade.subscriptionEndsAt}');
+          print(
+              'ProfileScreen: Grade ${grade.name} - subscriptionEndsAt: ${grade.subscriptionEndsAt}');
         }
       }
     } catch (e) {
-      print('ProfileScreen: Error loading payment grades (attempt ${retryCount + 1}/$maxRetries) - $e');
-      
+      print(
+          'ProfileScreen: Error loading payment grades (attempt ${retryCount + 1}/$maxRetries) - $e');
+
       // Retry with exponential backoff
       if (retryCount < maxRetries && mounted) {
         final delay = baseDelay * (retryCount + 1);
@@ -1553,7 +1520,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return _loadPaymentGrades(retryCount: retryCount + 1);
         }
       }
-      
+
       if (mounted) {
         setState(() {
           _isPaymentGradesLoading = false;
@@ -1678,50 +1645,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Row(
       children: [
         // Profile image
-        profileModelG?.myAvatar != null
-            ? Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(25),
-                  image: DecorationImage(
-                    image: MemoryImage(profileModelG!.myAvatar!),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              )
-            : CachedNetworkImage(
-                width: 50,
-                height: 50,
-                imageUrl: profileModelG?.image ?? '',
-                imageBuilder: (context, imageProvider) => Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(25),
-                    image: DecorationImage(
-                      image: imageProvider,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                placeholder: (context, url) => Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: const Icon(Icons.person),
-                ),
-                errorWidget: (context, error, trace) => Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: const Icon(Icons.person),
-                ),
-              ),
+        AppAvatar(
+          imageUrl: profileModelG?.image,
+          memoryBytes: profileModelG?.myAvatar,
+          name: profileModelG?.username ?? profileModelG?.name,
+          size: 50,
+          backgroundColor: Colors.grey[300]!,
+        ),
         const SizedBox(width: 14),
         Expanded(
           child: Column(
@@ -1890,7 +1820,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       List<CreatorLevelModel> creatorLevels, CreatorRankingModel? userRanking) {
     final currentLevelName = _currentUserRanking?.level.name ?? 'Prime';
     final currentLevel = _getCurrentLevelModel(creatorLevels, userRanking);
-    
+
     // Find current level from payment grades to get subscription_ends_at
     PaymentGradeModel? currentPaymentGrade;
     if (_paymentGrades.isNotEmpty) {
@@ -1903,30 +1833,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
         currentPaymentGrade = _paymentGrades.first;
       }
     }
-    
+
     // Calculate days remaining from subscription_ends_at
     final subscriptionEndsAt = currentPaymentGrade?.subscriptionEndsAt;
     int daysRemaining = 0;
     double progressValue = 0.0;
-    
+
     // Debug logging
     print('Subscription Debug: currentLevelName = $currentLevelName');
     print('Subscription Debug: currentLevel = ${currentLevel?.name}');
-    print('Subscription Debug: currentPaymentGrade = ${currentPaymentGrade?.name}');
+    print(
+        'Subscription Debug: currentPaymentGrade = ${currentPaymentGrade?.name}');
     print('Subscription Debug: subscriptionEndsAt = $subscriptionEndsAt');
-    
+
     if (subscriptionEndsAt != null) {
       final now = DateTime.now();
       final difference = subscriptionEndsAt.difference(now);
       daysRemaining = difference.inDays;
-      
+
       // Calculate progress (assuming 30-day subscription period)
       // Progress shows how much of the subscription period has elapsed
       final totalDays = 30;
       final daysElapsed = totalDays - daysRemaining;
       progressValue = (daysElapsed / totalDays).clamp(0.0, 1.0);
     }
-    
+
     return Container(
       margin: const EdgeInsets.fromLTRB(0, 0, 0, 0),
       padding: const EdgeInsets.all(16),
@@ -2043,10 +1974,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final nextLevelName = _getNextLevelName(userRanking);
-    final nextLevel =
-        nextLevelName == null ? null : _findLevelByName(creatorLevels, nextLevelName);
-    final unlockTitle =
-        nextLevelName == null ? 'You are on the top level' : 'Unlock $nextLevelName';
+    final nextLevel = nextLevelName == null
+        ? null
+        : _findLevelByName(creatorLevels, nextLevelName);
+    final unlockTitle = nextLevelName == null
+        ? 'You are on the top level'
+        : 'Unlock $nextLevelName';
     final unlockButtonLabel = nextLevel == null
         ? (nextLevelName == null
             ? 'You are already at the highest tier'
@@ -2598,7 +2531,8 @@ class _LeaderboardIntroDialog extends StatefulWidget {
   const _LeaderboardIntroDialog();
 
   @override
-  State<_LeaderboardIntroDialog> createState() => _LeaderboardIntroDialogState();
+  State<_LeaderboardIntroDialog> createState() =>
+      _LeaderboardIntroDialogState();
 }
 
 class _LeaderboardIntroDialogState extends State<_LeaderboardIntroDialog> {

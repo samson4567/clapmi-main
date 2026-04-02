@@ -45,14 +45,14 @@ class PushNotificationsService {
     //get the FCM (Firebase Cloud Messaging) token from the device
     String? token = await _firebaseMessaging.getToken();
     thetoken = token;
-    print('FCM Token: $token');
+    print('kbjsdkjskdsjdsbabjsa--FCM Token: $token');
 
     // Listen for token refresh
     _firebaseMessaging.onTokenRefresh.listen((newToken) {
       print('FCM Token refreshed: $newToken');
       thetoken = newToken;
       // Register the new token with the backend
-      _registerTokenWithBackend(newToken);
+      // _registerTokenWithBackend(newToken);
     });
   }
 

@@ -1,5 +1,4 @@
 // ignore_for_file: must_be_immutable
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:clapmi/core/app_variables.dart';
 import 'package:clapmi/core/utils/app_logger.dart';
 import 'package:clapmi/features/chats_and_socials/data/models/chat_user_model.dart';
@@ -175,33 +174,13 @@ class _ChatListPageState extends State<ChatListPage>
                   onTap: () {
                     context.pushNamed(MyAppRouteConstant.myAccountPage);
                   },
-                  child: profileModelG?.myAvatar != null
-                      ? Container(
-                          width: 30.w,
-                          height: 30.w,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(30),
-                            image: DecorationImage(
-                              image: MemoryImage(profileModelG!.myAvatar!),
-                            ),
-                          ),
-                        )
-                      : ClipOval(
-                          child: CachedNetworkImage(
-                            height: 30.w,
-                            width: 30.w,
-                            imageUrl: profileModelG?.image ?? '',
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              color: Colors.grey[200],
-                              child: const Icon(Icons.person),
-                            ),
-                            errorWidget: (context, error, trace) => Container(
-                              color: Colors.grey[300],
-                              child: const Icon(Icons.person),
-                            ),
-                          ),
-                        ),
+                  child: AppAvatar(
+                    imageUrl: profileModelG?.image,
+                    memoryBytes: profileModelG?.myAvatar,
+                    name: profileModelG?.username ?? profileModelG?.name,
+                    size: 30.w,
+                    backgroundColor: Colors.grey[300]!,
+                  ),
                 ),
               ),
             ],
@@ -515,18 +494,11 @@ class ChatTile extends StatelessWidget {
               },
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(30.w),
-                child: CachedNetworkImage(
-                  height: 50.w,
-                  width: 50.w,
-                  fit: BoxFit.cover,
-                  imageUrl: friend.user?.image ?? '',
-                  placeholder: (_, __) => Container(
-                    color: Colors.grey.shade800,
-                  ),
-                  errorWidget: (_, __, ___) => Container(
-                    color: getFigmaColor("222222"),
-                    child: const Icon(Icons.person, color: Colors.grey),
-                  ),
+                child: AppAvatar(
+                  imageUrl: friend.user?.image,
+                  name: friend.user?.username ?? friend.user?.name,
+                  size: 50.w,
+                  backgroundColor: getFigmaColor("222222"),
                 ),
               ),
             ),

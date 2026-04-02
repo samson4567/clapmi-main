@@ -110,67 +110,23 @@ class LivestreamHeader extends StatelessWidget {
               children: [
                 // Avatar - Show HOST for single streams, current user for multiple
                 GestureDetector(
-                    child: comboInfo.type == 'single'
-                        ? (comboInfo.host?.avatarConvert != null
-                            ? Container(
-                                width: 30.w,
-                                height: 30.w,
-                                decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(30),
-                                    image: DecorationImage(
-                                        image: MemoryImage(
-                                            comboInfo.host!.avatarConvert!))),
-                              )
-                            : Padding(
-                                padding: EdgeInsets.only(top: 6.h),
-                                child: ClipOval(
-                                  child: CachedNetworkImage(
-                                    height: 30.w,
-                                    width: 30.w,
-                                    imageUrl: comboInfo.host?.avatar ?? '',
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(
-                                      color: Colors.grey[200],
-                                      child: const Icon(Icons.person),
-                                    ),
-                                    errorWidget: (context, error, trace) =>
-                                        Container(
-                                      color: Colors.grey[300],
-                                      child: const Icon(Icons.person),
-                                    ),
-                                  ),
-                                ),
-                              ))
-                        : (profileModelG?.myAvatar != null
-                            ? Container(
-                                width: 30.w,
-                                height: 30.w,
-                                decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(30),
-                                    image: DecorationImage(
-                                        image: MemoryImage(
-                                            profileModelG!.myAvatar!))),
-                              )
-                            : Padding(
-                                padding: EdgeInsets.only(top: 6.h),
-                                child: ClipOval(
-                                  child: CachedNetworkImage(
-                                    height: 30.w,
-                                    width: 30.w,
-                                    imageUrl: profileModelG?.image ?? '',
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(
-                                      color: Colors.grey[200],
-                                      child: const Icon(Icons.person),
-                                    ),
-                                    errorWidget: (context, error, trace) =>
-                                        Container(
-                                      color: Colors.grey[300],
-                                      child: const Icon(Icons.person),
-                                    ),
-                                  ),
-                                ),
-                              ))),
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 6.h),
+                    child: AppAvatar(
+                      imageUrl: comboInfo.type == 'single'
+                          ? comboInfo.host?.avatar
+                          : profileModelG?.image,
+                      memoryBytes: comboInfo.type == 'single'
+                          ? comboInfo.host?.avatarConvert
+                          : profileModelG?.myAvatar,
+                      name: comboInfo.type == 'single'
+                          ? comboInfo.host?.username
+                          : profileModelG?.username ?? profileModelG?.name,
+                      size: 30.w,
+                      backgroundColor: Colors.grey[300]!,
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 8),
                 // Username - Show HOST for single streams, current user for multiple
                 Text(

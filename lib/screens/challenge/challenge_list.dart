@@ -1,6 +1,5 @@
 // ignore_for_file: use_build_context_synchronously
 import 'dart:ui';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:clapmi/Uicomponent/DialogsAndBottomSheets/challenge_box.dart';
 import 'package:clapmi/core/app_variables.dart';
 import 'package:clapmi/features/brag/presentation/blocs/user_bloc/brag_bloc.dart';
@@ -16,7 +15,6 @@ import 'package:clapmi/global_object_folder_jacket/global_widgets/global_widgets
 import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
 import 'package:clapmi/screens/challenge/widgets/Animated/animated.dart';
 import 'package:clapmi/screens/challenge/others/widgets/live_buy_point_button.dart';
-import 'package:clapmi/core/utils.dart';
 import 'package:clapmi/screens/challenge/widgets/buildImage2.dart';
 import 'package:intl/intl.dart';
 import 'package:clapmi/screens/challenge/widgets/gift_live_coin.dart';
@@ -66,37 +64,16 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
           children: [
 // 👉 Profile Avatar
             GestureDetector(
-              child: profileModelG?.myAvatar != null
-                  ? Container(
-                      width: 30.w,
-                      height: 30.w,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        image: DecorationImage(
-                          image: MemoryImage(profileModelG!.myAvatar!),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    )
-                  : Padding(
-                      padding: EdgeInsets.only(top: 6.h),
-                      child: ClipOval(
-                        child: CachedNetworkImage(
-                          height: 30.h,
-                          width: 30.w,
-                          imageUrl: profileModelG?.image ?? '',
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: Colors.grey[200],
-                            child: const Icon(Icons.person),
-                          ),
-                          errorWidget: (context, error, trace) => Container(
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.person),
-                          ),
-                        ),
-                      ),
-                    ),
+              child: Padding(
+                padding: EdgeInsets.only(top: 6.h),
+                child: AppAvatar(
+                  imageUrl: profileModelG?.image,
+                  memoryBytes: profileModelG?.myAvatar,
+                  name: profileModelG?.username ?? profileModelG?.name,
+                  size: 30.w,
+                  backgroundColor: Colors.grey[300]!,
+                ),
+              ),
             ),
             SizedBox(width: 5.w),
 // 👉 LiveUpcoming widget
@@ -429,9 +406,8 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                 isScrollControlled: true,
                 context: context,
                 builder: (_) => StreamCreatedModal(
-                  buttonLabel: _isInstantLive
-                      ? 'Start stream'
-                      : 'Await for stream live',
+                  buttonLabel:
+                      _isInstantLive ? 'Start stream' : 'Await for stream live',
                   onPressed: () {
                     onCreateComboCallback(state.message ?? '');
                   },

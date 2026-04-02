@@ -36,6 +36,27 @@ class ScreenCaptureService {
     return result;
   }
 
+  Future<bool> enterPictureInPicture({
+    int? width,
+    int? height,
+  }) async {
+    try {
+      final bool success = await platform.invokeMethod(
+        'enterPictureInPicture',
+        {
+          'width': width,
+          'height': height,
+        },
+      );
+      return success;
+    } catch (e) {
+      debugPrint(
+        'dbjfkdbfskdfbkdbfkjbdsfkj screenshare_service: enterPictureInPicture() error: $e',
+      );
+      return false;
+    }
+  }
+
   /// Shows the iOS broadcast picker to select the custom extension
   Future<bool> showBroadcastPicker() async {
     try {
