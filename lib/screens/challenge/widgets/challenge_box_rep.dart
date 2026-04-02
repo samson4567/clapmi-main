@@ -186,6 +186,11 @@ void showLiveStreamError(BuildContext context, {ComboEntity? livecombo, String? 
                       'brag': state.liveCombo.brag,
                     });
               }
+              if (state is GetLiveComboErrorState) {
+                setState(() {
+                  isLoading = false;
+                });
+              }
               if (state is LeaveComboGroundSuccessState) {
                 setState(() {
                   isEndingStream = false;

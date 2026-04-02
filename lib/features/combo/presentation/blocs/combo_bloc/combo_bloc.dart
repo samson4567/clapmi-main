@@ -140,8 +140,7 @@ class ComboBloc extends Bloc<ComboEvent, ComboState> {
     final result = await comboRepository.getSingleLiveCombo(
         comboId: event.combo.combo ?? '');
     result.fold(
-        (error) =>
-            emit(LeaveComboGroundErrorState(errorMessage: error.message)),
+        (error) => emit(GetLiveComboErrorState(errorMessage: error.message)),
         (liveCombo) {
       print("This is the liveComboEvent ${liveCombo.stake}");
       final tempLive = liveCombo.copyWith(end: event.combo.endAt);

@@ -2,8 +2,14 @@ import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:clapmi/core/app_variables.dart';
+import 'package:clapmi/features/app/presentation/blocs/app/app_bloc.dart';
+import 'package:clapmi/features/app/presentation/blocs/app/app_event.dart';
+import 'package:clapmi/features/app/presentation/blocs/app/app_state.dart';
 import 'package:clapmi/features/brag/presentation/blocs/user_bloc/brag_bloc.dart';
 import 'package:clapmi/features/brag/presentation/blocs/user_bloc/brag_event.dart';
+import 'package:clapmi/features/chats_and_socials/presentation/blocs/user_bloc/chats_and_socials_bloc.dart';
+import 'package:clapmi/features/chats_and_socials/presentation/blocs/user_bloc/chats_and_socials_event.dart';
+import 'package:clapmi/features/chats_and_socials/presentation/blocs/user_bloc/chats_and_socials_state.dart';
 import 'package:clapmi/features/chats_and_socials/domain/entities/live_reactions_entities.dart';
 import 'package:clapmi/features/combo/domain/entities/combo_entity.dart';
 import 'package:clapmi/features/combo/presentation/blocs/combo_bloc/combo_bloc.dart';
@@ -11,6 +17,7 @@ import 'package:clapmi/features/combo/presentation/blocs/combo_bloc/combo_state.
 import 'package:clapmi/features/post/data/models/create_post_model.dart';
 import 'package:clapmi/features/post/presentation/blocs/user_bloc/post_bloc.dart';
 import 'package:clapmi/features/post/presentation/blocs/user_bloc/post_event.dart';
+import 'package:clapmi/features/user/data/models/user_model.dart';
 import 'package:clapmi/global_object_folder_jacket/global_widgets/global_widgets.dart';
 import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
 import 'package:clapmi/screens/challenge/others/Single_livestream.dart';
@@ -20,7 +27,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart' show SvgPicture;
 import 'package:share_plus/share_plus.dart';
 
-class LivestreamHeader extends StatelessWidget {
+class LivestreamHeader extends StatefulWidget {
   const LivestreamHeader(
       {super.key,
       required this.comboInfo,
@@ -50,15 +57,206 @@ class LivestreamHeader extends StatelessWidget {
   final bool isLiveGoingNow;
 
   @override
+  State<LivestreamHeader> createState() => _LivestreamHeaderState();
+}
+
+class _LivestreamHeaderState extends State<LivestreamHeader> {
+  UserModel? _hostUserProfile;
+  bool _isHostProfileLoading = false;
+  bool _isSendingClapRequest = false;
+  bool _hasSentClapRequest = false;
+  String? _loadedHostPid;
+
+  String? get _hostPid =>
+      widget.comboInfo.host?.profile ?? widget.comboInfo.onGoingCombo?.host?.profile;
+
+  String? get _challengerPid =>
+      widget.comboInfo.challenger?.profile ??
+      widget.comboInfo.onGoingCombo?.challenger?.profile;
+
+  bool get _isSpectator {
+    final currentUserPid = profileModelG?.pid;
+    final hostPid = _hostPid;
+
+    if (currentUserPid == null || hostPid == null) {
+      return false;
+    }
+
+    return currentUserPid != hostPid && currentUserPid != _challengerPid;
+  }
+
+  bool get _shouldShowClapButton {
+    if (!_isSpectator || _hostPid == null || _isHostProfileLoading) {
+      return false;
+    }
+
+    return !(_hostUserProfile?.isFriend ?? false);
+  }
+
+  String get _displayedHostName =>
+      widget.comboInfo.host?.username ??
+      widget.comboInfo.onGoingCombo?.host?.username ??
+      profileModelG?.username ??
+      profileModelG?.name ??
+      '';
+
+  String? get _displayedHostImage =>
+      widget.comboInfo.host?.avatar ??
+      widget.comboInfo.onGoingCombo?.host?.avatar ??
+      profileModelG?.image;
+
+  Uint8List? get _displayedHostAvatarBytes =>
+      widget.comboInfo.host?.avatarConvert ??
+      widget.comboInfo.onGoingCombo?.host?.avatarConvert ??
+      profileModelG?.myAvatar;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchHostProfileIfNeeded();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant LivestreamHeader oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if ((oldWidget.comboInfo.host?.profile ?? oldWidget.comboInfo.onGoingCombo?.host?.profile) !=
+        _hostPid) {
+      _hostUserProfile = null;
+      _isHostProfileLoading = false;
+      _isSendingClapRequest = false;
+      _hasSentClapRequest = false;
+      _loadedHostPid = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _fetchHostProfileIfNeeded();
+      });
+    }
+  }
+
+  void _fetchHostProfileIfNeeded() {
+    final hostPid = _hostPid;
+    if (!mounted ||
+        !_isSpectator ||
+        hostPid == null ||
+        hostPid.isEmpty ||
+        _loadedHostPid == hostPid ||
+        _isHostProfileLoading) {
+      return;
+    }
+
+    setState(() {
+      _isHostProfileLoading = true;
+      _loadedHostPid = hostPid;
+    });
+
+    context.read<AppBloc>().add(GetUserProfileEvent(userId: hostPid));
+  }
+
+  void _handleAppState(AppState state) {
+    final hostPid = _hostPid;
+    if (hostPid == null) {
+      return;
+    }
+
+    if (state is GetUserProfileSuccess && state.userProfile.pid == hostPid) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _hostUserProfile = state.userProfile;
+        _isHostProfileLoading = false;
+        _hasSentClapRequest = state.userProfile.isFriend ?? false;
+      });
+    } else if (state is GetUserProfileError && _isHostProfileLoading) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isHostProfileLoading = false;
+      });
+    }
+  }
+
+  void _handleClapRequestState(ChatsAndSocialsState state) {
+    if (!_isSendingClapRequest) {
+      return;
+    }
+
+    if (state is SendClapRequestToUsersSuccessState) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSendingClapRequest = false;
+        _hasSentClapRequest = true;
+      });
+    } else if (state is SendClapRequestToUsersErrorState) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSendingClapRequest = false;
+      });
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(content: Text(state.errorMessage)),
+      );
+    }
+  }
+
+  void _sendClapRequest() {
+    final hostPid = _hostPid;
+    if (hostPid == null ||
+        hostPid.isEmpty ||
+        _hasSentClapRequest ||
+        _isSendingClapRequest ||
+        !_shouldShowClapButton) {
+      return;
+    }
+
+    setState(() {
+      _isSendingClapRequest = true;
+    });
+
+    context
+        .read<ChatsAndSocialsBloc>()
+        .add(SendClapRequestToUsersEvent(userPids: hostPid));
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocConsumer<ComboBloc, ComboState>(
-      listener: (context, state) {
-        if (state is LeaveComboGroundSuccessState) {
-          onLeaveComboEvent(true);
-        }
-      },
-      builder: (context, state) {
-        return Column(
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<AppBloc, AppState>(
+          listener: (context, state) {
+            _handleAppState(state);
+          },
+        ),
+        BlocListener<ChatsAndSocialsBloc, ChatsAndSocialsState>(
+          listener: (context, state) {
+            _handleClapRequestState(state);
+          },
+        ),
+      ],
+      child: BlocConsumer<ComboBloc, ComboState>(
+        listener: (context, state) {
+          if (state is LeaveComboGroundSuccessState) {
+            widget.onLeaveComboEvent(true);
+          }
+        },
+        builder: (context, state) {
+          final comboInfo = widget.comboInfo;
+          final liveChallenger = widget.liveChallenger;
+          final model = widget.model;
+          final comboId = widget.comboId;
+          final totalGiftingPot = widget.totalGiftingPot;
+          final creatorEarnedClapPoints = widget.creatorEarnedClapPoints;
+          final bragID = widget.bragID;
+          final streamersCount = widget.streamersCount;
+          final numOfChallengers = widget.numOfChallengers;
+          final isLiveGoingNow = widget.isLiveGoingNow;
+
+          return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ====== Top Bar (About Text + Icons) ======
@@ -69,7 +267,7 @@ class LivestreamHeader extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      comboInfo.about ?? '',
+                      widget.comboInfo.about ?? '',
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 14.sp,
@@ -88,11 +286,11 @@ class LivestreamHeader extends StatelessWidget {
                             backgroundColor: Colors.transparent,
                             builder: (context) {
                               return EndliveStream(
-                                comboId: comboId,
-                                earnedClapPoints: creatorEarnedClapPoints,
-                                totalGiftPoints: totalGiftingPot,
+                                comboId: widget.comboId,
+                                earnedClapPoints: widget.creatorEarnedClapPoints,
+                                totalGiftPoints: widget.totalGiftingPot,
                                 showGiftSummary:
-                                    creatorEarnedClapPoints != null,
+                                    widget.creatorEarnedClapPoints != null,
                               );
                             },
                           );
@@ -113,33 +311,41 @@ class LivestreamHeader extends StatelessWidget {
                   child: Padding(
                     padding: EdgeInsets.only(top: 6.h),
                     child: AppAvatar(
-                      imageUrl: comboInfo.type == 'single'
-                          ? comboInfo.host?.avatar
-                          : profileModelG?.image,
-                      memoryBytes: comboInfo.type == 'single'
-                          ? comboInfo.host?.avatarConvert
-                          : profileModelG?.myAvatar,
-                      name: comboInfo.type == 'single'
-                          ? comboInfo.host?.username
-                          : profileModelG?.username ?? profileModelG?.name,
+                      imageUrl: _displayedHostImage,
+                      memoryBytes: _displayedHostAvatarBytes,
+                      name: _displayedHostName,
                       size: 30.w,
                       backgroundColor: Colors.grey[300]!,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Username - Show HOST for single streams, current user for multiple
-                Text(
-                  comboInfo.type == 'single'
-                      ? comboInfo.host?.username ?? ''
-                      : profileModelG?.username ?? '',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12.sp,
-                      fontFamily: 'Poppins'),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          _displayedHostName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12.sp,
+                              fontFamily: 'Poppins'),
+                        ),
+                      ),
+                      if (_shouldShowClapButton) ...[
+                        const SizedBox(width: 8),
+                        _LiveClapButton(
+                          isLoading: _isSendingClapRequest,
+                          isRequested: _hasSentClapRequest,
+                          onTap: _sendClapRequest,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-                const Spacer(),
                 //ShareIcon
                 FancyContainer(
                   isAsync: false,
@@ -147,14 +353,14 @@ class LivestreamHeader extends StatelessWidget {
                   width: 40,
                   action: () async {
                     final trackingId =
-                        bragID.isNotEmpty ? bragID : (model?.uuid ?? '');
-                    if (comboId.isEmpty) {
+                        widget.bragID.isNotEmpty ? widget.bragID : (widget.model?.uuid ?? '');
+                    if (widget.comboId.isEmpty) {
                       return;
                     }
                     final result = await SharePlus.instance.share(ShareParams(
                         title: 'Check out the Livestream',
                         text:
-                            'Check out the livestream on clapmi https://app.clapmi.com${MyAppRouteConstant.sharedLivestreamBase}/$comboId'));
+                            'Check out the livestream on clapmi https://app.clapmi.com${MyAppRouteConstant.sharedLivestreamBase}/${widget.comboId}'));
 
                     if (result.status == ShareResultStatus.success &&
                         trackingId.isNotEmpty) {
@@ -191,7 +397,7 @@ class LivestreamHeader extends StatelessWidget {
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        streamersCount.toString(),
+                        widget.streamersCount.toString(),
                         style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
@@ -209,10 +415,10 @@ class LivestreamHeader extends StatelessWidget {
                           contextType: 'live',
                           list: 'recent',
                           status: 'pending',
-                          brags: bragID));
+                          brags: widget.bragID));
 
                       bool ishost =
-                          comboInfo.host?.profile == profileModelG?.pid;
+                          widget.comboInfo.host?.profile == profileModelG?.pid;
                       // 🔥 Then open the modal
                       showModalBottomSheet(
                           backgroundColor: Colors.transparent,
@@ -221,8 +427,8 @@ class LivestreamHeader extends StatelessWidget {
                           builder: (_) => ishost
                               ? const AcceptRequestsModal()
                               : ChallengeRequestsModal(
-                                  hostAvatar: comboInfo.host?.avatarConvert,
-                                  hostImageUrl: comboInfo.host?.avatar,
+                                  hostAvatar: widget.comboInfo.host?.avatarConvert,
+                                  hostImageUrl: widget.comboInfo.host?.avatar,
                                 ));
                     },
                     child: Container(
@@ -242,7 +448,7 @@ class LivestreamHeader extends StatelessWidget {
                           ),
                           const SizedBox(width: 5),
                           Text(
-                            numOfChallengers.toString(),
+                            widget.numOfChallengers.toString(),
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
@@ -255,7 +461,7 @@ class LivestreamHeader extends StatelessWidget {
               ],
             ),
             SizedBox(height: 6.h),
-            if (comboInfo.type == "multiple" || isLiveGoingNow)
+            if (widget.comboInfo.type == "multiple" || widget.isLiveGoingNow)
               Row(
                 children: [
                   // Coin section.
@@ -524,6 +730,87 @@ class LivestreamHeader extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class _LiveClapButton extends StatelessWidget {
+  const _LiveClapButton({
+    required this.onTap,
+    required this.isLoading,
+    required this.isRequested,
+  });
+
+  final VoidCallback onTap;
+  final bool isLoading;
+  final bool isRequested;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: isLoading || isRequested ? null : onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        height: 34.h,
+        padding: EdgeInsets.symmetric(horizontal: 14.w),
+        decoration: BoxDecoration(
+          color: isRequested
+              ? const Color(0xff0F1A2A)
+              : const Color(0xff006FCD),
+          border: isRequested
+              ? Border.all(color: const Color(0xff006FCD))
+              : null,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isLoading)
+              SizedBox(
+                width: 16.w,
+                height: 16.w,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            else if (isRequested) ...[
+              Icon(
+                Icons.check_rounded,
+                color: const Color(0xff71B7FF),
+                size: 18.sp,
+              ),
+              SizedBox(width: 6.w),
+              Text(
+                'Requested',
+                style: TextStyle(
+                  color: const Color(0xff71B7FF),
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+            ]
+            else ...[
+              Icon(
+                Icons.add_rounded,
+                color: Colors.white,
+                size: 22.sp,
+              ),
+              SizedBox(width: 6.w),
+              Text(
+                'Clap',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

@@ -58,7 +58,7 @@ class LeaderboardScreen extends StatefulWidget {
 }
 
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
-  static const String _leaderboardIntroSeenKey = 'leaderboard_intro_seen_v1';
+  static const String _leaderboardIntroSeenKey = 'leaderboard_intro_seen_v2';
   static CreatorLeaderboardResponse? _cachedLeaderboardResponse;
   static CreatorRankingModel? _cachedCurrentUserRanking;
   static String? _cachedCurrentUserLevelName;
@@ -2618,130 +2618,126 @@ class _LeaderboardIntroDialogState extends State<_LeaderboardIntroDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final modalWidth = MediaQuery.sizeOf(context).width - 36;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF080808),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withOpacity(0.08)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Icon(
-                  Icons.close,
-                  size: 20,
-                  color: Colors.white.withOpacity(0.75),
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                SvgPicture.asset(
+      child: SizedBox(
+        width: modalWidth,
+        child: AspectRatio(
+          aspectRatio: 373 / 683,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: SvgPicture.asset(
                   'assets/icons/leader.svg',
-                  width: 156,
-                  height: 156,
-                  colorFilter: const ColorFilter.mode(
-                    Color(0xFFF9D0B3),
-                    BlendMode.srcIn,
-                  ),
+                  fit: BoxFit.fill,
                 ),
-                Positioned(
-                  bottom: 18,
-                  child: Text(
-                    'Clapmi Leaderboard',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            SizedBox(
-              height: 340,
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: _pages.length,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentPage = index;
-                  });
-                },
-                itemBuilder: (context, index) {
-                  return SingleChildScrollView(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 8),
-                      child: Text(
-                        _pages[index],
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.86),
-                          fontSize: 14.sp,
-                          height: 1.65,
-                        ),
-                      ),
-                    ),
-                  );
-                },
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Row(
-                    children: List.generate(
-                      _pages.length,
-                      (index) => AnimatedContainer(
-                        duration: const Duration(milliseconds: 220),
-                        margin: const EdgeInsets.only(right: 6),
-                        width: _currentPage == index ? 22 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: _currentPage == index
-                              ? const Color(0xFFF9D0B3)
-                              : Colors.white.withOpacity(0.18),
-                          borderRadius: BorderRadius.circular(999),
+              Positioned(
+                top: 16,
+                right: 16,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.22),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: Colors.white.withOpacity(0.82),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(26, 220, 26, 24),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: PageView.builder(
+                          controller: _pageController,
+                          itemCount: _pages.length,
+                          onPageChanged: (index) {
+                            setState(() {
+                              _currentPage = index;
+                            });
+                          },
+                          itemBuilder: (context, index) {
+                            return SingleChildScrollView(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 6),
+                              child: Text(
+                                _pages[index],
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 14.sp,
+                                  height: 1.62,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: List.generate(
+                                _pages.length,
+                                (index) => AnimatedContainer(
+                                  duration: const Duration(milliseconds: 220),
+                                  margin: const EdgeInsets.only(right: 6),
+                                  width: _currentPage == index ? 22 : 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: _currentPage == index
+                                        ? const Color(0xFFF9D0B3)
+                                        : Colors.white.withOpacity(0.18),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              if (_currentPage == _pages.length - 1) {
+                                Navigator.of(context).pop();
+                                return;
+                              }
+                              await _pageController.nextPage(
+                                duration: const Duration(milliseconds: 260),
+                                curve: Curves.easeOut,
+                              );
+                            },
+                            child: Text(
+                              _currentPage == _pages.length - 1
+                                  ? 'Done'
+                                  : 'Next',
+                              style: const TextStyle(
+                                color: Color(0xFFF9D0B3),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                TextButton(
-                  onPressed: () async {
-                    if (_currentPage == _pages.length - 1) {
-                      Navigator.of(context).pop();
-                      return;
-                    }
-                    await _pageController.nextPage(
-                      duration: const Duration(milliseconds: 260),
-                      curve: Curves.easeOut,
-                    );
-                  },
-                  child: Text(
-                    _currentPage == _pages.length - 1 ? 'Done' : 'Next',
-                    style: const TextStyle(
-                      color: Color(0xFFF9D0B3),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

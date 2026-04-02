@@ -1,5 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
+import 'dart:io';
 import 'dart:ui';
+import 'dart:ui' as ui;
 import 'package:clapmi/Uicomponent/DialogsAndBottomSheets/challenge_box.dart';
 import 'package:clapmi/core/app_variables.dart';
 import 'package:clapmi/features/brag/presentation/blocs/user_bloc/brag_bloc.dart';
@@ -23,8 +25,12 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ChallengeListScreen extends StatefulWidget {
@@ -42,6 +48,8 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
   List<ComboEntity> goLiveCombo = [];
   String liveComboId = '';
   bool isLoading = false;
+  bool _awaitingLiveLaunchFromList = false;
+  String? _pendingLaunchComboId;
 
   final TextEditingController _titleController = TextEditingController();
 
@@ -97,8 +105,11 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
           if (state is GetUpcomingCombosSuccessState) {
             displayedListOfUpcomingCombo = state.listOfComboEntity;
           }
-          if (state is LiveComboLoaded) {
+          if (state is LiveComboLoaded &&
+              _awaitingLiveLaunchFromList &&
+              state.liveCombo.combo == _pendingLaunchComboId) {
             isLoading = false;
+            _awaitingLiveLaunchFromList = false;
             context.pop();
             context.pop();
             context.pushReplacementNamed(
@@ -109,24 +120,35 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                   'brag': theComboEntity?.brag
                 });
           }
-          if (state is GetComboDetailSuccessState) {
+          if (state is GetLiveComboErrorState && _awaitingLiveLaunchFromList) {
+            isLoading = false;
+            _awaitingLiveLaunchFromList = false;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.errorMessage)),
+            );
+          }
+          if (state is GetComboDetailSuccessState &&
+              _awaitingLiveLaunchFromList &&
+              state.comboEntity.combo == _pendingLaunchComboId) {
             if (state.comboEntity.type == "single") {
               theComboEntity = state.comboEntity;
               context
                   .read<ComboBloc>()
                   .add(GetLiveComboEvent(combo: state.comboEntity));
             } else {
+              _awaitingLiveLaunchFromList = false;
               context.pushNamed(MyAppRouteConstant.startOrjoin,
                   extra: state.comboEntity);
             }
           }
-          if (state is StartComboSuccessState) {
+          if (state is StartComboSuccessState && _awaitingLiveLaunchFromList) {
             //CALL AN EVENT TO GET A SINGLE COMBO HERE
             Future.delayed(Duration(seconds: 5), () {
               context.read<ComboBloc>().add(GetComboDetailEvent(liveComboId));
             });
           }
           if (state is StartComboErrorState) {
+            _awaitingLiveLaunchFromList = false;
             print("This is start combo error state");
             ScaffoldMessenger.of(context)
                 .showSnackBar(SnackBar(content: Text(state.errorMessage)));
@@ -230,6 +252,9 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                                             const EdgeInsets.only(top: 8.0),
                                         child: GestureDetector(
                                           onTap: () {
+                                            _awaitingLiveLaunchFromList = true;
+                                            _pendingLaunchComboId =
+                                                liveCombo.combo;
                                             context.read<ComboBloc>().add(
                                                 GetComboDetailEvent(
                                                     liveCombo.combo ?? ''));
@@ -260,14 +285,14 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                         : GestureDetector(
                             onTap: () {
                               _showGoLiveBottomSheet(context, (comboId) {
-                                Future.delayed(Duration(seconds: 5), () {
-                                  if (comboId.isNotEmpty) {
-                                    liveComboId = comboId;
-                                    context
-                                        .read<ComboBloc>()
-                                        .add(StartComboEvent(comboId));
-                                  }
-                                });
+                                if (comboId.isNotEmpty) {
+                                  liveComboId = comboId;
+                                  _pendingLaunchComboId = comboId;
+                                  _awaitingLiveLaunchFromList = true;
+                                  context
+                                      .read<ComboBloc>()
+                                      .add(StartComboEvent(comboId));
+                                }
                               }, liveCombos: displayedListOfLiveCombo);
                             },
                             child: SvgPicture.asset(
@@ -399,6 +424,8 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                   'This is createComboState for single Livestreaming--------- ${state.message}');
               isLoading = false;
               context.pop();
+              context.read<ComboBloc>().add(GetUpcomingCombosEvent());
+              context.read<ComboBloc>().add(GetLiveCombosEvent());
 
               /// Show Modal Immediately
               showModalBottomSheet(
@@ -406,10 +433,20 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                 isScrollControlled: true,
                 context: context,
                 builder: (_) => StreamCreatedModal(
-                  buttonLabel:
-                      _isInstantLive ? 'Start stream' : 'Await for stream live',
+                  heading:
+                      _isInstantLive ? 'Stream created' : 'Stream scheduled',
+                  comboTitle: _titleController.text.trim(),
+                  comboId: state.message,
+                  hostName:
+                      profileModelG?.username ?? profileModelG?.name ?? '',
+                  hostImageUrl: profileModelG?.image,
+                  hostAvatarBytes: profileModelG?.myAvatar,
+                  isInstantLive: _isInstantLive,
+                  buttonLabel: _isInstantLive ? 'Start livestream' : 'Done',
                   onPressed: () {
-                    onCreateComboCallback(state.message ?? '');
+                    if (_isInstantLive) {
+                      onCreateComboCallback(state.message ?? '');
+                    }
                   },
                 ),
               );
@@ -1277,11 +1314,25 @@ class StreamCreatedModal extends StatefulWidget {
   final VoidCallback onPressed;
   final bool enabled;
   final String buttonLabel;
+  final String heading;
+  final String comboTitle;
+  final String? comboId;
+  final String hostName;
+  final String? hostImageUrl;
+  final Uint8List? hostAvatarBytes;
+  final bool isInstantLive;
 
   const StreamCreatedModal({
     super.key,
     required this.onPressed,
     required this.buttonLabel,
+    required this.heading,
+    required this.comboTitle,
+    required this.hostName,
+    required this.isInstantLive,
+    this.comboId,
+    this.hostImageUrl,
+    this.hostAvatarBytes,
     this.enabled = true,
   });
 
@@ -1292,6 +1343,8 @@ class StreamCreatedModal extends StatefulWidget {
 class _StreamCreatedModalState extends State<StreamCreatedModal>
     with SingleTickerProviderStateMixin {
   bool _isLoading = false;
+  String? _busyAction;
+  Uint8List? _templateBytes;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _opacityAnimation;
@@ -1326,7 +1379,13 @@ class _StreamCreatedModalState extends State<StreamCreatedModal>
   }
 
   void _handlePressed() {
-    if (!widget.enabled || _isLoading) return;
+    if (!widget.enabled || _isLoading || _busyAction != null) return;
+
+    if (!widget.isInstantLive) {
+      Navigator.of(context).pop();
+      widget.onPressed();
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -1336,16 +1395,351 @@ class _StreamCreatedModalState extends State<StreamCreatedModal>
     widget.onPressed();
   }
 
+  String get _shareLink {
+    if ((widget.comboId ?? '').isEmpty) {
+      return 'https://app.clapmi.com';
+    }
+    return 'https://app.clapmi.com${MyAppRouteConstant.sharedLivestreamBase}/${widget.comboId}';
+  }
+
+  String get _shareText {
+    final streamTitle = widget.comboTitle.isNotEmpty
+        ? widget.comboTitle
+        : (widget.isInstantLive ? 'Join my livestream' : 'My upcoming livestream');
+    final creatorName =
+        widget.hostName.isNotEmpty ? widget.hostName : 'A Clapmi creator';
+    final actionText =
+        widget.isInstantLive ? 'is live on Clapmi' : 'scheduled a livestream on Clapmi';
+    return '$creatorName $actionText.\n$streamTitle\n$_shareLink';
+  }
+
+  Future<Uint8List?> _resolveAvatarBytes() async {
+    if (widget.hostAvatarBytes != null && widget.hostAvatarBytes!.isNotEmpty) {
+      return widget.hostAvatarBytes;
+    }
+
+    final imageUrl = widget.hostImageUrl;
+    if (imageUrl == null || imageUrl.isEmpty || imageUrl.endsWith('.svg')) {
+      return null;
+    }
+
+    try {
+      final response = await http.get(Uri.parse(imageUrl));
+      if (response.statusCode == 200) {
+        return response.bodyBytes;
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  Future<ui.Image> _loadUiImage(ByteData data) async {
+    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+    final frame = await codec.getNextFrame();
+    return frame.image;
+  }
+
+  Future<ui.Image?> _decodeAvatarImage(Uint8List? bytes) async {
+    if (bytes == null || bytes.isEmpty) {
+      return null;
+    }
+
+    try {
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      return frame.image;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Uint8List> _buildTemplateBytes() async {
+    if (_templateBytes != null) {
+      return _templateBytes!;
+    }
+
+    final templatePath = widget.isInstantLive
+        ? 'assets/icons/template1.jpg'
+        : 'assets/icons/template2.jpg';
+    final templateData = await rootBundle.load(templatePath);
+    final backgroundImage = await _loadUiImage(templateData);
+    final avatarImage = await _decodeAvatarImage(await _resolveAvatarBytes());
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final size = Size(
+      backgroundImage.width.toDouble(),
+      backgroundImage.height.toDouble(),
+    );
+
+    canvas.drawImage(backgroundImage, Offset.zero, Paint());
+    canvas.drawRect(
+      Rect.fromLTWH(0, size.height * 0.58, size.width, size.height * 0.42),
+      Paint()
+        ..shader = ui.Gradient.linear(
+          Offset(0, size.height * 0.58),
+          Offset(0, size.height),
+          [
+            Colors.black.withValues(alpha: 0.05),
+            Colors.black.withValues(alpha: 0.72),
+            Colors.black.withValues(alpha: 0.92),
+          ],
+          const [0.0, 0.45, 1.0],
+        ),
+    );
+
+    final badgeRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(size.width / 2, size.height * 0.15),
+        width: 240,
+        height: 72,
+      ),
+      const Radius.circular(40),
+    );
+    canvas.drawRRect(
+      badgeRect,
+      Paint()..color = const Color(0xFF006FCD).withValues(alpha: 0.92),
+    );
+
+    final badgePainter = TextPainter(
+      text: TextSpan(
+        text: widget.isInstantLive ? 'LIVE NOW' : 'SCHEDULED STREAM',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 28,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.2,
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    )..layout(maxWidth: 220);
+    badgePainter.paint(
+      canvas,
+      Offset(
+        (size.width - badgePainter.width) / 2,
+        size.height * 0.15 - (badgePainter.height / 2),
+      ),
+    );
+
+    final avatarRadius = 90.0;
+    final avatarCenter = Offset(size.width / 2, size.height * 0.42);
+    final avatarRect = Rect.fromCircle(center: avatarCenter, radius: avatarRadius);
+
+    canvas.drawCircle(
+      avatarCenter,
+      avatarRadius + 10,
+      Paint()..color = Colors.white.withValues(alpha: 0.92),
+    );
+
+    if (avatarImage != null) {
+      canvas.save();
+      canvas.clipPath(Path()..addOval(avatarRect));
+      paintImage(
+        canvas: canvas,
+        rect: avatarRect,
+        image: avatarImage,
+        fit: BoxFit.cover,
+      );
+      canvas.restore();
+    } else {
+      canvas.drawCircle(
+        avatarCenter,
+        avatarRadius,
+        Paint()..color = const Color(0xFF006FCD),
+      );
+
+      final initial = (widget.hostName.isNotEmpty ? widget.hostName[0] : 'C')
+          .toUpperCase();
+      final initialPainter = TextPainter(
+        text: TextSpan(
+          text: initial,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 92,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        textDirection: ui.TextDirection.ltr,
+      )..layout();
+      initialPainter.paint(
+        canvas,
+        Offset(
+          avatarCenter.dx - (initialPainter.width / 2),
+          avatarCenter.dy - (initialPainter.height / 2),
+        ),
+      );
+    }
+
+    final hostNamePainter = TextPainter(
+      text: TextSpan(
+        text: widget.hostName.isNotEmpty ? widget.hostName : 'Clapmi creator',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 40,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      maxLines: 1,
+      ellipsis: '…',
+      textAlign: TextAlign.center,
+      textDirection: ui.TextDirection.ltr,
+    )..layout(maxWidth: size.width - 160);
+    hostNamePainter.paint(
+      canvas,
+      Offset((size.width - hostNamePainter.width) / 2, size.height * 0.57),
+    );
+
+    final titlePainter = TextPainter(
+      text: TextSpan(
+        text: widget.comboTitle.isNotEmpty
+            ? widget.comboTitle
+            : (widget.isInstantLive
+                ? 'Join my livestream on Clapmi'
+                : 'My upcoming Clapmi livestream'),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 54,
+          fontWeight: FontWeight.w800,
+          height: 1.08,
+        ),
+      ),
+      maxLines: 2,
+      ellipsis: '…',
+      textAlign: TextAlign.center,
+      textDirection: ui.TextDirection.ltr,
+    )..layout(maxWidth: size.width - 140);
+    titlePainter.paint(
+      canvas,
+      Offset((size.width - titlePainter.width) / 2, size.height * 0.67),
+    );
+
+    final footerPainter = TextPainter(
+      text: const TextSpan(
+        text: 'Watch on Clapmi',
+        style: TextStyle(
+          color: Color(0xFF9CCBFF),
+          fontSize: 30,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    )..layout();
+    footerPainter.paint(
+      canvas,
+      Offset((size.width - footerPainter.width) / 2, size.height * 0.91),
+    );
+
+    final renderedImage = await recorder
+        .endRecording()
+        .toImage(size.width.toInt(), size.height.toInt());
+    final byteData =
+        await renderedImage.toByteData(format: ui.ImageByteFormat.png);
+    _templateBytes = byteData!.buffer.asUint8List();
+    return _templateBytes!;
+  }
+
+  Future<File> _writeTemplateToFile({required bool persistent}) async {
+    final bytes = await _buildTemplateBytes();
+    final directory = persistent
+        ? (Platform.isAndroid
+                ? await getExternalStorageDirectory() ??
+                    await getApplicationDocumentsDirectory()
+                : await getApplicationDocumentsDirectory())
+        : await getTemporaryDirectory();
+    final targetDirectory = Directory('${directory.path}/stream_templates');
+    if (!await targetDirectory.exists()) {
+      await targetDirectory.create(recursive: true);
+    }
+
+    final file = File(
+      '${targetDirectory.path}/${widget.isInstantLive ? 'live' : 'scheduled'}_template_${widget.comboId ?? DateTime.now().millisecondsSinceEpoch}.png',
+    );
+    await file.writeAsBytes(bytes, flush: true);
+    return file;
+  }
+
+  Future<void> _runAction(String key, Future<void> Function() action) async {
+    if (_busyAction != null) {
+      return;
+    }
+
+    setState(() {
+      _busyAction = key;
+    });
+
+    try {
+      await action();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not complete action: $error')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busyAction = null;
+        });
+      }
+    }
+  }
+
+  Future<void> _shareTemplate() async {
+    final file = await _writeTemplateToFile(persistent: false);
+    final box = context.findRenderObject() as RenderBox?;
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path)],
+        text: _shareText,
+        sharePositionOrigin:
+            box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+      ),
+    );
+  }
+
+  Future<void> _copyTemplateMessage() async {
+    await Clipboard.setData(ClipboardData(text: _shareText));
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Livestream message copied')),
+    );
+  }
+
+  Future<void> _downloadTemplate() async {
+    final file = await _writeTemplateToFile(persistent: true);
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Template saved to ${file.path}')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return BlocListener<ComboBloc, ComboState>(
+      listener: (context, state) {
+        if (!_isLoading) {
+          return;
+        }
+
+        if (state is StartComboErrorState ||
+            state is GetComboDetailErrorState ||
+            state is GetLiveComboErrorState) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+            _animationController.reverse();
+          }
+        }
+      },
+      child: Container(
       width: 400.w,
-      height: 215.h,
-      padding: const EdgeInsets.only(
-        left: 16,
-        right: 16,
-        bottom: 24,
-      ),
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
       decoration: const BoxDecoration(
         color: Color(0xFF000000),
         borderRadius: BorderRadius.only(
@@ -1357,15 +1751,82 @@ class _StreamCreatedModalState extends State<StreamCreatedModal>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: 20),
-          const Text(
-            "Stream Created",
-            style: TextStyle(
+          SizedBox(height: 10.h),
+          Container(
+            width: 72.w,
+            height: 6.h,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          SizedBox(height: 28.h),
+          Text(
+            widget.heading,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 22,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: 34.h),
+          Text(
+            "Share to",
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.7),
+              fontSize: 18.sp,
               fontWeight: FontWeight.w600,
             ),
           ),
+          SizedBox(height: 22.h),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _ShareActionButton(
+                  assetPath: 'assets/icons/download.png',
+                  actionKey: 'download',
+                  busyAction: _busyAction,
+                  onTap: () => _runAction('download', _downloadTemplate),
+                ),
+                _ShareActionButton(
+                  assetPath:
+                      'assets/icons/social-media-icons-vector-flat-telegram.png',
+                  actionKey: 'telegram',
+                  busyAction: _busyAction,
+                  onTap: () => _runAction('telegram', _shareTemplate),
+                ),
+                _ShareActionButton(
+                  assetPath:
+                      'assets/icons/social-media-icons-vector-flat-facebook.png',
+                  actionKey: 'facebook',
+                  busyAction: _busyAction,
+                  onTap: () => _runAction('facebook', _shareTemplate),
+                ),
+                _ShareActionButton(
+                  assetPath: 'assets/icons/x.png',
+                  actionKey: 'x',
+                  busyAction: _busyAction,
+                  onTap: () => _runAction('x', _shareTemplate),
+                ),
+                _ShareActionButton(
+                  assetPath:
+                      'assets/icons/social-media-icons-vector-flat-whatsapp.png',
+                  actionKey: 'whatsapp',
+                  busyAction: _busyAction,
+                  onTap: () => _runAction('whatsapp', _shareTemplate),
+                ),
+                _ShareActionButton(
+                  assetPath: 'assets/icons/Vector copy.png',
+                  actionKey: 'copy',
+                  busyAction: _busyAction,
+                  onTap: () => _runAction('copy', _copyTemplateMessage),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 34.h),
           GestureDetector(
             onTap: _handlePressed,
             child: Container(
@@ -1373,54 +1834,108 @@ class _StreamCreatedModalState extends State<StreamCreatedModal>
               width: double.infinity,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(40),
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFFFF2400),
+                    Color(0xFF0075FF),
+                  ],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Center(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    AnimatedBuilder(
-                      animation: _animationController,
-                      builder: (context, child) {
-                        return Transform.scale(
-                          scale: _scaleAnimation.value,
-                          child: Opacity(
-                            opacity: _opacityAnimation.value,
-                            child: SvgPicture.asset(
-                              'assets/images/start2.svg',
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    IgnorePointer(
-                      child: Text(
-                        widget.buttonLabel,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                child: AnimatedBuilder(
+                  animation: _animationController,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: _scaleAnimation.value,
+                      child: Opacity(
+                        opacity: _opacityAnimation.value,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 180),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  key: ValueKey('loading'),
+                                  height: 28,
+                                  width: 28,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 3,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : Text(
+                                  widget.buttonLabel,
+                                  key: const ValueKey('label'),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                         ),
                       ),
-                    ),
-                    if (_isLoading)
-                      const SizedBox(
-                        height: 28,
-                        width: 28,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.blue),
-                        ),
-                      ),
-                  ],
+                    );
+                  },
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
         ],
+      ),
+    ));
+  }
+}
+
+class _ShareActionButton extends StatelessWidget {
+  const _ShareActionButton({
+    required this.assetPath,
+    required this.onTap,
+    required this.actionKey,
+    required this.busyAction,
+  });
+
+  final String assetPath;
+  final VoidCallback onTap;
+  final String actionKey;
+  final String? busyAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final isBusy = busyAction == actionKey;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 7.w),
+      child: GestureDetector(
+        onTap: isBusy ? null : onTap,
+        child: Container(
+          width: 58.w,
+          height: 58.w,
+          decoration: BoxDecoration(
+            color: const Color(0xFF111111),
+            borderRadius: BorderRadius.circular(29.r),
+            border: Border.all(color: Colors.white10),
+          ),
+          child: Center(
+            child: isBusy
+                ? SizedBox(
+                    height: 20.w,
+                    width: 20.w,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Image.asset(
+                    assetPath,
+                    width: 42.w,
+                    height: 42.w,
+                    fit: BoxFit.contain,
+                  ),
+          ),
+        ),
       ),
     );
   }

@@ -9,7 +9,7 @@ class ReturnToLivestreamDialog extends StatefulWidget {
 
   const ReturnToLivestreamDialog({
     super.key,
-    this.countdownSeconds = 59,
+    this.countdownSeconds = 5,
     required this.onGoBack,
     required this.onDismiss,
   });
@@ -52,11 +52,11 @@ class _ReturnToLivestreamDialogState extends State<ReturnToLivestreamDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 68),
       child: Container(
-        padding: const EdgeInsets.all(1.5),
+        padding: const EdgeInsets.all(1.2),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           gradient: const LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -64,10 +64,10 @@ class _ReturnToLivestreamDialogState extends State<ReturnToLivestreamDialog> {
           ),
         ),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
           decoration: BoxDecoration(
             color: const Color(0xFF0D0E0E),
-            borderRadius: BorderRadius.circular(23),
+            borderRadius: BorderRadius.circular(19),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -80,68 +80,38 @@ class _ReturnToLivestreamDialogState extends State<ReturnToLivestreamDialog> {
                   child: const Icon(
                     Icons.close,
                     color: Colors.white,
-                    size: 24,
+                    size: 20,
                   ),
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
 
-              // ── Label ──
               const Text(
                 'Return to livestream in',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Poppins',
-                  fontSize: 13,
+                  fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  height: 1.5,
+                  height: 1.3,
                   letterSpacing: 0,
                   color: Colors.white,
                 ),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
 
-              // ── Countdown ──
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 300),
                 style: TextStyle(
                   fontFamily: 'Poppins',
-                  fontSize: 64,
+                  fontSize: 42,
                   fontWeight: FontWeight.w700,
                   height: 1.0,
                   color: _isUrgent ? const Color(0xFFE8303A) : Colors.white,
                 ),
                 child: Text(_timerText),
-              ),
-
-              const SizedBox(height: 28),
-
-              // ── Go back button ──
-              GestureDetector(
-                onTap: widget.onGoBack,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A6BFF),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  alignment: Alignment.center,
-                  child: const Text(
-                    'Go back to stream',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      height: 1.5,
-                      letterSpacing: 0,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
               ),
             ],
           ),

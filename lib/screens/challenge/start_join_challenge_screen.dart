@@ -41,16 +41,26 @@ class _StartOrJoinChallengeScreenState
   String? timerCountdown;
   bool reminderStateLoading = false;
   Timer? _timer;
+  Timer? _detailRetryTimer;
   num? totalGiftingPot;
+  bool _awaitingLiveNavigation = false;
+  int _detailRetryCount = 0;
+  static const int _maxDetailRetries = 8;
+  ComboEntity? _latestCombo;
+
+  ComboEntity get _comboModel => _latestCombo ?? widget.model;
+  String get _comboId => _comboModel.combo ?? widget.model.combo ?? '';
 
   @override
   void dispose() {
     _timer?.cancel();
+    _detailRetryTimer?.cancel();
     super.dispose();
   }
 
   @override
   void initState() {
+    _latestCombo = widget.model;
     context
         .read<ChatsAndSocialsBloc>()
         .add(GetTotalGiftsEvent(comboId: widget.model.combo ?? ''));
@@ -80,15 +90,61 @@ class _StartOrJoinChallengeScreenState
     super.initState();
   }
 
+  void _requestComboDetail({bool resetRetries = false}) {
+    if (_comboId.isEmpty) {
+      return;
+    }
+
+    _detailRetryTimer?.cancel();
+    if (resetRetries) {
+      _detailRetryCount = 0;
+    }
+
+    context.read<ComboBloc>().add(GetComboDetailEvent(_comboId));
+  }
+
+  void _scheduleComboDetailRetry() {
+    if (_detailRetryCount >= _maxDetailRetries) {
+      setState(() {
+        isLoading = false;
+        _awaitingLiveNavigation = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Livestream is still preparing. Please try again.'),
+        ),
+      );
+      return;
+    }
+
+    _detailRetryCount += 1;
+    _detailRetryTimer?.cancel();
+    _detailRetryTimer = Timer(const Duration(seconds: 1), () {
+      if (!mounted) {
+        return;
+      }
+      _requestComboDetail();
+    });
+  }
+
+  void _handleComboReadyForNavigation(ComboEntity comboEntity) {
+    if (comboEntity.combo != _comboId) {
+      return;
+    }
+
+    context.read<ComboBloc>().add(GetLiveComboEvent(combo: comboEntity));
+  }
+
   @override
   Widget build(BuildContext context) {
+    final comboModel = _comboModel;
     return Scaffold(
       backgroundColor: getFigmaColor("0D0E0E"),
       //THIS IS THE COMBO TITLE
       appBar: AppBar(
         backgroundColor: getFigmaColor("0D0E0E"),
         leading: buildBackArrow(context),
-        title: FancyText(widget.model.about ?? ''),
+        title: FancyText(comboModel.about ?? ''),
       ),
       body: BlocConsumer<ComboBloc, ComboState>(
         listener: (context, state) {
@@ -103,9 +159,18 @@ class _StartOrJoinChallengeScreenState
             });
           }
           if (state is GetComboDetailErrorState) {
+            final shouldRetry = _awaitingLiveNavigation &&
+                _detailRetryCount < _maxDetailRetries;
             setState(() {
-              isLoading = false;
+              if (!shouldRetry) {
+                isLoading = false;
+                _awaitingLiveNavigation = false;
+              }
             });
+            if (shouldRetry) {
+              _scheduleComboDetailRetry();
+              return;
+            }
             // Handle server error gracefully - show message and allow user to retry or go back
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -116,20 +181,25 @@ class _StartOrJoinChallengeScreenState
                   onPressed: () {
                     setState(() {
                       isLoading = true;
+                      _awaitingLiveNavigation = false;
                     });
                     context
                         .read<ComboBloc>()
-                        .add(GetComboDetailEvent(widget.model.combo ?? ''));
+                        .add(GetComboDetailEvent(_comboId));
                   },
                 ),
                 duration: Duration(seconds: 5),
               ),
             );
           }
-          if (state is GetComboDetailSuccessState) {
-            context
-                .read<ComboBloc>()
-                .add(GetLiveComboEvent(combo: state.comboEntity));
+          if (state is GetComboDetailSuccessState &&
+              state.comboEntity.combo == _comboId) {
+            setState(() {
+              _latestCombo = state.comboEntity;
+            });
+            if (_awaitingLiveNavigation) {
+              _handleComboReadyForNavigation(state.comboEntity);
+            }
           }
           if (state is SetReminderForComboSuccessState) {
             setState(() {
@@ -141,63 +211,65 @@ class _StartOrJoinChallengeScreenState
           if (state is StartComboLoadingState) {
             setState(() {
               isLoading = true;
+              _awaitingLiveNavigation = true;
             });
           }
           if (state is StartComboErrorState) {
             setState(() {
               isLoading = false;
+              _awaitingLiveNavigation = false;
             });
             popUpMessages(context, state.errorMessage);
           }
           if (state is JoinComboGroundLoadingState) {
             setState(() {
               isLoading = true;
+              _awaitingLiveNavigation = true;
             });
           }
           if (state is JoinComboGroundErrorState) {
             setState(() {
               isLoading = false;
+              _awaitingLiveNavigation = false;
             });
             popUpMessages(context, state.errorMessage);
           }
           if (state is StartComboSuccessState) {
-            // Show success message
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Combo started successfully!'),
-                duration: Duration(seconds: 2),
-              ),
-            );
-            // Try to fetch combo details after a delay
-            Future.delayed(Duration(seconds: 5), () {
-              print(
-                  "This is the comboId ${widget.model.combo}-----------------");
-              context
-                  .read<ComboBloc>()
-                  .add(GetComboDetailEvent(widget.model.combo ?? ''));
-            });
+            _requestComboDetail(resetRetries: true);
           }
           if (state is JoinComboGroundSuccessState) {
             print('JOIN COMBO SUCCESSFUL');
-            context
-                .read<ComboBloc>()
-                .add(GetComboDetailEvent(widget.model.combo ?? ''));
+            _requestComboDetail(resetRetries: true);
           }
           if (state is LeaveComboGroundErrorState) {
             setState(() {
               isLoading = false;
             });
           }
-          if (state is LiveComboLoaded) {
+          if (state is GetLiveComboErrorState) {
+            if (_awaitingLiveNavigation &&
+                _detailRetryCount < _maxDetailRetries) {
+              _scheduleComboDetailRetry();
+            } else {
+              setState(() {
+                isLoading = false;
+                _awaitingLiveNavigation = false;
+              });
+              popUpMessages(context, state.errorMessage);
+            }
+          }
+          if (state is LiveComboLoaded && state.liveCombo.combo == _comboId) {
+            _detailRetryTimer?.cancel();
             setState(() {
               isLoading = false;
+              _awaitingLiveNavigation = false;
             });
             context.pushReplacementNamed(
                 MyAppRouteConstant.liveComboThreeImageScreen,
                 extra: {
                   'liveCombo': state.liveCombo,
-                  'comboId': widget.model.combo,
-                  'brag': widget.model.brag
+                  'comboId': _comboId,
+                  'brag': comboModel.brag
                 });
           }
         },
@@ -236,7 +308,7 @@ class _StartOrJoinChallengeScreenState
                               child: Text(
                                 'Starts in $timerCountdown',
                                 style: TextStyle(
-                                    color: widget.model.status != 'LIVE'
+                                    color: comboModel.status != 'LIVE'
                                         ? getFigmaColor("FFB500")
                                         : getFigmaColor('FFE8E6'),
                                     fontSize: 10,
@@ -259,22 +331,22 @@ class _StartOrJoinChallengeScreenState
                               ),
                               challengeBoxRep(
                                 challengerImage:
-                                    widget.model.challenger?.avatar,
+                                    comboModel.challenger?.avatar,
                                 challengerName:
-                                    widget.model.challenger?.username,
-                                hostImage: widget.model.host?.avatar,
-                                hostName: widget.model.host?.username,
-                                hostImageByte: widget.model.host?.avatarConvert,
+                                    comboModel.challenger?.username,
+                                hostImage: comboModel.host?.avatar,
+                                hostName: comboModel.host?.username,
+                                hostImageByte: comboModel.host?.avatarConvert,
                                 challengerImageByte:
-                                    widget.model.challenger?.avatarConvert,
-                                status: widget.model.status,
-                                stakeAmount: widget.model.stake ?? 0,
+                                    comboModel.challenger?.avatarConvert,
+                                status: comboModel.status,
+                                stakeAmount: comboModel.stake ?? 0,
                                 timerCountdown: timerCountdown ?? '',
                               ),
                             ],
                           ),
                           SizedBox(height: 10.h),
-                          widget.model.status == 'LIVE'
+                          comboModel.status == 'LIVE'
                               ? Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -294,7 +366,7 @@ class _StartOrJoinChallengeScreenState
                                       radius: 8,
                                       color: getFigmaColor("8C0F00"),
                                       child: Text(
-                                        widget.model.status ?? '',
+                                        comboModel.status ?? '',
                                         style: TextStyle(
                                             color: getFigmaColor("FFB9B0"),
                                             fontSize: 10),
@@ -310,7 +382,7 @@ class _StartOrJoinChallengeScreenState
                                     radius: 8,
                                     color: getFigmaColor("E77D00", 50),
                                     child: Text(
-                                      widget.model.status ?? '',
+                                      comboModel.status ?? '',
                                       style: TextStyle(
                                           color: getFigmaColor("EDA401"),
                                           fontSize: 10),
@@ -323,11 +395,11 @@ class _StartOrJoinChallengeScreenState
                     //THIS IS THE BACKGROUND CUSTOM IMAGE
                     const SizedBox(height: 20),
                     comboDetails(context,
-                        combo: widget.model,
+                        combo: comboModel,
                         totalGiftingPot: totalGiftingPot ?? 0),
                     Spacer(),
                     StartNowButtonWidget(
-                      combo: widget.model,
+                      combo: comboModel,
                       isLoading: isLoading,
                       onchanged: (duration) {
                         if (duration != null) {
@@ -335,17 +407,17 @@ class _StartOrJoinChallengeScreenState
                         }
                       },
                       onTap: () {
-                        if (widget.model.status == 'LIVE') {
+                        if (comboModel.status == 'LIVE') {
                           context.read<ComboBloc>().add(
-                              JoinComboGroundEvent(widget.model.combo ?? ''));
+                              JoinComboGroundEvent(_comboId));
                         } else {
-                          if (widget.model.host?.profile ==
+                          if (comboModel.host?.profile ==
                                   profileModelG?.pid ||
-                              widget.model.challenger?.profile ==
+                              comboModel.challenger?.profile ==
                                   profileModelG?.pid) {
                             context
                                 .read<ComboBloc>()
-                                .add(StartComboEvent(widget.model.combo ?? ''));
+                                .add(StartComboEvent(_comboId));
                           }
                         }
                       },
@@ -397,7 +469,7 @@ class _StartOrJoinChallengeScreenState
                           onPressed: () {
                             context.read<ComboBloc>().add(
                                 SetReminderForComboEvent(
-                                    comboID: widget.model.combo ?? '',
+                                    comboID: _comboId,
                                     time: duration));
                           },
                           style: ElevatedButton.styleFrom(

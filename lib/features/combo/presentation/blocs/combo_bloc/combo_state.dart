@@ -217,6 +217,15 @@ class LiveComboLoading extends ComboState {
   const LiveComboLoading();
 }
 
+class GetLiveComboErrorState extends ComboState {
+  final String errorMessage;
+
+  const GetLiveComboErrorState({required this.errorMessage});
+
+  @override
+  List<Object> get props => [errorMessage];
+}
+
 // SwitchDevice
 final class SwitchDeviceLoadingState extends ComboState {
   const SwitchDeviceLoadingState();
