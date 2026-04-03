@@ -23,6 +23,8 @@ class DeviceSwitchService {
       StreamController<DeviceSwitchReady>.broadcast();
   final _deviceSwitchRequestedController =
       StreamController<DeviceSwitchRequested>.broadcast();
+  final _deviceConflictDetectedController =
+      StreamController<DeviceConflictDetected>.broadcast();
   final _companionJoinedController =
       StreamController<CompanionJoined>.broadcast();
   final _connectionController = StreamController<bool>.broadcast();
@@ -32,6 +34,8 @@ class DeviceSwitchService {
       _deviceSwitchReadyController.stream;
   Stream<DeviceSwitchRequested> get onDeviceSwitchRequested =>
       _deviceSwitchRequestedController.stream;
+  Stream<DeviceConflictDetected> get onDeviceConflictDetected =>
+      _deviceConflictDetectedController.stream;
   Stream<CompanionJoined> get onCompanionJoined =>
       _companionJoinedController.stream;
   Stream<bool> get onConnectionChanged => _connectionController.stream;
@@ -96,6 +100,14 @@ class DeviceSwitchService {
   }
 
   void _setupListeners() {
+    void emitDeviceConflict(dynamic data) {
+      debugPrint('📱 DeviceSwitchService: device conflict detected');
+      final conflictData = DeviceConflictDetected.fromJson(
+        Map<String, dynamic>.from(data as Map),
+      );
+      _deviceConflictDetectedController.add(conflictData);
+    }
+
     // Device switch ready (NEW device receives room state)
     _socket?.on('device-switch-ready', (data) {
       debugPrint('📱 DeviceSwitchService: device-switch-ready received');
@@ -109,6 +121,10 @@ class DeviceSwitchService {
       final requestData = DeviceSwitchRequested.fromJson(data);
       _deviceSwitchRequestedController.add(requestData);
     });
+
+    _socket?.on('DeviceConflictDetected', emitDeviceConflict);
+    _socket?.on('device-conflict-detected', emitDeviceConflict);
+    _socket?.on('device_conflict_detected', emitDeviceConflict);
 
     // Companion joined
     _socket?.on('companion-joined', (data) {
@@ -161,6 +177,7 @@ class DeviceSwitchService {
     disconnect();
     _deviceSwitchReadyController.close();
     _deviceSwitchRequestedController.close();
+    _deviceConflictDetectedController.close();
     _companionJoinedController.close();
     _connectionController.close();
   }
@@ -207,6 +224,37 @@ class DeviceSwitchRequested {
       newDevice: json['newDevice'] ?? '',
       oldDeviceId: json['old_device_id'] ?? '',
       message: json['message'] ?? '',
+    );
+  }
+}
+
+class DeviceConflictDetected {
+  final Map<String, dynamic>? user;
+  final String existingDeviceId;
+  final String newDeviceId;
+  final String message;
+
+  DeviceConflictDetected({
+    required this.user,
+    required this.existingDeviceId,
+    required this.newDeviceId,
+    required this.message,
+  });
+
+  factory DeviceConflictDetected.fromJson(Map<String, dynamic> json) {
+    return DeviceConflictDetected(
+      user: json['user'] is Map
+          ? Map<String, dynamic>.from(json['user'] as Map)
+          : null,
+      existingDeviceId: (json['existing_device_id'] ??
+              json['old_device_id'] ??
+              json['existingDeviceId'] ??
+              '')
+          .toString(),
+      newDeviceId:
+          (json['new_device_id'] ?? json['newDeviceId'] ?? '').toString(),
+      message: (json['message'] ?? 'Choose how you want to join livestream.')
+          .toString(),
     );
   }
 }

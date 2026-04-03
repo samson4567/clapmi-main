@@ -27,9 +27,37 @@ class _MyNetworkPageState extends State<MyNetworkPage> {
   List<ChatUserData> chatFriends = [];
   @override
   void initState() {
-    context.read<ChatsAndSocialsBloc>().add(GetClappersEvent());
-    // context.read<ChatsAndSocialsBloc>().add(GetChatFriendsEvent());
     super.initState();
+    final chatsBloc = context.read<ChatsAndSocialsBloc>();
+    friends = List<ChatUser>.from(chatsBloc.clappers);
+    listClapRequestModel = [];
+    chatFriends = List<ChatUserData>.from(chatsBloc.chatFriends);
+    if (friends.isNotEmpty && chatFriends.isNotEmpty) {
+      friends = friends
+          .where(
+            (element) => !chatFriends.any(
+              (ele) => element.pid == ele.user?.pid,
+            ),
+          )
+          .toList();
+    }
+    isLoading = friends.isEmpty;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!chatsBloc.isClappersFresh) {
+        chatsBloc.add(
+          GetClappersEvent(
+            refreshInBackground: chatsBloc.hasClappers,
+          ),
+        );
+      } else if (!chatsBloc.isChatFriendsFresh) {
+        chatsBloc.add(
+          GetChatFriendsEvent(
+            refreshInBackground: chatsBloc.hasChatFriends,
+          ),
+        );
+      }
+    });
   }
 
   @override
@@ -37,15 +65,22 @@ class _MyNetworkPageState extends State<MyNetworkPage> {
     return BlocConsumer<ChatsAndSocialsBloc, ChatsAndSocialsState>(
       listener: (context, state) {
         if (state is ClappersLoaded) {
-          context.read<ChatsAndSocialsBloc>().add(GetChatFriendsEvent());
+          final chatsBloc = context.read<ChatsAndSocialsBloc>();
+          chatsBloc.add(
+            GetChatFriendsEvent(
+              refreshInBackground: chatsBloc.hasChatFriends,
+            ),
+          );
           setState(() {
             friends = state.friends;
           });
         }
         if (state is ClappersLoading) {
-          setState(() {
-            isLoading = true;
-          });
+          if (friends.isEmpty) {
+            setState(() {
+              isLoading = true;
+            });
+          }
         }
         if (state is ChatFriendsLoaded) {
           chatFriends = state.chatFriends;
@@ -60,10 +95,14 @@ class _MyNetworkPageState extends State<MyNetworkPage> {
         }
 
         if (state is GetFriendLoadingState) {
-          setState(() => isLoading = true);
+          if (friends.isEmpty) {
+            setState(() => isLoading = true);
+          }
         }
         if (state is GetFriendErrorState) {
-          isLoading = false;
+          if (mounted) {
+            setState(() => isLoading = false);
+          }
         }
       },
       builder: (context, state) {

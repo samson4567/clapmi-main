@@ -44,9 +44,9 @@ class _UploadKycState extends State<UploadKyc> {
           'dateOfBirth': widget.dateOfBirth,
         },
       ).then((result) {
-        // Return the idType and upload result back to kyc.dart
-        if (result == true) {
-          Navigator.pop(context, value);
+        if (!mounted) return;
+        if (result is Map<String, dynamic>) {
+          Navigator.pop(context, result);
         }
       });
     }

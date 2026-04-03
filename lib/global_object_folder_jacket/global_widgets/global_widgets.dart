@@ -10,6 +10,7 @@ export 'customTextfiled.dart';
 export 'customText.dart';
 export 'CustomImageViewer.dart';
 export 'app_avatar.dart';
+export 'user_quick_profile_modal.dart';
 export 'video_trimmer_widget.dart';
 export 'custom_container.dart';
 

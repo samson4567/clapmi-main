@@ -82,12 +82,7 @@ class _PostEmptyState extends State<PostEmpty> {
         return;
       }
 
-      // Search for users with the query after @
-      if (afterAt.isNotEmpty) {
-        context.read<SearchBloc>().add(SearchUsersEvent(afterAt));
-      } else {
-        _removeOverlay();
-      }
+      context.read<SearchBloc>().add(SearchUsersEvent(afterAt));
     } else {
       _removeOverlay();
     }
@@ -184,7 +179,7 @@ class _PostEmptyState extends State<PostEmpty> {
                       ),
                     ),
                     subtitle: Text(
-                      user.username!,
+                      user.username,
                       style: TextStyle(color: Colors.grey.shade400),
                     ),
                     onTap: () => _onUserSelected(user),

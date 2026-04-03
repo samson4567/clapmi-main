@@ -14,15 +14,30 @@ final class ClaimDailyRewardEvent extends RewardEvent {
 
 class RewardHistoryEvent extends RewardEvent {
   final RewardHistoryModel? rewardmodel;
+  final bool refreshInBackground;
+  final bool forceRefresh;
 
-  const RewardHistoryEvent({this.rewardmodel});
+  const RewardHistoryEvent({
+    this.rewardmodel,
+    this.refreshInBackground = false,
+    this.forceRefresh = false,
+  });
 
   @override
-  List<Object?> get props => [rewardmodel];
+  List<Object?> get props => [rewardmodel, refreshInBackground, forceRefresh];
 }
 
 final class RewardBalanceEvent extends RewardEvent {
-  const RewardBalanceEvent();
+  final bool refreshInBackground;
+  final bool forceRefresh;
+
+  const RewardBalanceEvent({
+    this.refreshInBackground = false,
+    this.forceRefresh = false,
+  });
+
+  @override
+  List<Object?> get props => [refreshInBackground, forceRefresh];
 }
 
 final class WithdrawalEvent extends RewardEvent {
@@ -34,18 +49,56 @@ final class ClaimReferralRewardEvent extends RewardEvent {
 }
 
 final class ReferrerQrCodeEvent extends RewardEvent {
-  const ReferrerQrCodeEvent();
+  final bool refreshInBackground;
+  final bool forceRefresh;
+
+  const ReferrerQrCodeEvent({
+    this.refreshInBackground = false,
+    this.forceRefresh = false,
+  });
+
+  @override
+  List<Object?> get props => [refreshInBackground, forceRefresh];
 }
 
 final class LeaderboardEvent extends RewardEvent {
-  const LeaderboardEvent({this.pageNumber = 1});
+  final bool refreshInBackground;
+  final bool forceRefresh;
+
+  const LeaderboardEvent({
+    this.pageNumber = 1,
+    this.refreshInBackground = false,
+    this.forceRefresh = false,
+  });
   final int pageNumber;
 
   @override
-  List<Object?> get props => [pageNumber];
+  List<Object?> get props => [pageNumber, refreshInBackground, forceRefresh];
 }
 
 /// Event to fetch the status of reward activities.
-class GetRewardStatusEvent extends RewardEvent {}
+class GetRewardStatusEvent extends RewardEvent {
+  final bool refreshInBackground;
+  final bool forceRefresh;
 
-class GetReferralCountEvent extends RewardEvent {}
+  const GetRewardStatusEvent({
+    this.refreshInBackground = false,
+    this.forceRefresh = false,
+  });
+
+  @override
+  List<Object?> get props => [refreshInBackground, forceRefresh];
+}
+
+class GetReferralCountEvent extends RewardEvent {
+  final bool refreshInBackground;
+  final bool forceRefresh;
+
+  const GetReferralCountEvent({
+    this.refreshInBackground = false,
+    this.forceRefresh = false,
+  });
+
+  @override
+  List<Object?> get props => [refreshInBackground, forceRefresh];
+}

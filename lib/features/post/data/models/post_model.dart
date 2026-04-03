@@ -57,6 +57,7 @@ class PostModel {
   final bool? hasSaved;
   final Map<String, dynamic>? user;
   final List<Map<String, dynamic>>? listOfTagDetails;
+  final List<Map<String, dynamic>>? taggedUsers;
   final String? thumbnail;
   final ChallengeProp? challenge_properties;
 
@@ -84,6 +85,7 @@ class PostModel {
     this.hasSaved,
     this.user,
     this.listOfTagDetails,
+    this.taggedUsers,
     this.thumbnail,
     this.imageAvatar,
   });
@@ -107,6 +109,10 @@ class PostModel {
       sharedCount: model.sharedCount,
       hasClapped: model.hasClapped,
       hasSaved: model.hasSaved,
+      taggedUsers: model.tagUsers
+          ?.whereType<Map>()
+          .map((taggedUser) => Map<String, dynamic>.from(taggedUser))
+          .toList(),
       thumbnail: model.thumbnail,
       imageAvatar: model.imageAvatar,
     );
@@ -148,6 +154,11 @@ class PostModel {
         : null;
     List<Map<String, dynamic>>? listOfTagDetails =
         (json['tags'] as List?)?.cast<Map<String, dynamic>>();
+    List<Map<String, dynamic>>? taggedUsers =
+        (json['tagged_users'] as List?)
+            ?.whereType<Map>()
+            .map((taggedUser) => Map<String, dynamic>.from(taggedUser))
+            .toList();
     final commentList = json['comments'] as List?;
     int? challenges = json['challenges'] as int?;
     List<Comment> comments = commentList != null
@@ -181,6 +192,7 @@ class PostModel {
         hasSaved: hasSaved,
         user: user,
         listOfTagDetails: listOfTagDetails,
+        taggedUsers: taggedUsers,
         videoUrls: [...videoUrls],
         challenges: challenges,
         thumbnail: thumbnail,
@@ -211,6 +223,7 @@ class PostModel {
       'hasSaved': hasSaved,
       'user': user,
       'tags': listOfTagDetails,
+      'tagged_users': taggedUsers,
     };
   }
 
@@ -236,6 +249,7 @@ class PostModel {
     bool? hasSaved,
     Map<String, dynamic>? user,
     List<Map<String, dynamic>>? listOfTagDetails,
+    List<Map<String, dynamic>>? taggedUsers,
     String? thumbnail,
     ChallengeProp? challenge_properties,
   }) {
@@ -261,6 +275,7 @@ class PostModel {
       hasSaved: hasSaved ?? this.hasSaved,
       user: user ?? this.user,
       listOfTagDetails: listOfTagDetails ?? this.listOfTagDetails,
+      taggedUsers: taggedUsers ?? this.taggedUsers,
       thumbnail: thumbnail ?? this.thumbnail,
       challenge_properties: challenge_properties ?? this.challenge_properties,
     );

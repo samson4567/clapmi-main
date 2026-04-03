@@ -100,7 +100,10 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
     LoadWalletBalances event,
     Emitter<WalletState> emit,
   ) async {
-    emit(WalletLoading());
+    final hasCachedBalances = _assetBalances.isNotEmpty;
+    if (!(event.refreshInBackground && hasCachedBalances)) {
+      emit(WalletLoading());
+    }
 
     final result = await walletRepository.getWalletBalances();
 
@@ -142,7 +145,10 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
 
   Future<void> _onGetTransactionsListRecentEvent(
       GetTransactionsListRecentEvent event, Emitter<WalletState> emit) async {
-    emit(GetTransactionsListRecentLoadingState());
+    final hasCachedTransactions = _recentTransactions.isNotEmpty;
+    if (!(event.refreshInBackground && hasCachedTransactions)) {
+      emit(GetTransactionsListRecentLoadingState());
+    }
     final result = await walletRepository.getTransactionsListRecent();
 
     result.fold(
@@ -161,7 +167,10 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
     RecentGiftingEvent event,
     Emitter<WalletState> emit,
   ) async {
-    emit(const RecentGiftingLoadingState());
+    final hasCachedGiftings = _recentGiftings.isNotEmpty;
+    if (!(event.refreshInBackground && hasCachedGiftings)) {
+      emit(const RecentGiftingLoadingState());
+    }
 
     final result = await walletRepository.getRecentGifting();
 
@@ -278,7 +287,10 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
 
   Future<void> _getWalletPropertiesEventHandler(
       GetWalletPropertiesEvent event, Emitter<WalletState> emit) async {
-    emit(WalletLoading());
+    final hasCachedProperties = _walletProperties != null;
+    if (!(event.refreshInBackground && hasCachedProperties)) {
+      emit(WalletLoading());
+    }
     final result = await walletRepository.getWalletProperties();
 
     result.fold((error) => emit(WalletError(message: error.message)),

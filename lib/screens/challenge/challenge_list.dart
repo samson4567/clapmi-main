@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 import 'dart:io';
+import 'dart:async';
 import 'dart:ui';
 import 'dart:ui' as ui;
 import 'package:clapmi/Uicomponent/DialogsAndBottomSheets/challenge_box.dart';
@@ -50,6 +51,11 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
   bool isLoading = false;
   bool _awaitingLiveLaunchFromList = false;
   String? _pendingLaunchComboId;
+  Timer? _pendingLiveLaunchRetryTimer;
+  int _pendingLiveLaunchRetryCount = 0;
+  static const int _maxPendingLiveLaunchRetries = 15;
+  static const Duration _pendingLiveLaunchRetryDelay =
+      Duration(milliseconds: 350);
 
   final TextEditingController _titleController = TextEditingController();
 
@@ -60,6 +66,42 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
       context.read<ComboBloc>().add(GetLiveCombosEvent());
     }
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _pendingLiveLaunchRetryTimer?.cancel();
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  void _schedulePendingLiveLaunchRetry() {
+    if (_pendingLaunchComboId == null || _pendingLaunchComboId!.isEmpty) {
+      return;
+    }
+
+    if (_pendingLiveLaunchRetryCount >= _maxPendingLiveLaunchRetries) {
+      _pendingLiveLaunchRetryTimer?.cancel();
+      _awaitingLiveLaunchFromList = false;
+      isLoading = false;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Livestream is still preparing. Please try again.'),
+          ),
+        );
+      }
+      return;
+    }
+
+    _pendingLiveLaunchRetryCount += 1;
+    _pendingLiveLaunchRetryTimer?.cancel();
+    _pendingLiveLaunchRetryTimer = Timer(_pendingLiveLaunchRetryDelay, () {
+      if (!mounted || _pendingLaunchComboId == null) {
+        return;
+      }
+      context.read<ComboBloc>().add(GetComboDetailEvent(_pendingLaunchComboId!));
+    });
   }
 
   @override
@@ -108,6 +150,8 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
           if (state is LiveComboLoaded &&
               _awaitingLiveLaunchFromList &&
               state.liveCombo.combo == _pendingLaunchComboId) {
+            _pendingLiveLaunchRetryTimer?.cancel();
+            _pendingLiveLaunchRetryCount = 0;
             isLoading = false;
             _awaitingLiveLaunchFromList = false;
             context.pop();
@@ -121,11 +165,18 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
                 });
           }
           if (state is GetLiveComboErrorState && _awaitingLiveLaunchFromList) {
-            isLoading = false;
-            _awaitingLiveLaunchFromList = false;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.errorMessage)),
-            );
+            if (state.errorMessage
+                    .toLowerCase()
+                    .contains('single livestream is not live') &&
+                _pendingLiveLaunchRetryCount < _maxPendingLiveLaunchRetries) {
+              _schedulePendingLiveLaunchRetry();
+            } else {
+              isLoading = false;
+              _awaitingLiveLaunchFromList = false;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.errorMessage)),
+              );
+            }
           }
           if (state is GetComboDetailSuccessState &&
               _awaitingLiveLaunchFromList &&
@@ -142,12 +193,11 @@ class _ChallengeListScreenState extends State<ChallengeListScreen> {
             }
           }
           if (state is StartComboSuccessState && _awaitingLiveLaunchFromList) {
-            //CALL AN EVENT TO GET A SINGLE COMBO HERE
-            Future.delayed(Duration(seconds: 5), () {
-              context.read<ComboBloc>().add(GetComboDetailEvent(liveComboId));
-            });
+            _pendingLiveLaunchRetryCount = 0;
+            context.read<ComboBloc>().add(GetComboDetailEvent(liveComboId));
           }
           if (state is StartComboErrorState) {
+            _pendingLiveLaunchRetryTimer?.cancel();
             _awaitingLiveLaunchFromList = false;
             print("This is start combo error state");
             ScaffoldMessenger.of(context)

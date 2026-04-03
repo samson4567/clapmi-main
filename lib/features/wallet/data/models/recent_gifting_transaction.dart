@@ -12,27 +12,60 @@ class RecentGiftingModel extends RecentGiftingEntity {
   });
 
   factory RecentGiftingModel.fromMap(Map<String, dynamic> map) {
+    final gifterData = map['gifter'];
+    final receiverData = map['receiver'];
+
     return RecentGiftingModel(
-      transaction:
-          map['transaction'] != null ? map['transaction'] as String : null,
-      gifter: map['gifter'] != null && map['gifter'] is Map<String, dynamic>
-          ? GifterModel.fromMap(map['gifter'] as Map<String, dynamic>)
+      transaction: map['transaction']?.toString(),
+      gifter: gifterData is Map
+          ? GifterModel.fromMap(Map<String, dynamic>.from(gifterData))
           : null,
-      receiver:
-          map['receiver'] != null && map['receiver'] is Map<String, dynamic>
-              ? ReceiverModel.fromMap(map['receiver'] as Map<String, dynamic>)
-              : null,
-      gifterId: map['gifter'] != null && map['gifter'] is String?
-          ? map['gifter'] as String?
+      receiver: receiverData is Map
+          ? ReceiverModel.fromMap(Map<String, dynamic>.from(receiverData))
           : null,
-      receiverId: map['receiver'] != null && map['receiver'] is String?
-          ? map['receiver'] as String?
-          : null,
-      amount: map['amount'] != null ? map['amount'] as String : null,
+      gifterId: gifterData is String
+          ? gifterData
+          : map['gifter_id']?.toString(),
+      receiverId: receiverData is String
+          ? receiverData
+          : map['receiver_id']?.toString(),
+      amount: _readAmount(map),
       metaData: map['metadata'] != null
-          ? TimeDataModel.fromMap(map['metadata'] as Map<String, dynamic>)
+          ? TimeDataModel.fromMap(
+              Map<String, dynamic>.from(map['metadata'] as Map),
+            )
           : null,
     );
+  }
+
+  static String? _readAmount(Map<String, dynamic> map) {
+    const amountKeys = [
+      'amount',
+      'coin_amount',
+      'coins',
+      'points',
+      'gift_amount',
+      'value',
+    ];
+
+    for (final key in amountKeys) {
+      final value = map[key];
+      if (value != null && value.toString().trim().isNotEmpty) {
+        return value.toString();
+      }
+    }
+
+    final metadata = map['metadata'];
+    if (metadata is Map) {
+      for (final key in amountKeys) {
+        final value = metadata[key];
+        if (value != null && value.toString().trim().isNotEmpty) {
+          return value.toString();
+        }
+      }
+    }
+
+    return null;
   }
 }
 
@@ -44,9 +77,10 @@ class ReceiverModel extends ReceiverEntity {
   });
   factory ReceiverModel.fromMap(Map<String, dynamic> map) {
     return ReceiverModel(
-      user: map['user'] != null ? map['user'] as String : null,
-      username: map['username'] != null ? map['username'] as String : null,
-      image: map['image'] != null ? map['image'] as String : null,
+      user: map['user']?.toString(),
+      username: (map['username'] ?? map['name'])?.toString(),
+      image: (map['image'] ?? map['avatar'] ?? map['profile_picture'])
+          ?.toString(),
     );
   }
 }
@@ -60,9 +94,10 @@ class GifterModel extends GifterEntity {
 
   factory GifterModel.fromMap(Map<String, dynamic> map) {
     return GifterModel(
-      user: map['user'] != null ? map['user'] as String : null,
-      username: map['username'] != null ? map['username'] as String : null,
-      image: map['image'] != null ? map['image'] as String : null,
+      user: map['user']?.toString(),
+      username: (map['username'] ?? map['name'])?.toString(),
+      image: (map['image'] ?? map['avatar'] ?? map['profile_picture'])
+          ?.toString(),
     );
   }
 }
@@ -75,8 +110,8 @@ class TimeDataModel extends TimeData {
 
   factory TimeDataModel.fromMap(Map<String, dynamic> map) {
     return TimeDataModel(
-      date: map['date'] != null ? map['date'] as String : null,
-      time: map['time'] != null ? map['time'] as String : null,
+      date: map['date']?.toString(),
+      time: map['time']?.toString(),
     );
   }
 }

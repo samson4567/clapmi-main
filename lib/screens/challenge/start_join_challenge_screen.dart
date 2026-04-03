@@ -45,7 +45,8 @@ class _StartOrJoinChallengeScreenState
   num? totalGiftingPot;
   bool _awaitingLiveNavigation = false;
   int _detailRetryCount = 0;
-  static const int _maxDetailRetries = 8;
+  static const int _maxDetailRetries = 15;
+  static const Duration _liveLaunchRetryDelay = Duration(milliseconds: 350);
   ComboEntity? _latestCombo;
 
   ComboEntity get _comboModel => _latestCombo ?? widget.model;
@@ -119,7 +120,7 @@ class _StartOrJoinChallengeScreenState
 
     _detailRetryCount += 1;
     _detailRetryTimer?.cancel();
-    _detailRetryTimer = Timer(const Duration(seconds: 1), () {
+    _detailRetryTimer = Timer(_liveLaunchRetryDelay, () {
       if (!mounted) {
         return;
       }
@@ -131,7 +132,6 @@ class _StartOrJoinChallengeScreenState
     if (comboEntity.combo != _comboId) {
       return;
     }
-
     context.read<ComboBloc>().add(GetLiveComboEvent(combo: comboEntity));
   }
 
@@ -235,11 +235,13 @@ class _StartOrJoinChallengeScreenState
             popUpMessages(context, state.errorMessage);
           }
           if (state is StartComboSuccessState) {
-            _requestComboDetail(resetRetries: true);
+            _detailRetryCount = 0;
+            _handleComboReadyForNavigation(_comboModel);
           }
           if (state is JoinComboGroundSuccessState) {
             print('JOIN COMBO SUCCESSFUL');
-            _requestComboDetail(resetRetries: true);
+            _detailRetryCount = 0;
+            _handleComboReadyForNavigation(_comboModel);
           }
           if (state is LeaveComboGroundErrorState) {
             setState(() {
@@ -247,7 +249,11 @@ class _StartOrJoinChallengeScreenState
             });
           }
           if (state is GetLiveComboErrorState) {
+            final shouldRetryForNotLive = state.errorMessage
+                .toLowerCase()
+                .contains('single livestream is not live');
             if (_awaitingLiveNavigation &&
+                shouldRetryForNotLive &&
                 _detailRetryCount < _maxDetailRetries) {
               _scheduleComboDetailRetry();
             } else {

@@ -1,10 +1,5 @@
-import 'package:clapmi/features/wallet/data/models/kyc_upload_model.dart';
-import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_bloc.dart';
-import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_event.dart';
-import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_state.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class UploadKycFile extends StatefulWidget {
@@ -87,139 +82,88 @@ class _UploadKycFileState extends State<UploadKycFile> {
       return;
     }
 
-    context.read<WalletBloc>().add(
-          KycUploadEvent(
-            params: KycUploadParams(
-              fullName: widget.fullName,
-              idNumber: widget.idNumber,
-              dateOfBirth: widget.dateOfBirth,
-              verificationUuid: widget.verificationUuid,
-              // Derive documentType from the actual file extension
-              documentType: _resolveDocumentType(_selectedFile!.extension),
-              document: filePath,
-              idType: widget.idType,
-              livenessCheckPassed: 1,
-            ),
-          ),
-        );
+    Navigator.pop(context, {
+      'idType': widget.idType,
+      'documentPath': filePath,
+      'documentType': _resolveDocumentType(_selectedFile!.extension),
+      'fileName': _selectedFile!.name,
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<WalletBloc, WalletState>(
-      listener: (context, state) {
-        if (state is KycUploadSuccess) {
-          // Return true to KycInputScreen so it marks _documentUploaded = true
-          Navigator.pop(context, true);
-        }
-        if (state is WalletError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      },
-      builder: (context, state) {
-        final isLoading = state is WalletLoading;
-
-        return Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.black,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
-          body: Stack(
-            children: [
-              SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 20,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'KYC',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                    SizedBox(height: 10.h),
-                    const Text(
-                      'Upload your document',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Attach Document',
-                      style: TextStyle(color: Colors.grey, fontSize: 13),
-                    ),
-                    const SizedBox(height: 10),
-                    _UploadBox(
-                      file: _selectedFile,
-                      onTap: _pickFile,
-                    ),
-                    const SizedBox(height: 40),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _selectedFile != null
-                              ? const Color(0xFF1463F3)
-                              : Colors.grey.shade800,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        onPressed: (_selectedFile != null && !isLoading)
-                            ? _onSave
-                            : null,
-                        child: isLoading
-                            ? const SizedBox(
-                                height: 22,
-                                width: 22,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text(
-                                'Save',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                  color: Colors.white,
-                                ),
-                              ),
-                      ),
-                    ),
-                  ],
-                ),
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 20,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'KYC',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
               ),
-              if (isLoading)
-                Container(
-                  color: Colors.black54,
-                  child: const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
+            ),
+            SizedBox(height: 10.h),
+            const Text(
+              'Upload your document',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Attach Document',
+              style: TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+            const SizedBox(height: 10),
+            _UploadBox(
+              file: _selectedFile,
+              onTap: _pickFile,
+            ),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _selectedFile != null
+                      ? const Color(0xFF1463F3)
+                      : Colors.grey.shade800,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-            ],
-          ),
-        );
-      },
+                onPressed: _selectedFile != null ? _onSave : null,
+                child: const Text(
+                  'Use this document',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

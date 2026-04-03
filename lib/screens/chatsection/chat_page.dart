@@ -107,7 +107,7 @@ class _ChatPageState extends State<ChatPage> {
 
   /// Called when the user scrolls through the chat
   void _onScroll() {
-    // _markVisibleMessagesAsRead();
+    _markVisibleMessagesAsRead();
   }
 
   /// Mark messages as read when they become visible in the viewport
@@ -132,14 +132,12 @@ class _ChatPageState extends State<ChatPage> {
           _lastReadMessageId = message.uuid;
           AppLogger.debug('Marking message as read: ${message.uuid}',
               tag: 'CHAT_PAGE');
-
-          // break; // Only mark the most recent unread message
+          context.read<ChatsAndSocialsBloc>().add(MarkMessageAsReadEvent(
+                conversationId: currentConversationId,
+                messageId: message.uuid!,
+              ));
         }
-        context.read<ChatsAndSocialsBloc>().add(MarkMessageAsReadEvent(
-              conversationId: currentConversationId,
-              messageId: message.uuid!,
-            ));
-        // break;
+        break;
       }
     }
   }
@@ -215,6 +213,9 @@ class _ChatPageState extends State<ChatPage> {
           if (state is ChatDataLoaded) {
             chatList.add(state.data);
             _scrollToBottom();
+            if (state.data.sender != _currentUserPid) {
+              _markVisibleMessagesAsRead();
+            }
           }
           if (state is ConversationInitiated) {
             conversationId = state.conversationId;

@@ -172,10 +172,12 @@ void showLiveStreamError(BuildContext context, {ComboEntity? livecombo, String? 
                 setState(() {
                   isLoading = false;
                 });
-                context
-                    .read<ComboBloc>()
-                    .add(GetLiveComboEvent(combo: state.comboEntity));
-                context.pop();
+                if ((state.comboEntity.status ?? '').toUpperCase() == 'LIVE') {
+                  context
+                      .read<ComboBloc>()
+                      .add(GetLiveComboEvent(combo: state.comboEntity));
+                  context.pop();
+                }
               }
               if (state is LiveComboLoaded) {
                 context.pop();

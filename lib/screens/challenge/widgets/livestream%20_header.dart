@@ -41,6 +41,7 @@ class LivestreamHeader extends StatefulWidget {
       required this.numOfChallengers,
       required this.streamersCount,
       required this.isLiveGoingNow,
+      this.showCompanionBadge = false,
       this.model});
 
   final LiveComboEntity comboInfo;
@@ -55,6 +56,7 @@ class LivestreamHeader extends StatefulWidget {
   final int streamersCount;
   final Function(bool) onLeaveComboEvent;
   final bool isLiveGoingNow;
+  final bool showCompanionBadge;
 
   @override
   State<LivestreamHeader> createState() => _LivestreamHeaderState();
@@ -197,11 +199,73 @@ class _LivestreamHeaderState extends State<LivestreamHeader> {
       }
       setState(() {
         _isSendingClapRequest = false;
+        if (state.errorMessage
+            .toLowerCase()
+            .contains('already sent you a clap request')) {
+          _hasSentClapRequest = true;
+        }
       });
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(content: Text(state.errorMessage)),
-      );
+      _showClapRequestErrorModal(state.errorMessage);
     }
+  }
+
+  void _showClapRequestErrorModal(String message) {
+    if (!mounted) {
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.symmetric(horizontal: 28.w),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+            decoration: BoxDecoration(
+              color: getFigmaColor("121212"),
+              borderRadius: BorderRadius.circular(24.r),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'Poppins',
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: 18.h),
+                GestureDetector(
+                  onTap: () => Navigator.of(dialogContext).pop(),
+                  child: Container(
+                    height: 44.h,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: getFigmaColor("006FCD"),
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                    child: Text(
+                      'Dismiss',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'Poppins',
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _sendClapRequest() {
@@ -221,6 +285,22 @@ class _LivestreamHeaderState extends State<LivestreamHeader> {
     context
         .read<ChatsAndSocialsBloc>()
         .add(SendClapRequestToUsersEvent(userPids: hostPid));
+  }
+
+  void _openHostQuickProfileModal() {
+    final hostPid = _hostPid;
+    if (hostPid == null || hostPid.isEmpty) {
+      return;
+    }
+
+    showUserQuickProfileModal(
+      context,
+      userPid: hostPid,
+      initialName: _displayedHostName,
+      initialImageUrl: _displayedHostImage,
+      initialAvatarBytes: _displayedHostAvatarBytes,
+      initialIsFriend: _hostUserProfile?.isFriend,
+    );
   }
 
   @override
@@ -279,6 +359,16 @@ class _LivestreamHeaderState extends State<LivestreamHeader> {
                   ),
                   Row(
                     children: [
+                      if (widget.showCompanionBadge) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: Image.asset(
+                            'assets/icons/companion.png',
+                            width: 22,
+                            height: 22,
+                          ),
+                        ),
+                      ],
                       IconButton(
                         onPressed: () {
                           showModalBottomSheet(
@@ -308,6 +398,7 @@ class _LivestreamHeaderState extends State<LivestreamHeader> {
               children: [
                 // Avatar - Show HOST for single streams, current user for multiple
                 GestureDetector(
+                  onTap: _openHostQuickProfileModal,
                   child: Padding(
                     padding: EdgeInsets.only(top: 6.h),
                     child: AppAvatar(
@@ -324,15 +415,18 @@ class _LivestreamHeaderState extends State<LivestreamHeader> {
                   child: Row(
                     children: [
                       Flexible(
-                        child: Text(
-                          _displayedHostName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12.sp,
-                              fontFamily: 'Poppins'),
+                        child: GestureDetector(
+                          onTap: _openHostQuickProfileModal,
+                          child: Text(
+                            _displayedHostName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12.sp,
+                                fontFamily: 'Poppins'),
+                          ),
                         ),
                       ),
                       if (_shouldShowClapButton) ...[

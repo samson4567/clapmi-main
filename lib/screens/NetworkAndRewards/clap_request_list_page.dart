@@ -17,11 +17,25 @@ class ClapRequestListPage extends StatefulWidget {
 
 class _ClapRequestListPageState extends State<ClapRequestListPage> {
   List<ClapRequestModel> displayedList = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    context.read<ChatsAndSocialsBloc>().add(GetClapRequestEvent());
+    final chatsBloc = context.read<ChatsAndSocialsBloc>();
+    displayedList = chatsBloc.clapRequests
+        .map((e) => ClapRequestModel.fromEntity(e))
+        .toList();
+    _isLoading = displayedList.isEmpty;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!chatsBloc.isClapRequestsFresh) {
+        chatsBloc.add(
+          GetClapRequestEvent(
+            refreshInBackground: chatsBloc.hasClapRequests,
+          ),
+        );
+      }
+    });
   }
 
   @override
@@ -43,15 +57,21 @@ class _ClapRequestListPageState extends State<ClapRequestListPage> {
           if (state is GetClapRequestSuccessState) {
             setState(() {
               displayedList = state.listOfClapRequest;
+              _isLoading = false;
             });
           }
           if (state is GetClapRequestErrorState) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(generalSnackBar(state.errorMessage));
+            setState(() {
+              _isLoading = false;
+            });
+            if (displayedList.isEmpty) {
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(generalSnackBar(state.errorMessage));
+            }
           }
         },
         builder: (context, state) {
-          if (state is GetClapRequestLoadingState) {
+          if (_isLoading && displayedList.isEmpty) {
             return Shimmer.fromColors(
               baseColor: Colors.grey[800]!,
               highlightColor: Colors.grey[700]!,

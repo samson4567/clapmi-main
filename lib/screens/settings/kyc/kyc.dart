@@ -1,4 +1,5 @@
 import 'package:clapmi/features/wallet/data/models/kyc_upload_model.dart';
+import 'package:clapmi/features/wallet/domain/entities/get_user_kyc_status_response_entity.dart';
 import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_bloc.dart';
 import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_event.dart';
 import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_state.dart';
@@ -8,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 
 class KycInputScreen extends StatefulWidget {
   const KycInputScreen({super.key});
@@ -21,6 +23,16 @@ class _KycInputScreenState extends State<KycInputScreen> {
   bool _documentUploaded = false;
   int _livenessCheckPassed = 0;
   String? _verificationUuid;
+  String? _documentPath;
+  String? _documentType;
+  String? _documentName;
+  bool _isVerified = false;
+  bool _hasAttemptedInitiate = false;
+  String? _kycStatus;
+  String? _kycReason;
+  String? _kycLevel;
+  int? _submissionAttempt;
+  bool _isInitialStatusLoading = true;
 
   // Shows the pending banner when KycInitiateSuccess fires
   bool _isKycInitiated = false;
@@ -45,15 +57,55 @@ class _KycInputScreenState extends State<KycInputScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<WalletBloc>()
-      ..add(const GetUserKYCStatusEvent())
-      ..add(const KycInitiateEvent());
+    context.read<WalletBloc>().add(const GetUserKYCStatusEvent());
   }
 
   bool get _personalDetailsFilled =>
       _fullNameController.text.trim().isNotEmpty &&
       _idNumberController.text.trim().isNotEmpty &&
       _dobController.text.trim().isNotEmpty;
+
+  void _maybeInitiateKyc({
+    required bool exists,
+    required bool hasVerificationUuid,
+    required bool isVerified,
+  }) {
+    if (_hasAttemptedInitiate || isVerified || exists || hasVerificationUuid) {
+      return;
+    }
+    _hasAttemptedInitiate = true;
+    context.read<WalletBloc>().add(const KycInitiateEvent());
+  }
+
+  void _applyKycStatus(GetUserKycStatusResponseEntity kycData) {
+    final hasVerificationUuid =
+        kycData.verificationUuid != null && kycData.verificationUuid!.isNotEmpty;
+    final exists = kycData.exists == true;
+    final verified = kycData.isVerified == true;
+
+    setState(() {
+      _verificationUuid = hasVerificationUuid
+          ? kycData.verificationUuid
+          : _verificationUuid;
+      _isVerified = verified;
+      _isKycInitiated = verified || exists || hasVerificationUuid;
+      _kycStatus = kycData.status;
+      _kycReason = kycData.reason;
+      _kycLevel = kycData.level;
+      _submissionAttempt = kycData.submissionAttempt;
+      if (verified) {
+        _photoTaken = true;
+        _documentUploaded = true;
+        _livenessCheckPassed = 1;
+      }
+    });
+
+    _maybeInitiateKyc(
+      exists: exists,
+      hasVerificationUuid: hasVerificationUuid,
+      isVerified: verified,
+    );
+  }
 
   void _onDocumentTap(BuildContext context) {
     // Check if KYC has been initiated (verificationUuid is available)
@@ -81,15 +133,14 @@ class _KycInputScreenState extends State<KycInputScreen> {
           'idType': _selectedIdType ?? '',
         },
       ).then((result) {
-        // When user comes back from UploadKycFile, mark document as uploaded
-        // Also capture the idType if returned from UploadKyc
-        if (result != null && result is String) {
+        if (result is Map<String, dynamic>) {
           setState(() {
             _documentUploaded = true;
-            _selectedIdType = result;
+            _selectedIdType = result['idType']?.toString();
+            _documentPath = result['documentPath']?.toString();
+            _documentType = result['documentType']?.toString();
+            _documentName = result['fileName']?.toString();
           });
-        } else if (result == true) {
-          setState(() => _documentUploaded = true);
         }
       });
     }
@@ -183,8 +234,34 @@ class _KycInputScreenState extends State<KycInputScreen> {
   }
 
   void _onSubmitKyc(BuildContext context) {
-    if (_verificationUuid == null) return;
+    if (_verificationUuid == null || _verificationUuid!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('KYC session is not ready yet. Please try again.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (_livenessCheckPassed != 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please complete the face verification step first.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    if ((_documentPath ?? '').isEmpty || (_documentType ?? '').isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please upload a valid ID document first.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
     context.read<WalletBloc>().add(
           KycUploadEvent(
@@ -193,8 +270,8 @@ class _KycInputScreenState extends State<KycInputScreen> {
               idNumber: _idNumberController.text.trim(),
               dateOfBirth: _dobController.text.trim(),
               verificationUuid: _verificationUuid!,
-              documentType: 'image',
-              document: '',
+              documentType: _documentType!,
+              document: _documentPath!,
               idType: _selectedIdType ?? '',
               livenessCheckPassed: _livenessCheckPassed,
             ),
@@ -206,7 +283,10 @@ class _KycInputScreenState extends State<KycInputScreen> {
       _photoTaken &&
       _documentUploaded &&
       _personalDetailsFilled &&
-      _selectedIdType != null;
+      _selectedIdType != null &&
+      _livenessCheckPassed == 1 &&
+      (_documentPath ?? '').isNotEmpty &&
+      !_isVerified;
 
   InputDecoration _fieldDecoration(String label, {IconData? icon}) {
     return InputDecoration(
@@ -238,48 +318,94 @@ class _KycInputScreenState extends State<KycInputScreen> {
     );
   }
 
-  /// Pending banner — matches the screenshot design exactly
-  Widget _buildPendingBanner() {
+  Widget _buildStatusBanner() {
+    final isRejected = (_kycStatus?.toLowerCase() ?? '') == 'rejected';
+    final isVerifiedBanner = _isVerified;
+    final backgroundColor = isVerifiedBanner
+        ? const Color(0xFF0F291B)
+        : isRejected
+            ? const Color(0xFF2A1616)
+            : const Color(0xFF2A1F00);
+    final accentColor = isVerifiedBanner
+        ? const Color(0xFF2ECC71)
+        : isRejected
+            ? const Color(0xFFFF6B6B)
+            : const Color(0xFFFFB020);
+    final icon = isVerifiedBanner
+        ? Icons.check_circle
+        : isRejected
+            ? Icons.error
+            : Icons.access_time;
+    final title = isVerifiedBanner
+        ? 'Verified'
+        : isRejected
+            ? 'Rejected'
+            : 'Pending';
+    final description = isVerifiedBanner
+        ? (_kycLevel?.isNotEmpty == true
+            ? 'Your KYC is verified at level $_kycLevel.'
+            : 'Your KYC is verified and ready to use.')
+        : isRejected
+            ? (_kycReason?.isNotEmpty == true
+                ? _kycReason!
+                : 'Your previous KYC submission was rejected. Please review your details and upload again.')
+            : (_documentUploaded
+                ? 'Your details are ready. Submit KYC to send for review.'
+                : 'KYC initiated. Please upload your photo and documents.');
+    final metaText = _submissionAttempt != null && _submissionAttempt! > 0
+        ? 'Attempt ${_submissionAttempt!}'
+        : null;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFF2A1F00),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFB020).withOpacity(0.45)),
+        border: Border.all(color: accentColor.withOpacity(0.45)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.all(6),
-            decoration: const BoxDecoration(
-              color: Color(0xFFFFB020),
+            decoration: BoxDecoration(
+              color: accentColor,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.access_time, size: 16, color: Colors.black),
+            child: Icon(icon, size: 16, color: Colors.black),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Pending',
+                  title,
                   style: TextStyle(
-                    color: Color(0xFFFFB020),
+                    color: accentColor,
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 3),
+                const SizedBox(height: 3),
                 Text(
-                  'KYC initiated. Please upload your photo and documents.',
+                  description,
                   style: TextStyle(
-                    color: Color(0xFFFFD699),
+                    color: accentColor.withOpacity(0.85),
                     fontSize: 13,
                   ),
                 ),
+                if (metaText != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    metaText,
+                    style: TextStyle(
+                      color: accentColor.withOpacity(0.72),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -303,12 +429,13 @@ class _KycInputScreenState extends State<KycInputScreen> {
       body: BlocConsumer<WalletBloc, WalletState>(
         listener: (context, state) {
           if (state is WalletError) {
+            if (_isInitialStatusLoading) {
+              setState(() => _isInitialStatusLoading = false);
+            }
             final msg = state.message.toLowerCase();
             if (msg.contains('pending kyc') ||
                 msg.contains('already have a pending')) {
-              // When there's already a pending KYC, try to get verificationUuid from status
               setState(() => _isKycInitiated = true);
-              // Re-fetch KYC status to get the verificationUuid
               context.read<WalletBloc>().add(const GetUserKYCStatusEvent());
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -318,36 +445,50 @@ class _KycInputScreenState extends State<KycInputScreen> {
             }
           }
           if (state is GetUserKYCStatusSuccessState) {
-            final kycData = state.theGetUserKycStatusResponseEntity;
-            if (kycData.isVerified == true) {
-              setState(() => _photoTaken = true);
+            if (_isInitialStatusLoading) {
+              setState(() => _isInitialStatusLoading = false);
             }
-            // If verificationUuid is available from the status response, use it
-            if (kycData.verificationUuid != null &&
-                kycData.verificationUuid!.isNotEmpty) {
-              setState(() {
-                _verificationUuid = kycData.verificationUuid;
-                _isKycInitiated = true;
-              });
-            }
+            _applyKycStatus(state.theGetUserKycStatusResponseEntity);
           }
           if (state is KycInitiateSuccess) {
             setState(() {
               _verificationUuid = state.data.verificationUuid;
-              // Show the pending banner whenever initiate succeeds
               _isKycInitiated = true;
+              _kycStatus = state.data.status;
+              _submissionAttempt = state.data.submissionAttempt;
             });
           }
           if (state is KycUploadSuccess) {
+            setState(() {
+              _isKycInitiated = true;
+              _kycStatus = state.data.status;
+            });
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('KYC submitted successfully!'),
+              SnackBar(
+                content: Text(
+                  state.data.status.toLowerCase() == 'verified'
+                      ? 'KYC verified successfully!'
+                      : 'KYC submitted successfully!',
+                ),
                 backgroundColor: Colors.green,
               ),
             );
+            context.read<WalletBloc>().add(const GetUserKYCStatusEvent());
           }
         },
         builder: (context, state) {
+          if (_isInitialStatusLoading &&
+              state is GetUserKYCStatusLoadingState) {
+            return SafeArea(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24.w),
+                  child: _buildKycLoadingShimmer(),
+                ),
+              ),
+            );
+          }
+
           final isLoading =
               state is WalletLoading || state is GetUserKYCStatusLoadingState;
 
@@ -365,8 +506,10 @@ class _KycInputScreenState extends State<KycInputScreen> {
                           SizedBox(height: 10.h),
 
                           // ── Pending banner (shows after KycInitiateSuccess) ──
-                          if (_isKycInitiated) ...[
-                            _buildPendingBanner(),
+                          if (_isVerified ||
+                              (_kycStatus?.toLowerCase() == 'rejected') ||
+                              _isKycInitiated) ...[
+                            _buildStatusBanner(),
                             SizedBox(height: 20.h),
                           ],
 
@@ -645,7 +788,9 @@ class _KycInputScreenState extends State<KycInputScreen> {
                                         ),
                                       Text(
                                         _documentUploaded
-                                            ? "Document Uploaded ✓"
+                                            ? (_documentName?.isNotEmpty == true
+                                                ? _documentName!
+                                                : "Document Uploaded ✓")
                                             : "Add your document",
                                         style: TextStyle(
                                           color: _documentUploaded
@@ -719,6 +864,78 @@ class _KycInputScreenState extends State<KycInputScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildKycLoadingShimmer() {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFF1E1E1E),
+      highlightColor: const Color(0xFF2A2A2A),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 10.h),
+          _shimmerBox(height: 24.h, width: 180.w, radius: 8),
+          SizedBox(height: 18.h),
+          _shimmerBox(height: 16.h, width: 220.w, radius: 8),
+          SizedBox(height: 18.h),
+          _shimmerCard(height: 108.h),
+          SizedBox(height: 24.h),
+          _shimmerBox(height: 16.h, width: 120.w, radius: 8),
+          SizedBox(height: 12.h),
+          _shimmerField(),
+          SizedBox(height: 14.h),
+          _shimmerField(),
+          SizedBox(height: 14.h),
+          _shimmerField(),
+          SizedBox(height: 24.h),
+          _shimmerBox(height: 16.h, width: 140.w, radius: 8),
+          SizedBox(height: 12.h),
+          _shimmerCard(height: 96.h),
+          SizedBox(height: 24.h),
+          _shimmerBox(height: 16.h, width: 190.w, radius: 8),
+          SizedBox(height: 12.h),
+          _shimmerCard(height: 56.h),
+          SizedBox(height: 30.h),
+          _shimmerBox(height: 55.h, width: double.infinity, radius: 40),
+          SizedBox(height: 24.h),
+          _shimmerBox(height: 10.h, width: 260.w, radius: 6),
+          SizedBox(height: 6.h),
+          _shimmerBox(height: 10.h, width: 220.w, radius: 6),
+          SizedBox(height: 20.h),
+        ],
+      ),
+    );
+  }
+
+  Widget _shimmerField() {
+    return _shimmerBox(
+      height: 56.h,
+      width: double.infinity,
+      radius: 12,
+    );
+  }
+
+  Widget _shimmerCard({required double height}) {
+    return _shimmerBox(
+      height: height,
+      width: double.infinity,
+      radius: 16,
+    );
+  }
+
+  Widget _shimmerBox({
+    required double height,
+    required double width,
+    required double radius,
+  }) {
+    return Container(
+      height: height,
+      width: width,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(radius),
       ),
     );
   }

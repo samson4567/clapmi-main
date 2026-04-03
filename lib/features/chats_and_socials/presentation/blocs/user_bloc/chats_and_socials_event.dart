@@ -17,10 +17,16 @@ class SendClapRequestToUsersEvent extends ChatsAndSocialsEvent {
 }
 
 class GetClapRequestEvent extends ChatsAndSocialsEvent {
-  const GetClapRequestEvent();
+  final bool refreshInBackground;
+  final bool forceRefresh;
+
+  const GetClapRequestEvent({
+    this.refreshInBackground = false,
+    this.forceRefresh = false,
+  });
 
   @override
-  List<Object> get props => [];
+  List<Object> get props => [refreshInBackground, forceRefresh];
 }
 
 class AcceptRequestEvent extends ChatsAndSocialsEvent {
@@ -40,10 +46,16 @@ class RejectRequestEvent extends ChatsAndSocialsEvent {
 }
 
 class GetPeopleNearLocationEvent extends ChatsAndSocialsEvent {
-  const GetPeopleNearLocationEvent();
+  final bool refreshInBackground;
+  final bool forceRefresh;
+
+  const GetPeopleNearLocationEvent({
+    this.refreshInBackground = false,
+    this.forceRefresh = false,
+  });
 
   @override
-  List<Object> get props => [];
+  List<Object> get props => [refreshInBackground, forceRefresh];
 }
 // RejectRequest
 
@@ -76,11 +88,29 @@ class FetchChatMessagesEvent extends ChatsAndSocialsEvent {
 }
 
 class GetChatFriendsEvent extends ChatsAndSocialsEvent {
-  const GetChatFriendsEvent();
+  final bool refreshInBackground;
+  final bool forceRefresh;
+
+  const GetChatFriendsEvent({
+    this.refreshInBackground = false,
+    this.forceRefresh = false,
+  });
+
+  @override
+  List<Object> get props => [refreshInBackground, forceRefresh];
 }
 
 class GetClappersEvent extends ChatsAndSocialsEvent {
-  const GetClappersEvent();
+  final bool refreshInBackground;
+  final bool forceRefresh;
+
+  const GetClappersEvent({
+    this.refreshInBackground = false,
+    this.forceRefresh = false,
+  });
+
+  @override
+  List<Object> get props => [refreshInBackground, forceRefresh];
 }
 
 class InitiateConversationEvent extends ChatsAndSocialsEvent {

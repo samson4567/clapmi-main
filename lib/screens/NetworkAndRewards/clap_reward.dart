@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:clapmi/core/api/multi_env.dart';
@@ -19,6 +18,11 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+class RewardDailyClaimCache {
+  static DateTime? nextEligibleAt;
+  static List<RewardHistoryEntity> rewardHistory = [];
+}
 
 class ClapReward extends StatefulWidget {
   const ClapReward({super.key});
@@ -41,51 +45,166 @@ class ClapRewardState extends State<ClapReward> {
   int total = 0;
   String nextClaim = '';
   String qrCode = '';
-  late Timer _timer;
   Duration remainingTime = Duration.zero;
   List<String> rewardStatusUndone = [];
 
   @override
   void initState() {
     super.initState();
-    context.read<RewardBloc>().add(RewardHistoryEvent(rewardmodel: null));
-    context.read<RewardBloc>().add(RewardBalanceEvent());
-    context.read<RewardBloc>().add(ClaimReferralRewardEvent());
-    context.read<RewardBloc>().add(LeaderboardEvent());
-    context.read<RewardBloc>().add(ReferrerQrCodeEvent());
-    context.read<RewardBloc>().add(GetReferralCountEvent());
-    context.read<RewardBloc>().add(GetRewardStatusEvent());
+    final rewardBloc = context.read<RewardBloc>();
+    rewardList = List<RewardHistoryEntity>.from(
+      rewardBloc.rewardHistory.isNotEmpty
+          ? rewardBloc.rewardHistory
+          : RewardDailyClaimCache.rewardHistory,
+    );
+    balanceText = rewardBloc.rewardBalance?.data.balance ?? 0;
+    referralCount = rewardBloc.referralCount ?? 0;
+    qrCode = rewardBloc.referrerQrCode.isNotEmpty ? rewardBloc.referrerQrCode : '';
+    rewardStatusUndone = List<String>.from(rewardBloc.rewardStatus);
+    total = rewardList.fold<int>(
+      0,
+      (sum, item) => sum + (item.clapPoints ?? 0),
+    );
+    _restoreCachedDailyClaimState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRewardPageData();
+    });
     // startCountdownIfNeeded();
   }
 
   bool canShowCountdiwn = false;
-  int _remaininngTime = 1000;
-  getLatestRewardAndGetItsTimeThenCalculateTheRemainingTime() {
-    try {
-      RewardHistoryEntity lastDailyClaimReward = rewardList
-          .where(
-            (element) => element.type == "daily-claim",
-          )
-          .last;
+  int _remaininngTime = 0;
+  static const int _dailyRewardCooldownSeconds = 24 * 60 * 60;
 
-      final dateOfClaim = lastDailyClaimReward.createdAt;
-      final remainingTimeInSeconds =
-          dateOfClaim!.difference(DateTime.now()).inSeconds;
-      if (DateTime.now().isBefore(dateOfClaim)) {
-        throw "";
+  bool _isDailyClaimType(String? type) {
+    final normalized = (type ?? '').trim().toLowerCase().replaceAll('_', '-');
+    return normalized == 'daily-claim' ||
+        normalized == 'daily claim' ||
+        normalized.contains('daily');
+  }
+
+  int _calculateRemainingFromNextClaim(String? nextClaimValue) {
+    if ((nextClaimValue ?? '').trim().isEmpty) {
+      return 0;
+    }
+
+    final parsed = DateTime.tryParse(nextClaimValue!.trim());
+    if (parsed == null) {
+      return 0;
+    }
+
+    final remainingSeconds = parsed.difference(DateTime.now()).inSeconds;
+    return remainingSeconds > 0 ? remainingSeconds : 0;
+  }
+
+  void _restoreCachedDailyClaimState() {
+    final cachedNextEligibleAt = RewardDailyClaimCache.nextEligibleAt;
+    if (cachedNextEligibleAt != null) {
+      final cachedRemaining =
+          cachedNextEligibleAt.difference(DateTime.now()).inSeconds;
+      if (cachedRemaining > 0) {
+        _remaininngTime = cachedRemaining;
+        canShowCountdiwn = true;
+        claimReady = false;
+        return;
+      }
+    }
+
+    if (rewardList.isNotEmpty) {
+      final remainingSeconds = _calculateRemainingClaimTime();
+      _remaininngTime = remainingSeconds;
+      canShowCountdiwn = remainingSeconds > 0;
+      claimReady = remainingSeconds <= 0;
+      return;
+    }
+
+    _remaininngTime = 0;
+    canShowCountdiwn = false;
+    claimReady = true;
+  }
+
+  void _loadRewardPageData({bool force = false}) {
+    final rewardBloc = context.read<RewardBloc>();
+    rewardBloc.add(
+      RewardHistoryEvent(
+        rewardmodel: null,
+        refreshInBackground: rewardBloc.hasRewardHistory && !force,
+        forceRefresh: force,
+      ),
+    );
+    rewardBloc.add(
+      RewardBalanceEvent(
+        refreshInBackground: rewardBloc.hasRewardBalance && !force,
+        forceRefresh: force,
+      ),
+    );
+    rewardBloc.add(
+      LeaderboardEvent(
+        refreshInBackground: rewardBloc.hasLeaderboard && !force,
+        forceRefresh: force,
+      ),
+    );
+    rewardBloc.add(
+      ReferrerQrCodeEvent(
+        refreshInBackground: rewardBloc.hasReferrerQrCode && !force,
+        forceRefresh: force,
+      ),
+    );
+    rewardBloc.add(
+      GetReferralCountEvent(
+        refreshInBackground: rewardBloc.hasReferralCount && !force,
+        forceRefresh: force,
+      ),
+    );
+    rewardBloc.add(
+      GetRewardStatusEvent(
+        refreshInBackground: rewardBloc.hasRewardStatus && !force,
+        forceRefresh: force,
+      ),
+    );
+  }
+
+  int _calculateRemainingClaimTime() {
+    try {
+      final dailyClaims = rewardList
+          .where((element) => _isDailyClaimType(element.type))
+          .where((element) => element.createdAt != null)
+          .toList()
+        ..sort((a, b) => a.createdAt!.compareTo(b.createdAt!));
+
+      if (dailyClaims.isEmpty) {
+        return 0;
       }
 
-      return remainingTimeInSeconds;
+      final lastDailyClaimReward = dailyClaims.last;
+      final lastClaimAt = lastDailyClaimReward.createdAt!;
+      final nextEligibleAt =
+          lastClaimAt.add(const Duration(seconds: _dailyRewardCooldownSeconds));
+      RewardDailyClaimCache.nextEligibleAt = nextEligibleAt;
+      final remainingTimeInSeconds =
+          nextEligibleAt.difference(DateTime.now()).inSeconds;
+
+      return remainingTimeInSeconds > 0 ? remainingTimeInSeconds : 0;
     } catch (e) {
-      canShowCountdiwn = false;
-      claimReady = true;
-      return 1000;
+      return 0;
     }
+  }
+
+  void _syncDailyClaimState() {
+    final remainingSeconds = _calculateRemainingClaimTime();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _remaininngTime = remainingSeconds;
+      canShowCountdiwn = remainingSeconds > 0;
+      claimReady = remainingSeconds <= 0;
+    });
   }
 
   @override
   void dispose() {
-    _timer.cancel();
     super.dispose();
   }
 
@@ -190,16 +309,31 @@ class ClapRewardState extends State<ClapReward> {
             //* Daily Bonus
             BlocConsumer<RewardBloc, RewardState>(listener: (context, state) {
               if (state is ClaimDailyRewardErrorState) {
-                claimReady = false;
+                _syncDailyClaimState();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(state.errorMessage)),
                 );
               }
               if (state is ClaimDailyRewardSuccessState) {
                 nextClaim = state.nextClaim;
-                claimReady = false;
-                canShowCountdiwn = true;
-                context.read<RewardBloc>().add(RewardBalanceEvent());
+                final remainingFromNextClaim =
+                    _calculateRemainingFromNextClaim(state.nextClaim);
+                RewardDailyClaimCache.nextEligibleAt =
+                    DateTime.tryParse(state.nextClaim.trim());
+                setState(() {
+                  _remaininngTime = remainingFromNextClaim;
+                  claimReady = remainingFromNextClaim <= 0;
+                  canShowCountdiwn = remainingFromNextClaim > 0;
+                });
+                context.read<RewardBloc>().add(
+                      const RewardBalanceEvent(forceRefresh: true),
+                    );
+                context
+                    .read<RewardBloc>()
+                    .add(const RewardHistoryEvent(
+                      rewardmodel: null,
+                      forceRefresh: true,
+                    ));
               }
 
               if (state is RewardBalanceSuccessState) {
@@ -210,12 +344,11 @@ class ClapRewardState extends State<ClapReward> {
               if (state is RewardBalanceErrorState) {}
               if (state is RewardHistorySuccessState) {
                 rewardList = state.rewardModel;
-                canShowCountdiwn = true;
-                _remaininngTime =
-                    getLatestRewardAndGetItsTimeThenCalculateTheRemainingTime();
-
+                RewardDailyClaimCache.rewardHistory =
+                    List<RewardHistoryEntity>.from(state.rewardModel);
                 total = rewardList.fold<int>(
                     0, (sum, item) => sum + (item.clapPoints ?? 0));
+                _syncDailyClaimState();
               }
               if (state is ReferralCountState) {
                 referralCount = state.referralCount;
@@ -248,15 +381,16 @@ class ClapRewardState extends State<ClapReward> {
                         if (canShowCountdiwn)
                           CountdownTimer(
                             durationInSeconds: _remaininngTime,
-
-                            //1000,
                             onDoneFunction: () {
-                              claimReady = true;
-                              setState(() {});
+                              setState(() {
+                                claimReady = true;
+                                canShowCountdiwn = false;
+                                _remaininngTime = 0;
+                              });
                             },
                           )
                         else
-                          SizedBox()
+                          const SizedBox()
                       ],
                     ),
                     const Gap(16),
@@ -279,7 +413,7 @@ class ClapRewardState extends State<ClapReward> {
                                       .add(ClaimDailyRewardEvent());
                                 },
                           child: Text(
-                            !claimReady ? "Come back later  " : 'Claim point',
+                            !claimReady ? "Come back later" : 'Claim point',
                             style: Theme.of(context)
                                 .textTheme
                                 .bodyLarge
@@ -322,7 +456,8 @@ class ClapRewardState extends State<ClapReward> {
               },
               builder: (context, state) {
                 log("The state is ${state.toString()}");
-                if (state is RewardStatusLoadingState) {
+                if (state is RewardStatusLoadingState &&
+                    rewardStatusUndone.isEmpty) {
                   return Skeletonizer(
                       enabled: true,
                       child: Column(children: [
@@ -330,7 +465,8 @@ class ClapRewardState extends State<ClapReward> {
                         LevelsLoading()
                       ]));
                 }
-                if (state is RewardStatusLoadedState) {
+                if (state is RewardStatusLoadedState ||
+                    rewardStatusUndone.isNotEmpty) {
                   return Column(
                     children: [
                       //* Level 1
@@ -542,7 +678,7 @@ class ClapRewardState extends State<ClapReward> {
                                       context,
                                       title: 'Join Discord',
                                       buttonText: 'Join Discord',
-                                      isCompleted: state.incompleteTasks
+                                      isCompleted: rewardStatusUndone
                                               .contains("challenge brag") ==
                                           false,
                                       onTap: () async {
@@ -554,7 +690,7 @@ class ClapRewardState extends State<ClapReward> {
                                     _taskTile(context,
                                         title: 'Complete Your Profile',
                                         buttonText: 'Invite 5 friend',
-                                        isCompleted: state.incompleteTasks
+                                        isCompleted: rewardStatusUndone
                                                 .contains("referral") ==
                                             false,
                                         statusText: '4 Friends Invited',

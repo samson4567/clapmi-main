@@ -1,10 +1,9 @@
 // import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'package:clapmi/core/services/notification_handler_classes/notificationWorkers/util_functions.dart';
+import 'package:clapmi/core/services/notification_handler_classes/notificationWorkers/notification_navigation.dart';
 import 'package:clapmi/global_object_folder_jacket/global_variables/global_variables.dart';
-import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:timezone/timezone.dart' as tz;
 
@@ -23,15 +22,20 @@ class LocalNotificationService {
   static const String _pushChannelName = 'Push Notifications';
   static const String _pushChannelDescription = 'Push notification alerts';
 
+  static int _nextNotificationId() {
+    return DateTime.now().millisecondsSinceEpoch ~/ 1000;
+  }
+
   static Future<void> onDidReceiveBackgroundNotificationResponse(
       NotificationResponse notificationResponse) async {
-    // Handle notification tap with payload
     final payload = notificationResponse.payload;
     if (payload != null) {
       print('Notification tapped with payload: $payload');
     }
-    rootNavigatorKey.currentState?.context
-        .push(MyAppRouteConstant.notificationPage);
+    await NotificationNavigationService.openFromPayload(
+      context: rootNavigatorKey.currentState?.context,
+      payload: payload,
+    );
   }
 
   //initialize the notification
@@ -92,7 +96,7 @@ class LocalNotificationService {
 
     //show the notification
     await flutterLocalNotificationsPlugin.show(
-      0,
+      _nextNotificationId(),
       title,
       body,
       platformChannelSpecifics,
@@ -305,7 +309,7 @@ class LocalNotificationService {
 
     //show the notification
     await flutterLocalNotificationsPlugin.show(
-      0,
+      _nextNotificationId(),
       title,
       body,
       platformChannelSpecifics,

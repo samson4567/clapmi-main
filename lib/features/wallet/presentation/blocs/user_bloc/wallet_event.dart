@@ -49,7 +49,14 @@ class WalletUpdateEvent extends WalletEvent {
       ];
 }
 
-class LoadWalletBalances extends WalletEvent {}
+class LoadWalletBalances extends WalletEvent {
+  final bool refreshInBackground;
+
+  const LoadWalletBalances({this.refreshInBackground = false});
+
+  @override
+  List<Object> get props => [refreshInBackground];
+}
 
 // GetTransactionsDetail
 final class GetTransactionsDetailEvent extends WalletEvent {
@@ -61,19 +68,23 @@ final class GetTransactionsDetailEvent extends WalletEvent {
 }
 
 final class GetTransactionsListRecentEvent extends WalletEvent {
-  const GetTransactionsListRecentEvent();
+  final bool refreshInBackground;
+
+  const GetTransactionsListRecentEvent({this.refreshInBackground = false});
 
   @override
-  List<Object> get props => [];
+  List<Object> get props => [refreshInBackground];
 }
 
 //  RecentGifting
 
 final class RecentGiftingEvent extends WalletEvent {
-  const RecentGiftingEvent();
+  final bool refreshInBackground;
+
+  const RecentGiftingEvent({this.refreshInBackground = false});
 
   @override
-  List<Object> get props => [];
+  List<Object> get props => [refreshInBackground];
 }
 
 // Swap
@@ -121,7 +132,12 @@ class GetAvailableCoinEvent extends WalletEvent {
 }
 
 class GetWalletPropertiesEvent extends WalletEvent {
-  const GetWalletPropertiesEvent();
+  final bool refreshInBackground;
+
+  const GetWalletPropertiesEvent({this.refreshInBackground = false});
+
+  @override
+  List<Object> get props => [refreshInBackground];
 }
 
 class InitiateWithDrawalEvent extends WalletEvent {

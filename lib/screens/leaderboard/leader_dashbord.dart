@@ -386,10 +386,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             )) {
           final visibleCurrentUserRanking =
               _extractCurrentUserRanking(state.response);
-          final shouldLoadCurrentUserRanking = visibleCurrentUserRanking ==
-              null &&
-              profileModelG?.pid != null &&
-              !_matchesCachedCurrentUserRequest();
+          final shouldLoadCurrentUserRanking =
+              visibleCurrentUserRanking == null &&
+                  profileModelG?.pid != null &&
+                  !_matchesCachedCurrentUserRequest();
 
           setState(() {
             _applyLeaderboardResponse(state.response);
@@ -1482,6 +1482,8 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  static List<CreatorLevelModel>? _cachedCreatorLevels;
+  static List<PaymentGradeModel>? _cachedPaymentGrades;
   bool _isBenefitsExpanded = false;
   List<CreatorLevelModel> _creatorLevels = [];
   bool _isLevelsLoading = true;
@@ -1490,7 +1492,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Store current user's ranking data for stats
   CreatorRankingModel? _currentUserRanking;
   bool _isRankingLoading = true;
-  int _pendingRankingRequests = 0;
   static const List<String> _levelOrder = [
     'Rookie',
     'Prime',
@@ -1502,54 +1503,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetch creator levels when screen loads
-    context.read<UserBloc>().add(const GetCreatorLevelsEvent());
-    // Fetch creator leaderboard to get current user's stats
-    _loadUserRanking();
-    // Fetch payment grades to get subscription_ends_at
-    _loadPaymentGrades();
+    _creatorLevels = _cachedCreatorLevels ?? [];
+    _paymentGrades = _cachedPaymentGrades ?? [];
+    _currentUserRanking = _LeaderboardScreenState._cachedCurrentUserRanking;
+    _isLevelsLoading = _creatorLevels.isEmpty;
+    _isPaymentGradesLoading = _paymentGrades.isEmpty;
+    _isRankingLoading = _currentUserRanking == null;
+
+    if (_isLevelsLoading) {
+      context.read<UserBloc>().add(const GetCreatorLevelsEvent());
+    }
+
+    if (_isPaymentGradesLoading) {
+      _loadPaymentGrades();
+    }
+
+    if (_currentUserRanking == null) {
+      _loadUserRanking();
+    }
   }
 
   void _loadUserRanking() {
-    // Get current user's PID to filter for their ranking only
     final currentUserPid = profileModelG?.pid;
-
     if (currentUserPid == null) {
-      print('LeaderboardScreen: No current user PID found');
+      setState(() {
+        _isRankingLoading = false;
+      });
       return;
     }
 
-    print(
-        'LeaderboardScreen: Loading ranking for current user: $currentUserPid');
-
-    _pendingRankingRequests = _levelOrder.length;
-    _currentUserRanking = null;
-    _isRankingLoading = true;
-
-    // Load all levels to find the current user - pass creator parameter to filter
-    for (final level in _levelOrder) {
-      context.read<UserBloc>().add(GetCreatorLeaderboardEvent(
-            levelName: level,
-            page: 1,
-            timeFilter: 'all',
-            creator:
-                currentUserPid, // Pass creator to filter for current user only
-          ));
-    }
-    // Set a fallback timeout to stop loading if user not found
-    Future.delayed(const Duration(seconds: 5), () {
-      if (mounted && _isRankingLoading) {
-        setState(() {
-          _isRankingLoading = false;
-        });
-      }
+    setState(() {
+      _isRankingLoading = true;
     });
+
+    context.read<UserBloc>().add(
+          GetCreatorLeaderboardEvent(
+            creator: currentUserPid,
+            timeFilter: 'all',
+          ),
+        );
   }
 
-  Future<void> _loadPaymentGrades({int retryCount = 0}) async {
-    const maxRetries = 3;
-    const baseDelay = Duration(seconds: 2);
-
+  Future<void> _loadPaymentGrades() async {
     try {
       final datasource = getItInstance<UserRemoteDatasource>();
       final response = await datasource.getPaymentGrades();
@@ -1557,28 +1552,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         setState(() {
           _paymentGrades = response.data.data;
+          _cachedPaymentGrades = response.data.data;
           _isPaymentGradesLoading = false;
         });
-        print('ProfileScreen: Loaded ${_paymentGrades.length} payment grades');
-        for (final grade in _paymentGrades) {
-          print(
-              'ProfileScreen: Grade ${grade.name} - subscriptionEndsAt: ${grade.subscriptionEndsAt}');
-        }
       }
     } catch (e) {
-      print(
-          'ProfileScreen: Error loading payment grades (attempt ${retryCount + 1}/$maxRetries) - $e');
-
-      // Retry with exponential backoff
-      if (retryCount < maxRetries && mounted) {
-        final delay = baseDelay * (retryCount + 1);
-        print('ProfileScreen: Retrying in ${delay.inSeconds} seconds...');
-        await Future.delayed(delay);
-        if (mounted) {
-          return _loadPaymentGrades(retryCount: retryCount + 1);
-        }
-      }
-
       if (mounted) {
         setState(() {
           _isPaymentGradesLoading = false;
@@ -1594,41 +1572,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (state is GetCreatorLevelsSuccessState) {
           setState(() {
             _creatorLevels = state.response.data.creatorLevels;
+            _cachedCreatorLevels = state.response.data.creatorLevels;
             _isLevelsLoading = false;
           });
         } else if (state is GetCreatorLevelsErrorState) {
-          print('ProfileScreen: Error loading levels - ${state.errorMessage}');
           setState(() {
             _isLevelsLoading = false;
           });
         } else if (state is GetCreatorLeaderboardSuccessState) {
           final currentUserPid = profileModelG?.pid;
-          if (currentUserPid != null &&
-              state.creator == currentUserPid &&
-              state.levelName != null) {
+          if (currentUserPid != null && state.creator == currentUserPid) {
             final rankings = state.response.data.rankings;
             final userIndex = rankings.indexWhere(
               (ranking) => ranking.creatorPid == currentUserPid,
             );
-            final matchedRanking = userIndex != -1 ? rankings[userIndex] : null;
-            if (userIndex != -1) {
-              setState(() {
-                _currentUserRanking = _pickHigherLevelRanking(
-                  _currentUserRanking,
-                  matchedRanking,
-                );
-              });
-            }
-            _markRankingLookupComplete();
+            final matchedRanking = userIndex != -1
+                ? rankings[userIndex]
+                : (rankings.isNotEmpty ? rankings.first : null);
+
+            setState(() {
+              _currentUserRanking = matchedRanking;
+              _LeaderboardScreenState._cachedCurrentUserRanking =
+                  matchedRanking;
+              _isRankingLoading = false;
+            });
           }
         } else if (state is GetCreatorLeaderboardErrorState) {
           final currentUserPid = profileModelG?.pid;
-          if (currentUserPid != null &&
-              state.creator == currentUserPid &&
-              state.levelName != null) {
-            print(
-                'ProfileScreen: Error loading rankings - ${state.errorMessage}');
-            _markRankingLookupComplete();
+          if (currentUserPid != null && state.creator == currentUserPid) {
+            setState(() {
+              _isRankingLoading = false;
+            });
           }
         }
       },
@@ -1796,8 +1770,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    // Use creatorLevels data to display level-specific information
-    final currentLevel = creatorLevels.isNotEmpty ? creatorLevels.first : null;
+    final currentLevel =
+        _getCurrentLevelModel(creatorLevels, _currentUserRanking);
+    final nextLevelName = _getNextLevelName(_currentUserRanking);
+    final normalizedCurrentLevel = currentLevel?.name.toLowerCase() ??
+        _currentUserRanking?.level.name.toLowerCase() ??
+        '';
+    final shouldShowSkipCard =
+        normalizedCurrentLevel != 'icon' && normalizedCurrentLevel != 'legend';
+    final skipTargetLevelName = nextLevelName ?? 'Prime';
 
     return Container(
       decoration: BoxDecoration(
@@ -1809,66 +1790,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
         trailing: const Icon(Icons.keyboard_arrow_up, color: Colors.white),
         initiallyExpanded: true,
         children: [
-          Container(
-            margin: const EdgeInsets.fromLTRB(8, 0, 12, 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF181919),
-                    Color(0xFFF9D0B3),
-                  ],
-                  stops: [0.03, 0.97],
-                ),
-                borderRadius: BorderRadius.circular(12)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Want to skip the wait?',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                Text(
-                  'Pay for the upgrade now and enjoy all better livestream and combo ground payout, revenue share and much more.',
-                  style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 13,
-                      height: 1.5),
-                ),
-                const SizedBox(height: 14),
-                OutlinedButton(
-                  onPressed: () {
-                    context.go(MyAppRouteConstant.paymentLeader);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: Color(0xFFF9D0B3),
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white38),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 10),
+          if (shouldShowSkipCard)
+            Container(
+              margin: const EdgeInsets.fromLTRB(8, 0, 12, 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF181919),
+                      Color(0xFFF9D0B3),
+                    ],
+                    stops: [0.03, 0.97],
                   ),
-                  child: const Text(
-                    'Pay to unlock next prime',
-                    textAlign: TextAlign.center,
+                  borderRadius: BorderRadius.circular(12)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Want to skip the wait?',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Pay for the upgrade now and enjoy all better livestream and combo ground payout, revenue share and much more.',
                     style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600, // SemiBold
-                      fontSize: 13,
-                      height: 1.5, // 150% line-height
-                      letterSpacing: 0,
-                      color: Colors.black,
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 13,
+                        height: 1.5),
+                  ),
+                  const SizedBox(height: 14),
+                  OutlinedButton(
+                    onPressed: () {
+                      context.go(MyAppRouteConstant.paymentLeader);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF9D0B3),
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white38),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 10),
+                    ),
+                    child: Text(
+                      'Pay to unlock next $skipTargetLevelName',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        height: 1.5,
+                        letterSpacing: 0,
+                        color: Colors.black,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -1896,13 +1878,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final subscriptionEndsAt = currentPaymentGrade?.subscriptionEndsAt;
     int daysRemaining = 0;
     double progressValue = 0.0;
-
-    // Debug logging
-    print('Subscription Debug: currentLevelName = $currentLevelName');
-    print('Subscription Debug: currentLevel = ${currentLevel?.name}');
-    print(
-        'Subscription Debug: currentPaymentGrade = ${currentPaymentGrade?.name}');
-    print('Subscription Debug: subscriptionEndsAt = $subscriptionEndsAt');
 
     if (subscriptionEndsAt != null) {
       final now = DateTime.now();
@@ -2222,52 +2197,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'assets/icons/elite.png',
       height: 100.h,
       width: 100.w,
-    );
-  }
-
-  void _markRankingLookupComplete() {
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      if (_pendingRankingRequests > 0) {
-        _pendingRankingRequests -= 1;
-      }
-      if (_pendingRankingRequests == 0) {
-        _isRankingLoading = false;
-      }
-    });
-  }
-
-  CreatorRankingModel? _pickHigherLevelRanking(
-    CreatorRankingModel? current,
-    CreatorRankingModel? candidate,
-  ) {
-    if (candidate == null) {
-      return current;
-    }
-    if (current == null) {
-      return candidate;
-    }
-
-    final currentIndex = _levelIndex(current.level.name);
-    final candidateIndex = _levelIndex(candidate.level.name);
-
-    if (candidateIndex > currentIndex) {
-      return candidate;
-    }
-
-    return current;
-  }
-
-  int _levelIndex(String? levelName) {
-    if (levelName == null) {
-      return -1;
-    }
-
-    return _levelOrder.indexWhere(
-      (level) => level.toLowerCase() == levelName.toLowerCase(),
     );
   }
 

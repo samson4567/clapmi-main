@@ -23,11 +23,6 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
 
   Future<void> _onSearchUsers(
       SearchUsersEvent event, Emitter<SearchState> emit) async {
-    if (event.query.isEmpty) {
-      emit(SearchInitial());
-      return;
-    }
-
     emit(SearchLoading());
     final result = await searchRepository.searchUsers(event.query);
     result.fold(

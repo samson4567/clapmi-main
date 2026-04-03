@@ -31,7 +31,6 @@ class _ChatListPageState extends State<ChatListPage>
   // FIXED: Combined loading states to reduce rebuilds
   bool _isLoading = true;
   String selectedTab = "All";
-  String? _searchQuery;
 
   TextEditingController searchController = TextEditingController();
   List<ChatUserData> chatFriends = [];
@@ -43,8 +42,19 @@ class _ChatListPageState extends State<ChatListPage>
 
   @override
   void initState() {
-    context.read<ChatsAndSocialsBloc>().add(GetChatFriendsEvent());
     super.initState();
+    final chatsBloc = context.read<ChatsAndSocialsBloc>();
+    if (chatsBloc.chatFriends.isNotEmpty) {
+      chatFriends = chatsBloc.chatFriends.toList();
+      _isLoading = false;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      chatsBloc.add(
+        GetChatFriendsEvent(
+          refreshInBackground: chatsBloc.hasChatFriends,
+        ),
+      );
+    });
   }
 
   /// Sort chat friends by most recent message date
@@ -63,19 +73,11 @@ class _ChatListPageState extends State<ChatListPage>
 
       // Handle null dates by treating them as very old
       if (dateA == null || dateB == null) return -1;
-      // if (dateA == null) return 1;
-      // if (dateB == null) return -1;
 
       // Sort in descending order (most recent first)
-      return dateB!.compareTo(dateA);
+      return dateB.compareTo(dateA);
     });
     return sorted;
-  }
-
-  /// Call this when chatFriends is updated to invalidate cache
-  void _updateChatFriends(List<ChatUserData> newFriends) {
-    chatFriends = newFriends.toList();
-    _cachedSortedFriends = null; // Invalidate cache
   }
 
   @override
@@ -89,17 +91,16 @@ class _ChatListPageState extends State<ChatListPage>
         }
         if (state is ChatDataLoaded) {
           if (state.data.sender != userModelG?.pid) {
-            chatFriends
-                .where(
+            final index = chatFriends.indexWhere(
               (element) => element.conversationId == state.data.conversationId,
-            )
-                .forEach(
-              (element) {
-                element = element.copyWith(
-                    message_count: (element.message_count ?? 0) + 1);
-              },
             );
-            setState(() {});
+            if (index != -1) {
+              chatFriends[index] = chatFriends[index].copyWith(
+                message_count: (chatFriends[index].message_count ?? 0) + 1,
+              );
+              _cachedSortedFriends = null;
+              setState(() {});
+            }
           }
         }
         if (state is GetFriendLoadingState) {
@@ -112,7 +113,21 @@ class _ChatListPageState extends State<ChatListPage>
 
         // Refresh chat friends when messages are marked as read
         if (state is MessageMarkedAsRead) {
-          context.read<ChatsAndSocialsBloc>().add(GetChatFriendsEvent());
+          final index = chatFriends.indexWhere(
+            (element) => element.conversationId == state.conversationId,
+          );
+          if (index != -1) {
+            chatFriends[index] = chatFriends[index].copyWith(message_count: 0);
+            _cachedSortedFriends = null;
+            setState(() {});
+          }
+          final chatsBloc = context.read<ChatsAndSocialsBloc>();
+          chatsBloc.add(
+            GetChatFriendsEvent(
+              refreshInBackground: chatsBloc.hasChatFriends,
+              forceRefresh: true,
+            ),
+          );
         }
       },
       builder: (context, state) {
@@ -212,8 +227,6 @@ class _ChatListPageState extends State<ChatListPage>
                   hintText: "Search",
                   hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
                 ),
-                // Only update search query, don't trigger full rebuild
-                onChanged: (value) => _searchQuery = value,
               ),
             ),
           ],

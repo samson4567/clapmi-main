@@ -18,12 +18,20 @@ class CountdownTimer extends StatefulWidget {
 class _CountdownTimerState extends State<CountdownTimer> {
   late int _remainingSeconds;
   Timer? _timer;
+  bool _hasTriggeredDone = false;
 
   @override
   void initState() {
     super.initState();
-    _remainingSeconds = widget.durationInSeconds;
-    _startTimer();
+    _resetTimer(widget.durationInSeconds);
+  }
+
+  @override
+  void didUpdateWidget(covariant CountdownTimer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.durationInSeconds != widget.durationInSeconds) {
+      _resetTimer(widget.durationInSeconds);
+    }
   }
 
   @override
@@ -32,7 +40,29 @@ class _CountdownTimerState extends State<CountdownTimer> {
     super.dispose();
   }
 
-  int recordedTime = 1000;
+  void _resetTimer(int durationInSeconds) {
+    _timer?.cancel();
+    _hasTriggeredDone = false;
+    _remainingSeconds = durationInSeconds < 0 ? 0 : durationInSeconds;
+    if (_remainingSeconds == 0) {
+      _notifyDone();
+      return;
+    }
+    _startTimer();
+  }
+
+  void _notifyDone() {
+    if (_hasTriggeredDone) {
+      return;
+    }
+    _hasTriggeredDone = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        widget.onDoneFunction();
+      }
+    });
+  }
+
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remainingSeconds > 0) {
@@ -40,9 +70,8 @@ class _CountdownTimerState extends State<CountdownTimer> {
           _remainingSeconds--;
         });
       } else {
-        _timer?.cancel();
-        // You can add code here to execute when the timer finishes
-        print("Countdown finished!");
+        timer.cancel();
+        _notifyDone();
       }
     });
   }
@@ -100,9 +129,6 @@ class _CountdownTimerState extends State<CountdownTimer> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.durationInSeconds != recordedTime) {
-      _remainingSeconds = recordedTime = widget.durationInSeconds;
-    }
     return Text(
       _formatTime(_remainingSeconds),
       style: TextStyle(

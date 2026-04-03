@@ -14,12 +14,14 @@ class DeviceSwitchHelper {
   // Callbacks for handling events
   Function(DeviceSwitchReady)? onDeviceSwitchReady;
   Function(DeviceSwitchRequested)? onDeviceSwitchRequested;
+  Function(DeviceConflictDetected)? onDeviceConflictDetected;
   Function(CompanionJoined)? onCompanionJoined;
   Function(bool)? onConnectionChanged;
   
   // Streams
   StreamSubscription<DeviceSwitchReady>? _deviceSwitchReadySub;
   StreamSubscription<DeviceSwitchRequested>? _deviceSwitchRequestedSub;
+  StreamSubscription<DeviceConflictDetected>? _deviceConflictDetectedSub;
   StreamSubscription<CompanionJoined>? _companionJoinedSub;
   StreamSubscription<bool>? _connectionSub;
   
@@ -34,11 +36,13 @@ class DeviceSwitchHelper {
   void initialize({
     Function(DeviceSwitchReady)? onDeviceSwitchReady,
     Function(DeviceSwitchRequested)? onDeviceSwitchRequested,
+    Function(DeviceConflictDetected)? onDeviceConflictDetected,
     Function(CompanionJoined)? onCompanionJoined,
     Function(bool)? onConnectionChanged,
   }) {
     this.onDeviceSwitchReady = onDeviceSwitchReady;
     this.onDeviceSwitchRequested = onDeviceSwitchRequested;
+    this.onDeviceConflictDetected = onDeviceConflictDetected;
     this.onCompanionJoined = onCompanionJoined;
     this.onConnectionChanged = onConnectionChanged;
     
@@ -55,6 +59,11 @@ class DeviceSwitchHelper {
     _deviceSwitchRequestedSub = _deviceSwitchService.onDeviceSwitchRequested.listen((data) {
       debugPrint('DeviceSwitchHelper: device-switch-requested received');
       onDeviceSwitchRequested?.call(data);
+    });
+
+    _deviceConflictDetectedSub = _deviceSwitchService.onDeviceConflictDetected.listen((data) {
+      debugPrint('DeviceSwitchHelper: device conflict detected');
+      onDeviceConflictDetected?.call(data);
     });
     
     _companionJoinedSub = _deviceSwitchService.onCompanionJoined.listen((data) {
@@ -250,6 +259,7 @@ class DeviceSwitchHelper {
   void dispose() {
     _deviceSwitchReadySub?.cancel();
     _deviceSwitchRequestedSub?.cancel();
+    _deviceConflictDetectedSub?.cancel();
     _companionJoinedSub?.cancel();
     _connectionSub?.cancel();
     

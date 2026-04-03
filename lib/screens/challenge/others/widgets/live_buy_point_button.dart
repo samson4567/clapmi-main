@@ -750,59 +750,51 @@ class SingleLiveScheduler extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 26),
       decoration: const BoxDecoration(
-        color: Colors.black,
+        color: Color(0xFF080808),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          Container(
-            width: 60,
-            height: 6,
-            decoration: BoxDecoration(
-              color: Colors.grey[700],
-              borderRadius: BorderRadius.circular(10),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 6,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(999),
+              ),
             ),
-          ),
-
-          const SizedBox(height: 30),
-
-          // Title
-          const Text(
-            "Select Option",
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              height: 1.5, // line-height: 150%
-              letterSpacing: 0,
+            const SizedBox(height: 26),
+            const Text(
+              'Select Option',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-
-          const SizedBox(height: 30),
-
-          // Instant Live
-          _OptionTile(
-            icon: 'assets/icons/vidi.svg',
-            label: 'Start instant live',
-            onTap: isDisabled ? () {} : onInstantLive,
-            isDisabled: isDisabled,
-          ),
-
-          const SizedBox(height: 20),
-
-          // Schedule Live (Highlighted)
-          _OptionTile(
-            icon: 'assets/icons/add.svg', // change to your asset
-            label: 'Schedule live for later',
-            onTap: isDisabled ? () {} : onScheduleLive,
-            isHighlighted: true,
-            isDisabled: isDisabled,
-          ),
-        ],
+            const SizedBox(height: 24),
+            _OptionTile(
+              icon: 'assets/icons/vidi.svg',
+              label: 'Start instant live',
+              onTap: isDisabled ? () {} : onInstantLive,
+              isDisabled: isDisabled,
+            ),
+            const SizedBox(height: 16),
+            _OptionTile(
+              icon: 'assets/icons/add.svg',
+              label: 'Schedule live for later',
+              onTap: isDisabled ? () {} : onScheduleLive,
+              isDisabled: isDisabled,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -833,36 +825,38 @@ class _OptionTile extends StatelessWidget {
       child: Opacity(
         opacity: isDisabled ? 0.5 : 1.0,
         child: Container(
-          height: 80,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          height: 94,
+          padding: const EdgeInsets.symmetric(horizontal: 18),
           decoration: BoxDecoration(
             color: isHighlighted
-                ? const Color(0xFF3A3A3C)
-                : const Color(0xFF1C1C1E),
+                ? const Color(0xFF202020)
+                : const Color(0xFF151515),
             borderRadius: BorderRadius.circular(20),
-            border: isHighlighted
-                ? Border.all(
-                    color: const Color(0xFF2196F3),
-                    width: 2,
-                  )
-                : null,
+            border: Border.all(
+              color: isHighlighted
+                  ? const Color(0xFF4F8DFF)
+                  : Colors.white.withValues(alpha: 0.06),
+              width: isHighlighted ? 1.4 : 1,
+            ),
           ),
           child: Row(
             children: [
               SvgPicture.asset(
                 icon,
-                width: 32,
-                height: 32,
+                width: 34,
+                height: 34,
                 colorFilter:
                     const ColorFilter.mode(Colors.white, BlendMode.srcIn),
               ),
-              const SizedBox(width: 16),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w500,
+              const SizedBox(width: 18),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],

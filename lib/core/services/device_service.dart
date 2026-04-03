@@ -45,6 +45,11 @@ class DeviceService {
     await _prefs!.setString(_deviceRoleKey, role.name);
   }
 
+  /// Reset device role back to the default primary mode.
+  Future<void> resetDeviceRole() async {
+    await setDeviceRole(DeviceRole.primary);
+  }
+
   /// Get current device role
   Future<DeviceRole> getDeviceRole() async {
     _prefs ??= await SharedPreferences.getInstance();

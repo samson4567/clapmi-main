@@ -59,6 +59,32 @@ import 'extraction.dart';
 
 final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+bool _isFeedProfileReady() {
+  final pid = profileModelG?.pid;
+  return pid != null && pid.isNotEmpty;
+}
+
+void _requestFeedProfile(BuildContext context, {bool forceRefresh = true}) {
+  context.read<AppBloc>().add(GetMyProfileEvent(forceRefresh: forceRefresh));
+}
+
+bool _ensureFeedProfileReady(
+  BuildContext context, {
+  String actionLabel = 'continue',
+}) {
+  if (_isFeedProfileReady()) {
+    return true;
+  }
+
+  _requestFeedProfile(context);
+  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+    generalSnackBar(
+      "We’re still loading your profile. Please wait a moment and try again.",
+    ),
+  );
+  return false;
+}
+
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
 
@@ -83,6 +109,7 @@ class _FeedScreenState extends State<FeedScreen> {
   String selectedComboBragId = '';
   bool liveLoading = false;
   bool _hasTriggeredInitialLoad = false;
+  bool _hasQueuedProfileRetry = false;
 
   // Stream subscription for progress updates - must be disposed
   StreamSubscription<double>? _progressSubscription;
@@ -112,8 +139,8 @@ class _FeedScreenState extends State<FeedScreen> {
     });
 
     _ensureInitialDataLoaded();
-    if (profileModelG == null) {
-      context.read<AppBloc>().add(const GetMyProfileEvent());
+    if (!_isFeedProfileReady()) {
+      _requestFeedProfile(context, forceRefresh: false);
     }
     // callAllInitializingEvents();
     // getInitialData(context);
@@ -135,11 +162,20 @@ class _FeedScreenState extends State<FeedScreen> {
     context.read<PostBloc>().add(const GetAllPostsEvent(isRefresh: true));
     context.read<ComboBloc>().add(GetLiveCombosEvent());
     context.read<ComboBloc>().add(GetUpcomingCombosEvent());
-    context.read<ChatsAndSocialsBloc>().add(GetClapRequestEvent());
+    final chatsBloc = context.read<ChatsAndSocialsBloc>();
+    chatsBloc.add(
+      GetClapRequestEvent(
+        refreshInBackground: chatsBloc.hasClapRequests,
+      ),
+    );
     context.read<PostBloc>().add(const GetFollowersPostEvent());
-    context.read<ChatsAndSocialsBloc>().add(ConnectToSocketEvent());
+    chatsBloc.add(ConnectToSocketEvent());
     context.read<NotificationBloc>().add(GetNotificationListEvent());
-    context.read<ChatsAndSocialsBloc>().add(GetClappersEvent());
+    chatsBloc.add(
+      GetClappersEvent(
+        refreshInBackground: chatsBloc.hasClappers,
+      ),
+    );
     context
         .read<PostBloc>()
         .add(GetAllVideoPostsEvent(isRefresh: true, index: 1));
@@ -195,8 +231,21 @@ class _FeedScreenState extends State<FeedScreen> {
             if (state is GetUserProfileError) {
               ScaffoldMessenger.of(context)
                   .showSnackBar(generalSnackBar(" ${state.errorMessage}"));
+              if (!_isFeedProfileReady() && !_hasQueuedProfileRetry) {
+                _hasQueuedProfileRetry = true;
+                Future.delayed(const Duration(seconds: 2), () {
+                  if (!mounted) {
+                    return;
+                  }
+                  _hasQueuedProfileRetry = false;
+                  if (!_isFeedProfileReady()) {
+                    _requestFeedProfile(context);
+                  }
+                });
+              }
             }
             if (state is ProfileSuccess) {
+              _hasQueuedProfileRetry = false;
               if (mounted) {
                 setState(() {});
               }
@@ -279,6 +328,7 @@ class _FeedScreenState extends State<FeedScreen> {
                       .read<PostBloc>()
                       .add(const GetAllPostsEvent(isRefresh: true));
                   context.read<PostBloc>().add(const GetFollowersPostEvent());
+                  _requestFeedProfile(context);
                   // Optionally refresh combo data too
                   context.read<ComboBloc>().add(GetLiveCombosEvent());
                   context.read<ComboBloc>().add(GetUpcomingCombosEvent());
@@ -511,9 +561,23 @@ class _FeedScreenState extends State<FeedScreen> {
                                             state.comboEntity.combo ?? '';
                                         selectedComboBragId =
                                             state.comboEntity.brag ?? '';
-                                        context.read<ComboBloc>().add(
-                                            GetLiveComboEvent(
-                                                combo: state.comboEntity));
+                                        if ((state.comboEntity.status ?? '')
+                                                .toUpperCase() ==
+                                            'LIVE') {
+                                          context.read<ComboBloc>().add(
+                                              GetLiveComboEvent(
+                                                  combo: state.comboEntity));
+                                        } else {
+                                          setState(() {
+                                            liveLoading = false;
+                                          });
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            generalSnackBar(
+                                              'Livestream is still preparing. Please try again.',
+                                            ),
+                                          );
+                                        }
                                       }
                                     }
                                     if (state is LiveComboLoaded) {
@@ -589,6 +653,13 @@ class _FeedScreenState extends State<FeedScreen> {
                                                       .length,
                                                   (index) => GestureDetector(
                                                     onTap: () {
+                                                      if (!_ensureFeedProfileReady(
+                                                        context,
+                                                        actionLabel:
+                                                            'open this livestream',
+                                                      )) {
+                                                        return;
+                                                      }
                                                       if (listOfUpcomingComboModel[
                                                                       index]
                                                                   .challenger
@@ -1708,6 +1779,12 @@ class _ReactionPanelHorizontalState extends State<ReactionPanelHorizontal> {
                     height: 30,
                     width: 40,
                     action: () async {
+                      if (!_ensureFeedProfileReady(
+                        context,
+                        actionLabel: 'open challenges',
+                      )) {
+                        return;
+                      }
                       (widget.model?.author != profileModelG?.pid)
                           //OPEN THE CHALLENGE POST MODAL SHEET
                           //I NEED A CHALLENGER AND THE HOST DETAILS TO BE PASSED HERE
@@ -1847,9 +1924,16 @@ class _ReactionPanelHorizontalState extends State<ReactionPanelHorizontal> {
                 ),
 
                 //**GIFT COIN ICON */
-                if (widget.model?.author != profileModelG?.pid)
+                if (_isFeedProfileReady() &&
+                    widget.model?.author != profileModelG?.pid)
                   GestureDetector(
                     onTap: () {
+                      if (!_ensureFeedProfileReady(
+                        context,
+                        actionLabel: 'send a gift',
+                      )) {
+                        return;
+                      }
                       showGiftCapcoinBottomSheet(
                         context,
                         creatorID: widget.model?.author ?? "",
@@ -2014,9 +2098,16 @@ class _ReactionPanelHorizontalForCommentState
               const SizedBox(width: 30),
 
               // GIFT BUTTON
-              if (profileModelG?.pid != widget.model?.authorPID)
+              if (_isFeedProfileReady() &&
+                  profileModelG?.pid != widget.model?.authorPID)
                 GestureDetector(
                   onTap: () {
+                    if (!_ensureFeedProfileReady(
+                      context,
+                      actionLabel: 'send a gift',
+                    )) {
+                      return;
+                    }
                     showGiftCapcoinBottomSheet(
                       context,
                       creatorID: widget.model?.author ?? '',
@@ -2298,7 +2389,9 @@ class _GiftCapcoinSheetState extends State<_GiftCapcoinSheet> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '${profileModelG?.name ?? profileModelG?.username}',
+                                  profileModelG?.name ??
+                                      profileModelG?.username ??
+                                      'You',
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodyLarge

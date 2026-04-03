@@ -18,6 +18,31 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 
+class NetworkViewCache {
+  static const Duration _cacheTtl = Duration(seconds: 45);
+  static List<UserNearLocationEntity> nearbyUsers = [];
+  static List<ClapRequestEntity> clapRequests = [];
+  static Set<String> alreadyClappedPids = <String>{};
+  static DateTime? nearbyUsersUpdatedAt;
+  static DateTime? clapRequestsUpdatedAt;
+
+  static bool isNearbyUsersFresh() {
+    final updatedAt = nearbyUsersUpdatedAt;
+    if (updatedAt == null || nearbyUsers.isEmpty) {
+      return false;
+    }
+    return DateTime.now().difference(updatedAt) < _cacheTtl;
+  }
+
+  static bool isClapRequestsFresh() {
+    final updatedAt = clapRequestsUpdatedAt;
+    if (updatedAt == null || clapRequests.isEmpty) {
+      return false;
+    }
+    return DateTime.now().difference(updatedAt) < _cacheTtl;
+  }
+}
+
 class NetworkConnect extends StatefulWidget {
   const NetworkConnect({super.key});
 
@@ -25,22 +50,125 @@ class NetworkConnect extends StatefulWidget {
   State<NetworkConnect> createState() => _NetworkConnectState();
 }
 
-class _NetworkConnectState extends State<NetworkConnect> {
+class _NetworkConnectState extends State<NetworkConnect>
+    with AutomaticKeepAliveClientMixin {
+  List<UserNearLocationEntity> displayedList = [];
+  List<ClapRequestEntity> listOfClapRequest = [];
+  Set<String> _alreadyClappedPids = <String>{};
+  bool _isLoadingClapRequests = true;
+  bool _isLoadingNearbyUsers = true;
+
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
-    print('🔍 NetworkConnect initState - Triggering events');
-    context.read<ChatsAndSocialsBloc>().add(GetClapRequestEvent());
-    context.read<ChatsAndSocialsBloc>().add(GetPeopleNearLocationEvent());
+    final chatsBloc = context.read<ChatsAndSocialsBloc>();
+    displayedList = List<UserNearLocationEntity>.from(chatsBloc.nearbyUsers);
+    listOfClapRequest = List<ClapRequestEntity>.from(chatsBloc.clapRequests);
+    _alreadyClappedPids = Set<String>.from(NetworkViewCache.alreadyClappedPids);
+    _isLoadingClapRequests = listOfClapRequest.isEmpty;
+    _isLoadingNearbyUsers = displayedList.isEmpty;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadPersistedClappedUsers();
+      _refreshNetworkData();
+    });
   }
 
-  // ✅ FIX 1: Initialize as empty lists (not late)
-  List<UserNearLocationEntity> displayedList = [];
-  List<ClapRequestEntity> listOfClapRequest =
-      []; // ✅ Changed from ClapRequestModel to Entity
+  Future<void> _loadPersistedClappedUsers() async {
+    final raw = getItInstance<AppPreferenceService>()
+        .getValue<String>("alreadyClapped");
+    final decoded = (() {
+      try {
+        return (json.decode(raw ?? json.encode([])) as List)
+            .whereType<Map>()
+            .map(
+              (e) => UserNearLocationEntity.fromMap(
+                Map<String, dynamic>.from(e),
+              ),
+            )
+            .toList();
+      } catch (_) {
+        return <UserNearLocationEntity>[];
+      }
+    })();
+    final persistedPids = decoded
+        .map((e) => e.pid)
+        .whereType<String>()
+        .where((e) => e.isNotEmpty)
+        .toSet();
+    if (!mounted) {
+      return;
+    }
+    if (_alreadyClappedPids.length == persistedPids.length &&
+        _alreadyClappedPids.containsAll(persistedPids)) {
+      return;
+    }
+    setState(() {
+      _alreadyClappedPids = persistedPids;
+      NetworkViewCache.alreadyClappedPids = Set<String>.from(_alreadyClappedPids);
+    });
+  }
+
+  Future<void> _markUserAsClapped(UserNearLocationEntity person) async {
+    final pid = person.pid;
+    if (pid == null || pid.isEmpty) {
+      return;
+    }
+
+    final updatedPids = {..._alreadyClappedPids, pid};
+    final existingUsers = (json.decode(
+      getItInstance<AppPreferenceService>().getValue<String>("alreadyClapped") ??
+          json.encode([]),
+    ) as List)
+        .whereType<Map>()
+        .map((e) => UserNearLocationEntity.fromMap(Map<String, dynamic>.from(e)))
+        .toList();
+
+    final updatedUsers = <UserNearLocationEntity>[
+      ...existingUsers.where((e) => e.pid != pid),
+      person,
+    ];
+
+    await getItInstance<AppPreferenceService>().saveValue<String>(
+      "alreadyClapped",
+      json.encode(updatedUsers.map((e) => e.toMap()).toList()),
+    );
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _alreadyClappedPids = updatedPids;
+      NetworkViewCache.alreadyClappedPids = Set<String>.from(updatedPids);
+    });
+  }
+
+  Future<void> _refreshNetworkData({bool force = false}) async {
+    final chatsBloc = context.read<ChatsAndSocialsBloc>();
+    if (force || !chatsBloc.isClapRequestsFresh) {
+      chatsBloc.add(
+        GetClapRequestEvent(
+          refreshInBackground: chatsBloc.hasClapRequests && !force,
+          forceRefresh: force,
+        ),
+      );
+    }
+    if (force || !chatsBloc.isNearbyUsersFresh) {
+      chatsBloc.add(
+        GetPeopleNearLocationEvent(
+          refreshInBackground: chatsBloc.hasNearbyUsers && !force,
+          forceRefresh: force,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -57,45 +185,62 @@ class _NetworkConnectState extends State<NetworkConnect> {
       ),
       body: BlocConsumer<ChatsAndSocialsBloc, ChatsAndSocialsState>(
         listener: (context, state) {
-          print('🔍 Main BlocConsumer Listener - State: ${state.runtimeType}');
-
-          // ✅ FIX 2: Handle state updates in main listener
           if (state is GetClapRequestSuccessState) {
-            print(
-                '🔍 GetClapRequestSuccessState - Count: ${state.listOfClapRequest.length}');
             setState(() {
               listOfClapRequest = state.listOfClapRequest;
+              _isLoadingClapRequests = false;
             });
           }
 
           if (state is UserNearLocationLoaded) {
-            print('🔍 UserNearLocationLoaded - Count: ${state.users.length}');
             setState(() {
               displayedList = state.users;
+              _isLoadingNearbyUsers = false;
             });
           }
 
           if (state is GetClapRequestErrorState) {
-            print('❌ GetClapRequestErrorState: ${state.errorMessage}');
-            ScaffoldMessenger.of(context).showSnackBar(
-              generalSnackBar(state.errorMessage),
-            );
+            setState(() {
+              _isLoadingClapRequests = false;
+            });
+            if (listOfClapRequest.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                generalSnackBar(state.errorMessage),
+              );
+            }
+          }
+
+          if (state is PeopleNearLocationLoading) {
+            if (displayedList.isEmpty) {
+              setState(() {
+                _isLoadingNearbyUsers = true;
+              });
+            }
+          }
+
+          if (state is GetClapRequestLoadingState) {
+            if (listOfClapRequest.isEmpty) {
+              setState(() {
+                _isLoadingClapRequests = true;
+              });
+            }
           }
         },
         builder: (context, state) {
-          print('🔍 Main BlocConsumer Builder - State: ${state.runtimeType}');
-
-          return Padding(
-            padding: EdgeInsets.symmetric(vertical: 30.h, horizontal: 10),
+          return RefreshIndicator(
+            onRefresh: () => _refreshNetworkData(force: true),
+            color: Colors.white,
+            backgroundColor: const Color(0xFF181919),
             child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  // ✅ FIX 3: Removed nested BlocConsumer (causes issues)
-                  _buildClapRequestSection(state),
-
-                  // In location section
-                  _buildLocationSection(),
-                ],
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 30.h, horizontal: 10),
+                child: Column(
+                  children: [
+                    _buildClapRequestSection(state),
+                    _buildLocationSection(),
+                  ],
+                ),
               ),
             ),
           );
@@ -146,14 +291,8 @@ class _NetworkConnectState extends State<NetworkConnect> {
 
         SizedBox(height: 10.h),
 
-        // ✅ FIX 5: Improved loading state handling
-        if (state is GetClapRequestLoadingState)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(40.0),
-              child: CircularProgressIndicator(),
-            ),
-          )
+        if (_isLoadingClapRequests && listOfClapRequest.isEmpty)
+          _buildRequestSkeleton()
         else if (listOfClapRequest.isEmpty)
           buildEmptyWidget("No Request Yet")
         else
@@ -163,8 +302,6 @@ class _NetworkConnectState extends State<NetworkConnect> {
             itemCount:
                 listOfClapRequest.length > 4 ? 4 : listOfClapRequest.length,
             itemBuilder: (context, index) {
-              print(
-                  '🔍 Building ProfileCard $index: ${listOfClapRequest[index].senderName}');
               return ProfileCard(
                 requestModel: listOfClapRequest[index],
                 acceptRequestCallback: (id) {
@@ -176,7 +313,9 @@ class _NetworkConnectState extends State<NetworkConnect> {
                         .firstOrNull;
                     try {
                       request!.switchButton = true;
-                    } catch (e) {}
+                    } catch (_) {
+                      // Ignore missing request; UI already guards the empty state.
+                    }
                   });
                 },
                 declineRequestCallback: (id) {
@@ -234,57 +373,137 @@ class _NetworkConnectState extends State<NetworkConnect> {
             ],
           ),
         ),
-        FutureBuilder<List<UserNearLocationEntity>>(
-            future: () async {
-              // displayedList[index];
-              final jsonedListOfClappedUserFromThisSection =
-                  getItInstance<AppPreferenceService>()
-                      .getValue<String>("alreadyClapped");
-              return (json.decode(jsonedListOfClappedUserFromThisSection ??
-                      json.encode([])) as List)
-                  .map(
-                    (e) => UserNearLocationEntity.fromMap(e),
-                  )
-                  .toList();
-            }.call(),
-            builder: (context, asyncSnapshot) {
-              if (asyncSnapshot.hasData) {
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount:
-                      displayedList.length > 4 ? 4 : displayedList.length,
-                  itemBuilder: (context, index) {
-                    return ProfileCardForUserVeiw(
-                      person: displayedList[index],
-                      isAlreadyClapped:
-                          asyncSnapshot.data?.contains(displayedList[index]) ??
-                              false,
-                      onActionTaken: () async {
-                        final newListToBeSaved = {
-                          ...(asyncSnapshot.data?.map(
-                                (e) => e.toMap(),
-                              ) ??
-                              []),
-                          displayedList[index].toMap()
-                        }.toList();
-                        await getItInstance<AppPreferenceService>()
-                            .saveValue<String>("alreadyClapped",
-                                json.encode(newListToBeSaved));
-                        setState(() {});
-                      },
-                    );
-                  },
-                );
-              }
-              if (asyncSnapshot.hasError) return Text("${asyncSnapshot.error}");
-              return SizedBox(
-                height: 30,
-                width: 30,
-                child: CircularProgressIndicator.adaptive(),
+        if (_isLoadingNearbyUsers && displayedList.isEmpty)
+          _buildNearbyUsersSkeleton()
+        else if (displayedList.isNotEmpty)
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: displayedList.length > 4 ? 4 : displayedList.length,
+            itemBuilder: (context, index) {
+              final person = displayedList[index];
+              return ProfileCardForUserVeiw(
+                person: person,
+                isAlreadyClapped: _alreadyClappedPids.contains(person.pid),
+                onActionTaken: () async {
+                  await _markUserAsClapped(person);
+                },
               );
-            }),
+            },
+          )
+        else
+          buildEmptyWidget("No users nearby yet"),
       ],
+    );
+  }
+
+  Widget _buildRequestSkeleton() {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 3,
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF181919),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              Container(
+                height: 50,
+                width: 50,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF2A2A2A),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 14,
+                      width: 120,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A2A2A),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      height: 12,
+                      width: 80,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A2A2A),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNearbyUsersSkeleton() {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 4,
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF181919),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              Container(
+                height: 50,
+                width: 50,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF2A2A2A),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 15,
+                      width: 130,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A2A2A),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 12,
+                      width: 90,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A2A2A),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -362,13 +581,11 @@ class _ProfileCardState extends State<ProfileCard> {
               // Avatar
               FancyContainer(
                 radius: 40,
-                child: CustomImageView(
-                  imagePath: widget.requestModel.senderImage ?? '',
-                  height: 50,
-                  width: 50,
-                  fit: BoxFit.cover,
-                  errorWidget:
-                      Image.asset("assets/images/empty_avatar_icon.png"),
+                child: AppAvatar(
+                  imageUrl: widget.requestModel.senderImage,
+                  name: widget.requestModel.senderName,
+                  size: 50,
+                  backgroundColor: const Color(0xFF2A2A2A),
                 ),
               ),
 
@@ -633,7 +850,6 @@ class _UniversalNetworkImageState extends State<UniversalNetworkImage> {
         );
       },
       errorBuilder: (context, error, stackTrace) {
-        print('❌ Image load error: $error');
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             setState(() => _hasError = true);

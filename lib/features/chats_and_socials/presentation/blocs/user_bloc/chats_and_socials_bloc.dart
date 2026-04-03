@@ -1,7 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:clapmi/core/utils.dart';
 import 'package:clapmi/core/utils/app_logger.dart';
 import 'package:clapmi/features/chats_and_socials/data/models/clap_request_model.dart';
 import 'package:clapmi/features/chats_and_socials/data/models/message_model.dart';
+import 'package:clapmi/features/chats_and_socials/data/models/user_model.dart';
+import 'package:clapmi/features/chats_and_socials/domain/entities/chat_user.dart';
 import 'package:clapmi/features/chats_and_socials/domain/entities/live_reactions_entities.dart';
 import 'package:clapmi/features/chats_and_socials/domain/repositories/chats_and_socials_repository.dart';
 import 'package:clapmi/features/chats_and_socials/presentation/blocs/user_bloc/chats_and_socials_event.dart';
@@ -10,7 +14,33 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 class ChatsAndSocialsBloc
     extends Bloc<ChatsAndSocialsEvent, ChatsAndSocialsState> {
+  static const Duration _cacheTtl = Duration(seconds: 45);
   final ChatsAndSocialsRepository chatsAndSocialsRepository;
+
+  List<ClapRequestModel> _clapRequests = [];
+  DateTime? _clapRequestsUpdatedAt;
+  List<UserNearLocationEntity> _nearbyUsers = [];
+  DateTime? _nearbyUsersUpdatedAt;
+  List<ChatUserData> _chatFriends = [];
+  DateTime? _chatFriendsUpdatedAt;
+  List<ChatUser> _clappers = [];
+  DateTime? _clappersUpdatedAt;
+
+  List<ClapRequestModel> get clapRequests => List.unmodifiable(_clapRequests);
+  List<UserNearLocationEntity> get nearbyUsers =>
+      List.unmodifiable(_nearbyUsers);
+  List<ChatUserData> get chatFriends => List.unmodifiable(_chatFriends);
+  List<ChatUser> get clappers => List.unmodifiable(_clappers);
+
+  bool get hasClapRequests => _clapRequests.isNotEmpty;
+  bool get hasNearbyUsers => _nearbyUsers.isNotEmpty;
+  bool get hasChatFriends => _chatFriends.isNotEmpty;
+  bool get hasClappers => _clappers.isNotEmpty;
+
+  bool get isClapRequestsFresh => _isFresh(_clapRequestsUpdatedAt, hasClapRequests);
+  bool get isNearbyUsersFresh => _isFresh(_nearbyUsersUpdatedAt, hasNearbyUsers);
+  bool get isChatFriendsFresh => _isFresh(_chatFriendsUpdatedAt, hasChatFriends);
+  bool get isClappersFresh => _isFresh(_clappersUpdatedAt, hasClappers);
 
   ChatsAndSocialsBloc({required this.chatsAndSocialsRepository})
       : super(ChatsAndSocialsInitial()) {
@@ -37,6 +67,13 @@ class ChatsAndSocialsBloc
     // RejectRequestEvent
   }
 
+  bool _isFresh(DateTime? updatedAt, bool hasData) {
+    if (!hasData || updatedAt == null) {
+      return false;
+    }
+    return DateTime.now().difference(updatedAt) < _cacheTtl;
+  }
+
   Future<void> _onSendClapRequestToUsersEvent(SendClapRequestToUsersEvent event,
       Emitter<ChatsAndSocialsState> emit) async {
     emit(SendClapRequestToUsersLoadingState());
@@ -54,19 +91,30 @@ class ChatsAndSocialsBloc
 
   Future<void> _onGetClapRequestEvent(
       GetClapRequestEvent event, Emitter<ChatsAndSocialsState> emit) async {
-    emit(GetClapRequestLoadingState());
+    final hasFreshCache = !event.forceRefresh && isClapRequestsFresh;
+    if (hasFreshCache) {
+      emit(GetClapRequestSuccessState(listOfClapRequest: _clapRequests));
+      return;
+    }
+
+    final hasCachedData = hasClapRequests;
+    if (!(event.refreshInBackground && hasCachedData)) {
+      emit(GetClapRequestLoadingState());
+    }
     final result = await chatsAndSocialsRepository.getClapRequests();
 
     result.fold(
       (error) => emit(GetClapRequestErrorState(errorMessage: error.message)),
-      (data) => emit(
-        GetClapRequestSuccessState(
-            listOfClapRequest: data
-                .map(
-                  (e) => ClapRequestModel.fromEntity(e),
-                )
-                .toList()),
-      ),
+      (data) {
+        final mapped = data
+            .map(
+              (e) => ClapRequestModel.fromEntity(e),
+            )
+            .toList();
+        _clapRequests = mapped;
+        _clapRequestsUpdatedAt = DateTime.now();
+        emit(GetClapRequestSuccessState(listOfClapRequest: mapped));
+      },
     );
   }
 
@@ -110,13 +158,26 @@ class ChatsAndSocialsBloc
   Future<void> _getPeopleNearLocationEventHandler(
       GetPeopleNearLocationEvent event,
       Emitter<ChatsAndSocialsState> emit) async {
-    emit(PeopleNearLocationLoading());
+    final hasFreshCache = !event.forceRefresh && isNearbyUsersFresh;
+    if (hasFreshCache) {
+      emit(UserNearLocationLoaded(users: _nearbyUsers));
+      return;
+    }
+
+    final hasCachedData = hasNearbyUsers;
+    if (!(event.refreshInBackground && hasCachedData)) {
+      emit(PeopleNearLocationLoading());
+    }
     final result = await chatsAndSocialsRepository.getUsersNearLocation();
 
     result.fold(
         (error) => "",
         // emit(RejectRequestErrorState(errorMessage: error.message)),
-        (user) => emit(UserNearLocationLoaded(users: user)));
+        (user) {
+          _nearbyUsers = user;
+          _nearbyUsersUpdatedAt = DateTime.now();
+          emit(UserNearLocationLoaded(users: user));
+        });
   }
 
   Future<void> _connectToSocketEventHandler(
@@ -236,21 +297,47 @@ class ChatsAndSocialsBloc
 
   Future<void> _getChatFriendsEventHandler(
       GetChatFriendsEvent event, Emitter<ChatsAndSocialsState> emit) async {
-    emit(GetFriendLoadingState());
+    final hasFreshCache = !event.forceRefresh && isChatFriendsFresh;
+    if (hasFreshCache) {
+      emit(ChatFriendsLoaded(chatFriends: _chatFriends));
+      return;
+    }
+
+    final hasCachedData = hasChatFriends;
+    if (!(event.refreshInBackground && hasCachedData)) {
+      emit(GetFriendLoadingState());
+    }
     final response = await chatsAndSocialsRepository.getPeopleChattedWith();
 
     response.fold(
         (error) => emit(GetFriendErrorState(errorMessage: error.message)),
-        (friends) => emit(ChatFriendsLoaded(chatFriends: friends)));
+        (friends) {
+          _chatFriends = friends;
+          _chatFriendsUpdatedAt = DateTime.now();
+          emit(ChatFriendsLoaded(chatFriends: friends));
+        });
   }
 
   Future<void> _getClappersEventHandler(
       GetClappersEvent event, Emitter<ChatsAndSocialsState> emit) async {
-    emit(ClappersLoading());
+    final hasFreshCache = !event.forceRefresh && isClappersFresh;
+    if (hasFreshCache) {
+      emit(ClappersLoaded(friends: _clappers));
+      return;
+    }
+
+    final hasCachedData = hasClappers;
+    if (!(event.refreshInBackground && hasCachedData)) {
+      emit(ClappersLoading());
+    }
     final response = await chatsAndSocialsRepository.getClappers();
     response.fold(
         (error) => emit(GetFriendErrorState(errorMessage: error.message)),
-        (friends) => emit(ClappersLoaded(friends: friends)));
+        (friends) {
+          _clappers = friends;
+          _clappersUpdatedAt = DateTime.now();
+          emit(ClappersLoaded(friends: friends));
+        });
   }
 
   Future<void> _initiateConversationEventHandler(
@@ -335,8 +422,33 @@ class ChatsAndSocialsBloc
         contextType: event.contextType,
         onGoingCombo: event.onGoingCombo);
     response.fold(
-        (error) => emit(GetFriendErrorState(errorMessage: error.message)),
-        (_) => emit(PostsInteractionsSubscribed()));
+      (error) => emit(GetFriendErrorState(errorMessage: error.message)),
+      (_) async {
+        Uint8List? avatarBytes;
+        if (event.avatar.toLowerCase().contains('.svg')) {
+          avatarBytes = await fetchSvg(event.avatar);
+        }
+
+        emit(
+          GiftingState(
+            gifts: GiftData(
+              message: 'sent a gift',
+              giftdata: GiftDataUser(
+                sender: GiftSender(
+                  user: event.userPid,
+                  username: event.username,
+                  avatar: event.avatar,
+                  avatarConvert: avatarBytes,
+                ),
+                receiver: event.receiverId,
+                amount: event.amount.toString(),
+                target: event.target,
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _getLiveGiftersEventHandler(

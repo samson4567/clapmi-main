@@ -4,6 +4,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:clapmi/features/combo/presentation/blocs/combo_bloc/combo_bloc.dart';
 import 'package:clapmi/features/combo/presentation/blocs/combo_bloc/combo_state.dart';
 
+enum DeviceConflictChoice {
+  companion,
+  switchHere,
+}
+
 /// Widget to display device switch and companion mode options
 /// This can be added to the livestream screen's settings menu or overlay
 class DeviceSwitchMenu extends StatelessWidget {
@@ -125,6 +130,129 @@ class DeviceSwitchMenu extends StatelessWidget {
   }
 }
 
+class JoinLivestreamConflictDialog extends StatelessWidget {
+  const JoinLivestreamConflictDialog({
+    super.key,
+    this.message,
+  });
+
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 18),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(22, 26, 22, 24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF111111),
+          borderRadius: BorderRadius.circular(26),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Join Livestream',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (message != null && message!.trim().isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                message!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.68),
+                  fontSize: 14,
+                ),
+              ),
+            ],
+            const SizedBox(height: 26),
+            _ConflictActionButton(
+              icon: Icons.phone_iphone_outlined,
+              label: 'Join as a companion',
+              onTap: () => Navigator.of(context)
+                  .pop(DeviceConflictChoice.companion),
+            ),
+            const SizedBox(height: 14),
+            _ConflictActionButton(
+              icon: Icons.swap_horiz,
+              label: 'Switch here',
+              onTap: () =>
+                  Navigator.of(context).pop(DeviceConflictChoice.switchHere),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class StreamSwitchedDialog extends StatelessWidget {
+  const StreamSwitchedDialog({
+    super.key,
+    this.message = 'Stream switched to another device',
+  });
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF111111),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1976D2),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                child: const Text(
+                  'Dismiss',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Widget to display when device switch is requested
 /// Shows notification and options to the user
 class DeviceSwitchNotification extends StatelessWidget {
@@ -182,6 +310,54 @@ class DeviceSwitchNotification extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ConflictActionButton extends StatelessWidget {
+  const _ConflictActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: Material(
+        color: const Color(0xFF4A4A4A),
+        borderRadius: BorderRadius.circular(999),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(999),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: Colors.white, size: 28),
+                const SizedBox(width: 16),
+                Flexible(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

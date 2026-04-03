@@ -1,4 +1,3 @@
-import 'package:clapmi/core/app_variables.dart';
 import 'package:clapmi/core/db/app_preference_service.dart';
 import 'package:clapmi/core/security/secure_key.dart';
 import 'package:clapmi/features/authentication/data/models/token_model.dart';
@@ -11,6 +10,7 @@ class HeaderInterceptor extends Interceptor {
     required this.appPreferenceService,
     required this.dio,
   });
+  static bool _isHandlingUnauthorized = false;
   final AppPreferenceService appPreferenceService;
   final Dio dio;
   @override
@@ -52,11 +52,17 @@ class HeaderInterceptor extends Interceptor {
       // Do NOT clear initialLoginStatusKey - keep it as false to indicate
       // user was logged in (just their token expired and needs refresh)
 
-      final navigator = rootNavigatorKey.currentState;
-      if (navigator != null && navigator.mounted) {
-        theclapAnimationController.dispose();
-        navigator.context.go(MyAppRouteConstant.login);
+      if (!_isHandlingUnauthorized) {
+        _isHandlingUnauthorized = true;
+        final navigator = rootNavigatorKey.currentState;
+        if (navigator != null && navigator.mounted) {
+          navigator.context.go(MyAppRouteConstant.login);
+        }
+        Future.delayed(const Duration(seconds: 1), () {
+          _isHandlingUnauthorized = false;
+        });
       }
+      handler.next(err);
     } else {
       super.onError(err, handler);
     }

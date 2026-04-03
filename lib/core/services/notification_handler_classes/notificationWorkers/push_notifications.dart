@@ -5,11 +5,10 @@ import 'package:clapmi/core/api/clapmi_network_client.dart';
 import 'package:clapmi/core/constants/endpoint_constant.dart';
 import 'package:clapmi/core/di/injector.dart';
 import 'package:clapmi/core/services/notification_handler_classes/notificationWorkers/local_notification.dart';
-import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
+import 'package:clapmi/core/services/notification_handler_classes/notificationWorkers/notification_navigation.dart';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 class PushNotificationsService {
   //create an instance of the firebase messaging plugin
@@ -46,14 +45,9 @@ class PushNotificationsService {
     String? token = await _firebaseMessaging.getToken();
     thetoken = token;
     print('kbjsdkjskdsjdsbabjsa--FCM Token: $token');
-
-    // Listen for token refresh
-    _firebaseMessaging.onTokenRefresh.listen((newToken) {
-      print('FCM Token refreshed: $newToken');
-      thetoken = newToken;
-      // Register the new token with the backend
-      // _registerTokenWithBackend(newToken);
-    });
+    if (token != null) {
+      onTokenReadyForRegistration?.call(token);
+    }
   }
 
   // Wait for APNS token to be available (iOS requirement)
@@ -148,11 +142,10 @@ class PushNotificationsService {
   // on background notification tapped function (pass the payload data to the message opener screen)
   static Future<void> onBackgroundNotificationTapped(
       RemoteMessage message, GlobalKey<NavigatorState> navigatorKey) async {
-    // Navigate to notification page with the message data
     final payloadData = jsonEncode(message.data);
-    navigatorKey.currentState?.context.pushNamed(
-      MyAppRouteConstant.notificationPage,
-      extra: {'message': message, 'payload': payloadData},
+    await NotificationNavigationService.openFromPayload(
+      context: navigatorKey.currentState?.context,
+      payload: payloadData,
     );
   }
 
@@ -166,10 +159,14 @@ class PushNotificationsService {
     print("Got the message in foreground");
     print("String payloadData = jsonEncode(message.data);>>${message.data}");
 
-    if (message.notification != null) {
+    final title =
+        message.notification?.title ?? message.data['title']?.toString();
+    final body = message.notification?.body ?? message.data['body']?.toString();
+
+    if ((title ?? '').isNotEmpty || (body ?? '').isNotEmpty) {
       await LocalNotificationService.showInstantNotificationWithPayload(
-        title: message.notification?.title ?? "Clapmi",
-        body: message.notification?.body ?? "You have a new notification",
+        title: title ?? "Clapmi",
+        body: body ?? "You have a new notification",
         payload: payloadData,
       );
 

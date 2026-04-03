@@ -34,11 +34,36 @@ class _MainPageState extends State<MainPage> {
 
   int? previousIndex;
 
+  void _refreshWalletSnapshot() {
+    final walletBloc = context.read<WalletBloc>();
+    walletBloc.add(
+      LoadWalletBalances(
+        refreshInBackground: walletBloc.assetBalances.isNotEmpty,
+      ),
+    );
+    walletBloc.add(
+      GetTransactionsListRecentEvent(
+        refreshInBackground: walletBloc.recentTransactions.isNotEmpty,
+      ),
+    );
+    walletBloc.add(
+      RecentGiftingEvent(
+        refreshInBackground: walletBloc.recentGiftings.isNotEmpty,
+      ),
+    );
+    walletBloc.add(
+      GetWalletPropertiesEvent(
+        refreshInBackground: walletBloc.walletProperties != null,
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       //* Only start pusher when user is logged in
+      _refreshWalletSnapshot();
     });
   }
 
@@ -63,28 +88,20 @@ class _MainPageState extends State<MainPage> {
         context.read<ComboBloc>().add(GetUpcomingCombosEvent());
       }
 
-      if (index == 4) {
-        final walletBloc = context.read<WalletBloc>();
-        if (walletBloc.assetBalances.isEmpty) {
-          walletBloc.add(LoadWalletBalances());
-        }
-        if (walletBloc.recentTransactions.isEmpty) {
-          walletBloc.add(GetTransactionsListRecentEvent());
-        }
-        if (walletBloc.recentGiftings.isEmpty) {
-          walletBloc.add(const RecentGiftingEvent());
-        }
-        if (walletBloc.walletProperties == null) {
-          walletBloc.add(const GetWalletPropertiesEvent());
-        }
-      }
-
       widget.navigationShell.goBranch(
         index,
         // Fix: Set to false to prevent re-initialization when tapping same tab
         // This prevents the chat navbar from always reloading
         initialLocation: false,
       );
+
+      if (index == 4) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _refreshWalletSnapshot();
+          }
+        });
+      }
       print(
           "jbfdksjfkjdsbfkjdbfbsf-before>>${videoPlayerControllerG?.dataSource}");
       bool isFeedTab = (index == 1);

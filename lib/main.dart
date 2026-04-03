@@ -32,7 +32,6 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_video_caching/flutter_video_caching.dart';
-import 'package:go_router/go_router.dart';
 // ignore: unused_import
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:media_kit/media_kit.dart';
@@ -142,14 +141,51 @@ class _MyAppState extends State<MyApp> {
     SchedulerBinding.instance.addPostFrameCallback(
       (timeStamp) {
         unawaited(initDeepLinks());
+        PushNotificationsService.onTokenReadyForRegistration = (token) {
+          if (!mounted || !isLoggedIn) {
+            return;
+          }
+          context.read<AuthBloc>().add(
+                RegisterFCMtokenEvent(
+                  token: token,
+                  deviceType: Platform.isAndroid ? "android" : 'ios',
+                ),
+              );
+        };
+
+        if (thetoken != null && isLoggedIn) {
+          PushNotificationsService.onTokenReadyForRegistration?.call(thetoken!);
+        }
+
         _fcmTokenRefreshSubscription =
             FirebaseMessaging.instance.onTokenRefresh.listen(
           (event) {
-            context.read<AuthBloc>().add(RegisterFCMtokenEvent(
-                token: thetoken!,
-                deviceType: Platform.isAndroid ? "android" : 'ios'));
+            thetoken = event;
+            PushNotificationsService.onTokenReadyForRegistration?.call(event);
           },
         );
+
+        _fcmMessageOpenedAppSubscription =
+            FirebaseMessaging.onMessageOpenedApp.listen(
+          (RemoteMessage message) async {
+            if (message.notification != null || message.data.isNotEmpty) {
+              await PushNotificationsService.onBackgroundNotificationTapped(
+                message,
+                rootNavigatorKey,
+              );
+            }
+          },
+        );
+
+        _fcmMessageSubscription =
+            FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+          await PushNotificationsService.onForegroundNotificationTapped(
+            message,
+            rootNavigatorKey,
+          );
+        });
+
+        unawaited(_handleInitialNotificationMessage());
       },
     );
   }
@@ -164,6 +200,7 @@ class _MyAppState extends State<MyApp> {
     // FIXED: Cancel FCM message subscriptions to prevent memory leaks
     _fcmMessageSubscription?.cancel();
     _fcmMessageOpenedAppSubscription?.cancel();
+    PushNotificationsService.onTokenReadyForRegistration = null;
     AppLogger.debug('MyAppState disposed - all subscriptions cancelled',
         tag: 'MAIN');
     super.dispose();
@@ -209,6 +246,24 @@ class _MyAppState extends State<MyApp> {
     if (location != null && mounted) {
       router.go(location);
     }
+  }
+
+  Future<void> _handleInitialNotificationMessage() async {
+    final RemoteMessage? message =
+        await FirebaseMessaging.instance.getInitialMessage();
+    if (message == null || !mounted) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        return;
+      }
+      await PushNotificationsService.onBackgroundNotificationTapped(
+        message,
+        rootNavigatorKey,
+      );
+    });
   }
 
   String? _getAppLocationFromLink(Uri link) {
@@ -266,13 +321,6 @@ class _MyAppState extends State<MyApp> {
 /// Initialize notifications and Firebase services.
 /// Returns the subscriptions for proper cleanup in the calling widget.
 notificationFunctions() async {
-  //// notification Shenanigans
-
-  // FIXED: These subscriptions should be stored at class level, not local to this function
-  // The subscriptions will be managed by _MyAppState
-  StreamSubscription<RemoteMessage>? fcmMessageOpenedAppSub;
-  StreamSubscription<RemoteMessage>? fcmMessageSub;
-
   try {
     await LocalNotificationService.init();
 
@@ -286,44 +334,6 @@ notificationFunctions() async {
     //listen for incoming messages in background
     FirebaseMessaging.onBackgroundMessage(
         PushNotificationsService.onBackgroundMessage);
-
-    // on background notification tapped
-    fcmMessageOpenedAppSub = FirebaseMessaging.onMessageOpenedApp.listen(
-      (RemoteMessage message) async {
-        if (message.notification != null) {
-          print("Background Notification Tapped");
-          await PushNotificationsService.onBackgroundNotificationTapped(
-            message,
-            rootNavigatorKey,
-          );
-        }
-      },
-    );
-
-    // on foreground notification tapped
-    fcmMessageSub =
-        FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      await PushNotificationsService.onForegroundNotificationTapped(
-        message,
-        rootNavigatorKey,
-      );
-    });
-
-    // for handling in terminated state
-    final RemoteMessage? message =
-        await FirebaseMessaging.instance.getInitialMessage();
-    if (message != null) {
-      // Use WidgetsBinding to ensure navigation happens after the app is ready
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        // Check if navigator is ready
-        final navigatorState = rootNavigatorKey.currentState;
-        if (navigatorState != null && navigatorState.mounted) {
-          navigatorState.pushNamed(
-            MyAppRouteConstant.notificationPage,
-          );
-        }
-      });
-    }
   } catch (e, stackTrace) {
     AppLogger.error(
       'Notification initialization failed',

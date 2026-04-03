@@ -1,7 +1,7 @@
 import 'package:clapmi/Uicomponent/DialogsAndBottomSheets/challenge_box.dart';
 import 'package:clapmi/Models/brag_model.dart';
-import 'package:clapmi/Models/live_stream_model.dart';
 import 'package:clapmi/core/app_variables.dart';
+import 'package:clapmi/core/services/notification_handler_classes/notificationWorkers/notification_navigation.dart';
 import 'package:clapmi/features/notification/domain/entities/notification_entity.dart';
 import 'package:clapmi/features/notification/presentation/blocs/user_bloc/notification_bloc.dart';
 import 'package:clapmi/features/notification/presentation/blocs/user_bloc/notification_event.dart';
@@ -98,11 +98,8 @@ class _NotificationPageState extends State<NotificationPage> {
               .showSnackBar(generalSnackBar(state.errorMessage));
         }
       }, builder: (context, state) {
-        return listOfNotificationEntityG!.isEmpty
-            ? Center(
-                child: buildEmptyWidget("No Notification Yet"),
-              )
-            : SingleChildScrollView(
+        return listOfNotificationEntityG!.isNotEmpty
+            ? SingleChildScrollView(
                 child: Container(
                 padding: EdgeInsets.only(top: 20),
                 child: Column(
@@ -121,11 +118,12 @@ class _NotificationPageState extends State<NotificationPage> {
                                     MarkNotificationAsReadEvent(
                                         notificationID:
                                             notificationEntity.id ?? ''));
-                                if (notificationEntity.notificationType ==
-                                    NotificationType.POST) {
-                                  context.goNamed(MyAppRouteConstant.postScreen,
-                                      extra: notificationEntity.data!['post']);
-                                }
+                                NotificationNavigationService.openFromPayload(
+                                  context: context,
+                                  data: Map<String, dynamic>.from(
+                                    notificationEntity.data ?? const {},
+                                  ),
+                                );
                               },
                               leading: Image.asset(
                                 "assets/icons/Live Combo.png",
@@ -151,7 +149,10 @@ class _NotificationPageState extends State<NotificationPage> {
                     ),
                   ],
                 ),
-              ));
+              ))
+            : Center(
+                child: buildEmptyWidget("No Notification Yet"),
+              );
       }),
     );
   }
@@ -186,19 +187,12 @@ class _NotificationPageState extends State<NotificationPage> {
 
         break;
       case NotificationType.LIVE:
-        LiveStreamModel liveStreamModel = LiveStreamModel.fromOnlinejson(
-            notificationModel.data?['model'] ?? {});
         result = PillButton(
           child: Text("Go Live"),
           onTap: () {
-            context.pushNamed(
-              MyAppRouteConstant.liveComboTwoImageScreen,
-              extra: {
-                "otherParticipant": UserModel.empty().id,
-                "starterOpenedIt": false,
-                "streamerOpenedIt": false,
-                "comboModel": null,
-              },
+            NotificationNavigationService.openFromPayload(
+              context: context,
+              data: Map<String, dynamic>.from(notificationModel.data ?? const {}),
             );
           },
         );

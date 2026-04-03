@@ -2,6 +2,8 @@ import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_bloc.
 import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_event.dart';
 import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_state.dart';
 import 'package:clapmi/global_object_folder_jacket/global_classes/customColor.dart';
+import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -11,6 +13,13 @@ import 'package:shimmer/shimmer.dart';
 
 class AllRecentGifting extends StatelessWidget {
   const AllRecentGifting({super.key});
+
+  num _parseGiftAmount(String? rawAmount) {
+    if (rawAmount == null) {
+      return 0;
+    }
+    return num.tryParse(rawAmount.trim()) ?? 0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,15 +81,22 @@ class AllRecentGifting extends StatelessWidget {
                       separatorBuilder: (_, __) => const Gap(16),
                       itemBuilder: (context, index) {
                         final gifting = giftings[index];
+                        final amount = _parseGiftAmount(gifting.amount);
                         return _singleGiftingWidget(
                           context,
                           outgoing: gifting.gifter == null,
-                          dollarAmount:
-                              int.tryParse(gifting.amount ?? '0') ?? 0,
-                          coinAmount: int.tryParse(gifting.amount ?? '0') ?? 0,
+                          dollarAmount: amount,
+                          coinAmount: amount,
                           account: gifting.gifter == null
                               ? gifting.receiver?.username ?? ''
                               : gifting.gifter?.username ?? '',
+                          userId: gifting.gifter == null
+                              ? gifting.receiver?.user ??
+                                  gifting.receiverId ??
+                                  ''
+                              : gifting.gifter?.user ??
+                                  gifting.gifterId ??
+                                  '',
                           date: gifting.metaData?.date ?? '',
                         );
                       },
@@ -105,9 +121,10 @@ class AllRecentGifting extends StatelessWidget {
 Widget _singleGiftingWidget(
   BuildContext context, {
   bool outgoing = false,
-  required int dollarAmount,
-  required int coinAmount,
+  required num dollarAmount,
+  required num coinAmount,
   required String account,
+  required String userId,
   required String date,
 }) =>
     Container(
@@ -147,7 +164,7 @@ Widget _singleGiftingWidget(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '-\$ ${dollarAmount / 100}',
+                      '-\$ ${(dollarAmount / 100).toStringAsFixed(2)}',
                       style: Theme.of(context).textTheme.displayMedium,
                     ),
                     const Gap(8),
@@ -174,9 +191,18 @@ Widget _singleGiftingWidget(
                                     ?.copyWith(
                                       color: AppColors.primaryColor,
                                     ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    if (userId.isEmpty) return;
+                                    context.pushNamed(
+                                      MyAppRouteConstant.othersAccountPage,
+                                      extra: {'userId': userId},
+                                    );
+                                  },
                               ),
                               TextSpan(
-                                text: ' $coinAmount',
+                                text:
+                                    ' ${coinAmount % 1 == 0 ? coinAmount.toInt() : coinAmount}',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium

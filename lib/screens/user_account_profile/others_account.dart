@@ -99,9 +99,13 @@ class _OthersAccountPageState extends State<OthersAccountPage> {
                     );
                   } else if (state is ConversationInitiatedFail) {
                     print("bhdbsjdbsajbdksbdkbskd");
-                    context
-                        .read<ChatsAndSocialsBloc>()
-                        .add(GetChatFriendsEvent());
+                    final chatsBloc = context.read<ChatsAndSocialsBloc>();
+                    chatsBloc.add(
+                      GetChatFriendsEvent(
+                        refreshInBackground: chatsBloc.hasChatFriends,
+                        forceRefresh: true,
+                      ),
+                    );
                   }
                   if (state is ChatFriendsLoaded) {
                     // chatFriends = state.chatFriends;

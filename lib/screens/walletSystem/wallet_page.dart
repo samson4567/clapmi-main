@@ -1,4 +1,5 @@
 import 'package:clapmi/features/wallet/data/models/asset_balance.dart';
+import 'package:clapmi/features/wallet/data/models/recent_gifting_transaction.dart';
 import 'package:clapmi/features/wallet/data/models/transaction.dart';
 import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_bloc.dart';
 import 'package:clapmi/features/wallet/presentation/blocs/user_bloc/wallet_event.dart';
@@ -7,6 +8,7 @@ import 'package:clapmi/global_object_folder_jacket/global_classes/customColor.da
 import 'package:clapmi/global_object_folder_jacket/global_widgets/error_widget.dart';
 import 'package:clapmi/global_object_folder_jacket/routes/api_route.config.dart';
 import 'package:clapmi/screens/walletSystem/swap_box.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -27,13 +29,16 @@ class WalletView extends StatefulWidget {
   State<WalletView> createState() => _WalletViewState();
 }
 
-class _WalletViewState extends State<WalletView> {
+class _WalletViewState extends State<WalletView>
+    with AutomaticKeepAliveClientMixin {
   bool isClapmiSelected = true;
   List<AssetModel> balances = [];
   bool isWalletLoaded = false;
+  List<TransactionHistoryModel> listOfTransactionHistoryModel = [];
 
   // ReownAppKitModal? _appKitModal;
   double totalBalance = 0.0;
+  List<RecentGiftingModel> _recentGiftings = [];
 
   // void initializeModa() async {
   //   try {
@@ -57,8 +62,6 @@ class _WalletViewState extends State<WalletView> {
     _loadWalletHomeData();
   }
 
-  List<TransactionHistoryModel> listOfTransactionHistoryModel = [];
-
   void _hydrateFromWalletBlocCache() {
     final walletBloc = context.read<WalletBloc>();
 
@@ -78,19 +81,29 @@ class _WalletViewState extends State<WalletView> {
     if (walletBloc.recentTransactions.isNotEmpty) {
       listOfTransactionHistoryModel = walletBloc.recentTransactions;
     }
+
+    if (walletBloc.recentGiftings.isNotEmpty) {
+      _recentGiftings = List.of(walletBloc.recentGiftings);
+    }
   }
 
   void _loadWalletHomeData() {
     final walletBloc = context.read<WalletBloc>();
-    if (walletBloc.recentTransactions.isEmpty) {
-      walletBloc.add(GetTransactionsListRecentEvent());
-    }
-    if (walletBloc.assetBalances.isEmpty) {
-      walletBloc.add(LoadWalletBalances());
-    }
-    if (walletBloc.recentGiftings.isEmpty) {
-      walletBloc.add(const RecentGiftingEvent());
-    }
+    walletBloc.add(
+      GetTransactionsListRecentEvent(
+        refreshInBackground: walletBloc.recentTransactions.isNotEmpty,
+      ),
+    );
+    walletBloc.add(
+      LoadWalletBalances(
+        refreshInBackground: walletBloc.assetBalances.isNotEmpty,
+      ),
+    );
+    walletBloc.add(
+      RecentGiftingEvent(
+        refreshInBackground: walletBloc.recentGiftings.isNotEmpty,
+      ),
+    );
   }
 
   Future<void> _refreshWalletHomeData() async {
@@ -110,8 +123,16 @@ class _WalletViewState extends State<WalletView> {
     });
   }
 
+  num _parseGiftAmount(String? rawAmount) {
+    if (rawAmount == null) {
+      return 0;
+    }
+    return num.tryParse(rawAmount.trim()) ?? 0;
+  }
+
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black,
@@ -154,12 +175,20 @@ class _WalletViewState extends State<WalletView> {
                 }
 
                 if (state is GetTransactionsListRecentSuccessState) {
-                  listOfTransactionHistoryModel =
-                      state.listOfTransactionHistoryModel;
+                  setState(() {
+                    listOfTransactionHistoryModel =
+                        state.listOfTransactionHistoryModel;
+                  });
                 }
 
                 if (state is WalletLoaded) {
                   _updateWalletBalances(state.balances);
+                }
+
+                if (state is RecentGiftingSuccessState) {
+                  setState(() {
+                    _recentGiftings = List.of(state.recentGiftings);
+                  });
                 }
                 // if (state is WalletConnected) {
                 //   _appKitModal = ReownAppKitModal(
@@ -237,7 +266,8 @@ class _WalletViewState extends State<WalletView> {
                     const SizedBox(height: 12),
                     BlocBuilder<WalletBloc, WalletState>(
                       builder: (context, state) {
-                        if (state is RecentGiftingLoadingState) {
+                        if (state is RecentGiftingLoadingState &&
+                            _recentGiftings.isEmpty) {
                           return Shimmer.fromColors(
                             baseColor: Colors.grey[800]!,
                             highlightColor: Colors.grey[700]!,
@@ -287,33 +317,37 @@ class _WalletViewState extends State<WalletView> {
                               ),
                             ),
                           );
-                        } else if (state is RecentGiftingSuccessState) {
-                          print(
-                              "This is the gifting @@@@@@@@@@@@@@ ${state.recentGiftings}");
-                          final giftings = state.recentGiftings;
-                          print('let ${giftings.length}');
-                          if (giftings.isEmpty) {
-                            return const Center(
-                                child: Text('No recent giftings found.'));
-                          }
+                        }
+
+                        final giftings = _recentGiftings;
+
+                        if (giftings.isNotEmpty) {
                           return Column(
                             children: List.generate(giftings.length, (index) {
                               final gifting = giftings[index];
+                              final amount = _parseGiftAmount(gifting.amount);
                               return _singleGiftingWidget(
                                 context,
                                 outgoing: gifting.gifter == null,
-                                dollarAmount:
-                                    int.tryParse(gifting.amount ?? '0') ?? 0,
-                                coinAmount:
-                                    int.tryParse(gifting.amount ?? '0') ?? 0,
+                                dollarAmount: amount,
+                                coinAmount: amount,
                                 account: gifting.gifter == null
                                     ? gifting.receiver?.username ?? ''
                                     : gifting.gifter?.username ?? '',
+                                userId: gifting.gifter == null
+                                    ? gifting.receiver?.user ??
+                                        gifting.receiverId ??
+                                        ''
+                                    : gifting.gifter?.user ??
+                                        gifting.gifterId ??
+                                        '',
                                 date: gifting.metaData?.date ?? '',
                               );
                             }),
                           );
-                        } else if (state is RecentGiftingErrorState) {
+                        }
+
+                        if (state is RecentGiftingErrorState) {
                           return Center(
                               child: Row(
                             children: [
@@ -325,10 +359,9 @@ class _WalletViewState extends State<WalletView> {
                               Text("Unable to Load data"),
                             ],
                           ));
-                        } else {
-                          // Trigger fetching event when the screen loads or state is not yet handled
-                          return const SizedBox.shrink();
                         }
+
+                        return const SizedBox.shrink();
                       },
                     ),
                   ],
@@ -588,9 +621,10 @@ class _WalletViewState extends State<WalletView> {
   Widget _singleGiftingWidget(
     BuildContext context, {
     bool outgoing = false,
-    required int dollarAmount,
-    required int coinAmount,
+    required num dollarAmount,
+    required num coinAmount,
     required String account,
+    required String userId,
     required String date,
   }) =>
       Container(
@@ -629,17 +663,17 @@ class _WalletViewState extends State<WalletView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '-\$  ${dollarAmount / 100}',
+                        '-\$  ${(dollarAmount / 100).toStringAsFixed(2)}',
                         style: Theme.of(context).textTheme.displayMedium,
                       ),
                       const Gap(8),
                       Row(
                         children: [
-                          Text.rich(
-                            overflow: TextOverflow.ellipsis,
-                            TextSpan(
-                              children: [
-                                TextSpan(
+                        Text.rich(
+                          overflow: TextOverflow.ellipsis,
+                          TextSpan(
+                            children: [
+                              TextSpan(
                                   text: 'Gifted',
                                   style: Theme.of(context)
                                       .textTheme
@@ -647,18 +681,26 @@ class _WalletViewState extends State<WalletView> {
                                       ?.copyWith(
                                         color: AppColors.greyTextColorVariant,
                                       ),
-                                ),
-                                TextSpan(
-                                  text: ' @$account',
-                                  style: Theme.of(context)
-                                      .textTheme
+                              ),
+                              TextSpan(
+                                text: ' @$account',
+                                style: Theme.of(context)
+                                    .textTheme
                                       .bodyMedium
                                       ?.copyWith(
-                                        color: AppColors.primaryColor,
-                                      ),
-                                ),
-                                TextSpan(
-                                  text: ' $coinAmount',
+                                      color: AppColors.primaryColor,
+                                    ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    if (userId.isEmpty) return;
+                                    context.pushNamed(
+                                      MyAppRouteConstant.othersAccountPage,
+                                      extra: {'userId': userId},
+                                    );
+                                  },
+                              ),
+                              TextSpan(
+                                text: ' ${coinAmount % 1 == 0 ? coinAmount.toInt() : coinAmount}',
                                   style: Theme.of(context)
                                       .textTheme
                                       .bodyMedium
@@ -692,4 +734,7 @@ class _WalletViewState extends State<WalletView> {
           ],
         ),
       );
+
+  @override
+  bool get wantKeepAlive => true;
 }

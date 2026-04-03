@@ -3,10 +3,12 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:clapmi/Models/brag_model.dart';
+import 'package:clapmi/Models/search/user_search.dart';
 import 'package:clapmi/Uicomponent/DialogsAndBottomSheets/challenge_box.dart';
 import 'package:clapmi/Uicomponent/DialogsAndBottomSheets/post_challenge_notification_list_bottom.dart';
 import 'package:clapmi/core/api/multi_env.dart';
 import 'package:clapmi/core/app_variables.dart';
+import 'package:clapmi/core/di/injector.dart';
 import 'package:clapmi/features/authentication/data/models/logout_model.dart';
 import 'package:clapmi/features/authentication/presentation/blocs/auth_bloc/auth_bloc.dart';
 import 'package:clapmi/features/brag/data/models/post_model.dart';
@@ -25,6 +27,7 @@ import 'package:clapmi/features/post/data/models/post_model.dart';
 import 'package:clapmi/features/post/presentation/blocs/user_bloc/post_bloc.dart';
 import 'package:clapmi/features/post/presentation/blocs/user_bloc/post_event.dart';
 import 'package:clapmi/features/post/presentation/blocs/user_bloc/post_state.dart';
+import 'package:clapmi/features/search/domain/repositories/search_repository.dart';
 import 'package:clapmi/global_object_folder_jacket/global_functions/global_functions.dart';
 import 'package:clapmi/global_object_folder_jacket/global_widgets/fancy_text.dart';
 import 'package:clapmi/global_object_folder_jacket/global_widgets/global_widgets.dart';
@@ -650,6 +653,24 @@ class PostWidget extends StatelessWidget {
     this.postModelItems = const [],
   });
 
+  void _openAuthorQuickProfile(BuildContext context) {
+    final userId = postModel.authorId;
+    if (userId == null || userId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not load user profile.')),
+      );
+      return;
+    }
+
+    showUserQuickProfileModal(
+      context,
+      userPid: userId,
+      initialName: postModel.authorName,
+      initialImageUrl: postModel.authorImage,
+      initialAvatarBytes: postModel.imageAvatar,
+    );
+  }
+
   void _showPostOptionsBottomSheet(
     BuildContext parentContext,
     PostModel postModel,
@@ -985,16 +1006,109 @@ class PostWidget extends StatelessWidget {
   }
 
   // Callback when user clicks on @mention
-  void _onMentionTapped(BuildContext context, String username) {
-    // Remove @ symbol to get clean username
+  Future<void> _onMentionTapped(BuildContext context, String username) async {
     final cleanUsername = username.replaceFirst('@', '');
+    final taggedUserId = await _resolveTaggedUserId(cleanUsername);
+    if (!context.mounted) return;
 
-    print('Clicked on username: $cleanUsername');
+    if (taggedUserId == null || taggedUserId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not load tagged user profile.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
 
-    // context.pushNamed(
-    //   MyAppRouteConstant.othersAccountPage,
-    //   extra: {},
-    // );
+    context.pushNamed(
+      MyAppRouteConstant.othersAccountPage,
+      extra: {'userId': taggedUserId},
+    );
+  }
+
+  Future<String?> _resolveTaggedUserId(String username) async {
+    final normalizedUsername = username.trim().toLowerCase();
+    for (final taggedUser in postModel.taggedUsers ?? const []) {
+      final candidateNames = <String?>[
+        taggedUser['username']?.toString(),
+        taggedUser['name']?.toString().replaceFirst('@', ''),
+        taggedUser['user_name']?.toString(),
+      ].whereType<String>();
+
+      final matchesUsername = candidateNames.any(
+        (value) => value.trim().replaceFirst('@', '').toLowerCase() ==
+            normalizedUsername,
+      );
+
+      if (!matchesUsername) {
+        continue;
+      }
+
+      final candidateIds = <String?>[
+        taggedUser['user']?.toString(),
+        taggedUser['userId']?.toString(),
+        taggedUser['user_id']?.toString(),
+        taggedUser['profile']?.toString(),
+        taggedUser['pid']?.toString(),
+        taggedUser['id']?.toString(),
+      ];
+
+      for (final candidateId in candidateIds) {
+        if (candidateId != null && candidateId.isNotEmpty) {
+          return candidateId;
+        }
+      }
+    }
+
+    for (final tag in postModel.listOfTagDetails ?? const []) {
+      final candidateNames = <String?>[
+        tag['username']?.toString(),
+        tag['name']?.toString().replaceFirst('@', ''),
+        tag['user_name']?.toString(),
+      ].whereType<String>();
+
+      final matchesUsername = candidateNames.any(
+        (value) => value.trim().replaceFirst('@', '').toLowerCase() ==
+            normalizedUsername,
+      );
+
+      if (!matchesUsername) {
+        continue;
+      }
+
+      final candidateIds = <String?>[
+        tag['user']?.toString(),
+        tag['userId']?.toString(),
+        tag['user_id']?.toString(),
+        tag['profile']?.toString(),
+        tag['pid']?.toString(),
+        tag['id']?.toString(),
+      ];
+
+      for (final candidateId in candidateIds) {
+        if (candidateId != null && candidateId.isNotEmpty) {
+          return candidateId;
+        }
+      }
+    }
+
+    final searchResult =
+        await getItInstance<SearchRepository>().searchUsers(normalizedUsername);
+
+    return searchResult.fold(
+      (_) => null,
+      (users) {
+        UserSearch? exactMatch;
+        for (final user in users) {
+          if (user.username.trim().toLowerCase() == normalizedUsername) {
+            exactMatch = user;
+            break;
+          }
+        }
+        return (exactMatch ?? (users.isNotEmpty ? users.first : null))?.pid;
+      },
+    );
   }
 
   // Helper method to strip HTML tags from content
@@ -1108,30 +1222,7 @@ class PostWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     InkWell(
-                      onTap: () {
-                        final userId = postModel.authorId;
-                        print('${profileModelG?.username}');
-                        print('${profileModelG?.email}');
-                        if (userId != null) {
-                          if (profileModelG?.pid == userId) {
-                            context.pushNamed(
-                              MyAppRouteConstant.myAccountPage,
-                            );
-                          } else {
-                            context.pushNamed(
-                              MyAppRouteConstant.othersAccountPage,
-                              extra: {
-                                "userId": userId,
-                              },
-                            );
-                          }
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Could not load user profile.')),
-                          );
-                        }
-                      },
+                      onTap: () => _openAuthorQuickProfile(context),
                       child: postModel.imageAvatar != null
                           ? Container(
                               width: 32.w,
@@ -1186,38 +1277,41 @@ class PostWidget extends StatelessWidget {
                             ),
                     ),
                     const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: 100,
-                          height: 20.h,
-                          child: Text(
-                            postModel.authorName ?? "N/A",
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontFamily: 'Lato',
-                                color: getFigmaColor("FFFFFF"), // Keep WHITE
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600),
+                    InkWell(
+                      onTap: () => _openAuthorQuickProfile(context),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: 100,
+                            height: 20.h,
+                            child: Text(
+                              postModel.authorName ?? "N/A",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontFamily: 'Lato',
+                                  color: getFigmaColor("FFFFFF"),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600),
+                            ),
                           ),
-                        ),
-                        SizedBox(
-                          width: 100,
-                          height: 20.h,
-                          child: Text(
-                            postModel.humanReadableDate ?? "",
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: getFigmaColor("B5B5B5"),
-                                fontFamily: 'Poppins',
-                                fontSize: 10,
-                                fontWeight: FontWeight.w400),
+                          SizedBox(
+                            width: 100,
+                            height: 20.h,
+                            child: Text(
+                              postModel.humanReadableDate ?? "",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: getFigmaColor("B5B5B5"),
+                                  fontFamily: 'Poppins',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w400),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Visibility(
